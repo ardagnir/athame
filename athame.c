@@ -70,6 +70,7 @@ static FILE* athame_outstream = 0;
  //Keep track of if last key was a tab. We need to fake keys between tabpresses or readline completion gets confused.
 static int last_tab;
 static int tab_fix; //We just sent a fake space to help completion work. Now delete it.
+static int after_tab_fix;
 
 static char athame_mode[3];
 static char athame_displaying_mode[3];
@@ -108,6 +109,7 @@ void athame_init(FILE* outstream)
   athame_outstream = outstream ? outstream : stderr;
   last_tab = 0;
   tab_fix = 0;
+  after_tab_fix = 0;
   expr_pid = 0;
   athame_dirty = 0;
   updated = 1;
@@ -821,10 +823,20 @@ char athame_loop(int instream)
     //Delete the space we just sent to get completion working.
     tab_fix = 0;
     updated = 1; //We don't want to override the actual vim change.
+    after_tab_fix = 1;
     return '\b';
   }
 
-  sent_to_vim = 0;
+  if(after_tab_fix)
+  {
+    after_tab_fix = 0;
+    // This is for the key we sent to vim that triggered the tab fix.
+    sent_to_vim = 1;
+  }
+  else
+  {
+    sent_to_vim = 0;
+  }
 
   if(!updated)
   {
