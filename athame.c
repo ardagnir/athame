@@ -139,17 +139,17 @@ void athame_init(FILE* outstream)
     athame_failure = strdup("Athame was disabled on init.");
     return;
   }
+  if (!getenv("DISPLAY"))
+  {
+    athame_set_failure("No X display found.");
+    return;
+  }
   first_char = athame_get_first_char();
   if (first_char && strchr("\n\r", first_char) != 0)
   {
     return;
   }
 
-  if (!getenv("DISPLAY"))
-  {
-    athame_set_failure("No X display found.");
-    return;
-  }
   //Note that this rand() is not seeded.by athame.
   //It only establishes uniqueness within a single process using readline.
   //The pid establishes uniqueness between processes and makes debugging easier.
