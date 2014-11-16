@@ -52,7 +52,7 @@ void athame_init()
     dup2(vim_to_readline[1], STDERR_FILENO);
     close(vim_to_readline[0]);
     close(readline_to_vim[1]);
-    if (execl("/usr/bin/vim", "/usr/bin/vim", "--servername", "athame", "+call Vimbed_SetupVimbed('', '')", NULL)!=0){
+    if (execl("/usr/bin/vim", "/usr/bin/vim", "--servername", "athame", "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", NULL)!=0){
       printf("Error:%d", errno);
     }
   }
