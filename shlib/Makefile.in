@@ -135,7 +135,7 @@ CSOURCES = $(topdir)/readline.c $(topdir)/funmap.c $(topdir)/keymaps.c \
 	   $(topdir)/shell.c $(topdir)/savestring.c $(topdir)/tilde.c \
 	   $(topdir)/text.c $(topdir)/misc.c $(topdir)/compat.c \
 	   $(topdir)/colors.c $(topdir)/parse-colors.c \
-	   $(topdir)/mbutil.c $(topdir)/xfree.c
+	   $(topdir)/mbutil.c $(topdir)/xfree.c $(topdir)/athame.c
 
 # The header files for this library.
 HSOURCES = $(topdir)/readline.h $(topdir)/rldefs.h $(topdir)/chardefs.h \
@@ -145,7 +145,7 @@ HSOURCES = $(topdir)/readline.h $(topdir)/rldefs.h $(topdir)/chardefs.h \
 	   $(topdir)/ansi_stdlib.h $(topdir)/tcap.h $(topdir)/rlstdc.h \
 	   $(topdir)/xmalloc.h $(topdir)/rlprivate.h $(topdir)/rlshell.h \
 	   $(topdir)/rltypedefs.h $(topdir)/rlmbutil.h \
-           $(topdir)/colors.h $(topdir)/parse-colors.h
+           $(topdir)/colors.h $(topdir)/parse-colors.h $(topdir)/athame.h
 
 SHARED_HISTOBJ = history.so histexpand.so histfile.so histsearch.so shell.so \
 		 mbutil.so
@@ -156,7 +156,7 @@ SHARED_OBJ = readline.so vi_mode.so funmap.so keymaps.so parens.so search.so \
 	  util.so kill.so undo.so macro.so input.so callback.so terminal.so \
 	  text.so nls.so misc.so \
 	  $(SHARED_HISTOBJ) $(SHARED_TILDEOBJ) $(SHARED_COLORSOBJ) \
-	  xmalloc.so xfree.so compat.so
+	  xmalloc.so xfree.so compat.so athame.so
 
 ##########################################################################
 
@@ -339,6 +339,8 @@ xfree.so: $(topdir)/ansi_stdlib.h
 xmalloc.so: ${BUILD_DIR}/config.h
 xmalloc.so: $(topdir)/ansi_stdlib.h
 
+readline.so: $(topdir)/athame.h
+
 bind.so: $(topdir)/rlshell.h
 histfile.so: $(topdir)/rlshell.h
 nls.so: $(topdir)/rlshell.h
@@ -425,6 +427,7 @@ vi_mode.so: $(topdir)/rlmbutil.h
 colors.so: $(topdir)/rlmbutil.h
 parse-colors.so: $(topdir)/rlmbutil.h
 
+athame.so: $(topdir)/athame.c
 bind.so: $(topdir)/bind.c
 callback.so: $(topdir)/callback.c
 compat.so: $(topdir)/compat.c
@@ -460,6 +463,7 @@ histfile.so: $(topdir)/histfile.c
 history.so: $(topdir)/history.c
 histsearch.so: $(topdir)/histsearch.c
 
+athame.so: athame.c
 bind.so: bind.c
 callback.so: callback.c
 comapt.so: compat.c

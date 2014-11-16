@@ -67,6 +67,7 @@ extern int errno;
 /* Some standard library routines. */
 #include "readline.h"
 #include "history.h"
+#include "athame.h"
 
 #include "rlprivate.h"
 #include "rlshell.h"
@@ -561,7 +562,9 @@ readline_internal_charloop ()
 	}
 
       RL_SETSTATE(RL_STATE_READCMD);
-      c = rl_read_key ();
+
+//      c = rl_read_key ();
+      c = athame_loop(fileno(rl_instream));
       RL_UNSETSTATE(RL_STATE_READCMD);
 
       /* look at input.c:rl_getc() for the circumstances under which this will
@@ -640,7 +643,9 @@ readline_internal ()
   int eof;
 
   readline_internal_setup ();
+  athame_init();
   eof = readline_internal_charloop ();
+  athame_cleanup();
   return (readline_internal_teardown (eof));
 }
 

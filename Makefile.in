@@ -116,7 +116,7 @@ CSOURCES = $(srcdir)/readline.c $(srcdir)/funmap.c $(srcdir)/keymaps.c \
 	   $(srcdir)/histfile.c $(srcdir)/nls.c $(srcdir)/search.c \
 	   $(srcdir)/shell.c $(srcdir)/savestring.c $(srcdir)/tilde.c \
 	   $(srcdir)/text.c $(srcdir)/misc.c $(srcdir)/compat.c \
-	   $(srcdir)/mbutil.c $(srcdir)/xfree.c
+	   $(srcdir)/mbutil.c $(srcdir)/xfree.c $(srcdir)/athame.c
 
 # The header files for this library.
 HSOURCES = $(srcdir)/readline.h $(srcdir)/rldefs.h $(srcdir)/chardefs.h \
@@ -126,7 +126,7 @@ HSOURCES = $(srcdir)/readline.h $(srcdir)/rldefs.h $(srcdir)/chardefs.h \
 	   $(srcdir)/ansi_stdlib.h $(srcdir)/tcap.h $(srcdir)/rlstdc.h \
 	   $(srcdir)/xmalloc.h $(srcdir)/rlprivate.h $(srcdir)/rlshell.h \
 	   $(srcdir)/rltypedefs.h $(srcdir)/rlmbutil.h \
-	   $(srcdir)/colors.h $(srcdir)/parse-colors.h
+	   $(srcdir)/colors.h $(srcdir)/parse-colors.h $(srcdir)/athame.h
 
 HISTOBJ = history.o histexpand.o histfile.o histsearch.o shell.o mbutil.o
 TILDEOBJ = tilde.o
@@ -149,7 +149,7 @@ CREATED_CONFIGURE = config.status config.h config.cache config.log \
 CREATED_TAGS = TAGS tags
 
 INSTALLED_HEADERS = readline.h chardefs.h keymaps.h history.h tilde.h \
-		    rlstdc.h rlconf.h rltypedefs.h
+		    rlstdc.h rlconf.h rltypedefs.h athame.h
 
 OTHER_DOCS = $(srcdir)/CHANGES $(srcdir)/INSTALL $(srcdir)/README
 OTHER_INSTALLED_DOCS = CHANGES INSTALL README
@@ -391,7 +391,7 @@ parens.o: readline.h keymaps.h rltypedefs.h chardefs.h tilde.h rlstdc.h
 readline.o: readline.h keymaps.h rltypedefs.h chardefs.h tilde.h
 readline.o: rldefs.h ${BUILD_DIR}/config.h rlconf.h
 readline.o: history.h rlstdc.h
-readline.o: posixstat.h ansi_stdlib.h posixjmp.h
+readline.o: posixstat.h ansi_stdlib.h posixjmp.h athame.h
 rltty.o: rldefs.h ${BUILD_DIR}/config.h rlconf.h
 rltty.o: rltty.h
 rltty.o: readline.h keymaps.h rltypedefs.h chardefs.h tilde.h rlstdc.h
@@ -510,6 +510,7 @@ search.o: rlmbutil.h
 text.o: rlmbutil.h
 vi_mode.o: rlmbutil.h
 
+athame.o: $(srcdir)/athame.c
 bind.o: $(srcdir)/bind.c
 callback.o: $(srcdir)/callback.c
 compat.o: $(srcdir)/compat.c
@@ -548,6 +549,7 @@ histfile.o: $(srcdir)/histfile.c
 history.o: $(srcdir)/history.c
 histsearch.o: $(srcdir)/histsearch.c
 
+athame.o: athame.c
 bind.o: bind.c
 callback.o: callback.c
 compat.o: compat.c

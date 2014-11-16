@@ -1,0 +1,6 @@
+*.sw?
+Makefile
+*.so*
+*.o
+*.a
+config.*
