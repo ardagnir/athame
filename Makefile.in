@@ -151,7 +151,7 @@ CREATED_TAGS = TAGS tags
 INSTALLED_HEADERS = readline.h chardefs.h keymaps.h history.h tilde.h \
 		    rlstdc.h rlconf.h rltypedefs.h athame.h
 
-OTHER_DOCS = $(srcdir)/CHANGES $(srcdir)/INSTALL $(srcdir)/README
+OTHER_DOCS = $(srcdir)/CHANGES $(srcdir)/INSTALL $(srcdir)/README.md $(srcdir)/README-readline
 OTHER_INSTALLED_DOCS = CHANGES INSTALL README
 
 ##########################################################################
