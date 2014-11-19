@@ -23,3 +23,5 @@ void athame_get_vim_info();
 char athame_loop(int instream);
 char athame_process_input(int instream);
 void athame_extraVimRead(int timer);
+void athame_update_vim(int col);
+char* athame_get_line_from_vim(int row);
