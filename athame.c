@@ -24,10 +24,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <time.h>
 #include "history.h"
 #include "athame.h"
 #include "readline.h"
 
+#define TIME_AMOUNT 4
 #define DEFAULT_BUFFER_SIZE 1024
 #define MAX(A, B) (((A) > (B)) ? (A) : (B))
 
@@ -79,6 +81,8 @@ void athame_init()
     from_vim = vim_to_readline[0];
     to_vim = readline_to_vim[1];
 
+    athame_sleep(15*TIME_AMOUNT);
+
     athame_update_vim(0);
   }
 }
@@ -89,6 +93,17 @@ void athame_cleanup()
   close(from_vim);
   fclose(dev_null);
   kill(vim_pid);
+}
+
+void athame_sleep(int msec)
+{
+    struct timespec timeout, timeout2;
+    timeout.tv_sec = 0;
+    timeout.tv_nsec = msec * 1000000;
+    while (nanosleep(&timeout, &timeout2)<0)
+    {
+      timeout = timeout2;
+    }
 }
 
 void athame_update_vim(int col)
@@ -105,21 +120,12 @@ void athame_update_vim(int col)
   fclose(contentsFile);
   snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 0)", hs->length+1, col+1, hs->length+1, col+1);
   xfree(hs);
-  int i=0;
-  int j=0;
-  int k=0;
-  for(i=0; i<10000000;i++)
-  {
-    for(k=0; k<100; k++)
-    {
-    //  j+=i*k;
-    }
-  }
+
   int pid = fork();
   if (pid == 0)
   {
     dup2(fileno(dev_null), STDOUT_FILENO);
-    dup2(fileno(dev_null), STDERR_FILENO);
+  //  dup2(fileno(dev_null), STDERR_FILENO);
     execl ("/usr/bin/vim", "/usr/bin/vim", "--servername", "athame", "--remote-expr", athame_buffer, NULL);
     printf("Expr Error:%d", errno);
     exit (EXIT_FAILURE);
@@ -129,7 +135,7 @@ void athame_update_vim(int col)
     //TODO: error handling
     perror("ERROR! Couldn't run vim remote-expr!");
   }
-  //snprintf(athame_buffer, 10, "%d", j);
+  athame_sleep(15*TIME_AMOUNT);
 }
 
 char athame_loop(int instream)
@@ -149,7 +155,7 @@ char athame_loop(int instream)
     if (results>0)
     {
       if(FD_ISSET(from_vim, &files)){
-        athame_get_vim_info();
+        athame_get_vim_info(3);
       }
       if(FD_ISSET(instream, &files)){
         returnVal = athame_process_input(instream);
@@ -160,23 +166,29 @@ char athame_loop(int instream)
   return returnVal;
 }
 
+//Timer is the number of milliseconds that we will wait if there is NO input
 void athame_extraVimRead(int timer)
 {
     fd_set files;
     FD_ZERO(&files);
     FD_SET(from_vim, &files);
     int results;
-    int sanity = 100;
     struct timeval timeout;
     timeout.tv_sec = 0;
-    timeout.tv_usec = timer * 1000;
+    timeout.tv_usec = timer * 500;
     do
     {
+      athame_sleep(timer/2);
       results = select(from_vim + 1, &files, NULL, NULL, &timeout);
       if (results > 0)
-        athame_get_vim_info();
-      if (timeout.tv_usec>0){
-        timeout.tv_usec -= 10;
+        athame_get_vim_info(3);
+      if (timeout.tv_usec > 5000)
+      {
+        timeout.tv_usec -= 5000; //Sanity check. We can't go on for ever.
+      }
+      else
+      {
+        break;
       }
     } while (results > 0);
     rl_redisplay();
@@ -189,13 +201,25 @@ char athame_process_input(int instream)
   if (chars_read == 1)
   {
     key_sent = 1;
-    if(result == '\r' && strcmp(athame_mode, "c") != 0 || result == '\t' || result == 'z' || result == '\177' && strcmp(athame_mode, "i") == 0)
+    if((result == '\r' || result == '\t') && strcmp(athame_mode, "c") != 0 )
     {
       return result;
     }
     else
     {
+      //Backspace
       if (result == '\177'){
+        //Give time to sync up with vim. This is more important near rl_point==0 because the fastest way to send backspaces is to hold down the backspace key.
+        switch(rl_point){
+          case 1:
+            athame_extraVimRead(20 * TIME_AMOUNT);
+          case 2:
+            athame_extraVimRead(10 * TIME_AMOUNT);
+          default:
+            athame_extraVimRead(5 * TIME_AMOUNT);
+        }
+        if (rl_point == 0) //Don't let vim delete into previous line. It's annoying.
+          return 0;
         result = '\b';
       }
       athame_send_to_vim(result);
@@ -213,7 +237,7 @@ void athame_send_to_vim(char input)
   write(to_vim, &input, 1);
 }
 
-void athame_get_vim_info()
+void athame_get_vim_info(int attempts)
 {
   ssize_t bytes_read;
   read(from_vim, athame_buffer, DEFAULT_BUFFER_SIZE-1);
@@ -243,18 +267,26 @@ void athame_get_vim_info()
           strcpy(rl_line_buffer, line_text);
           rl_end = strlen(line_text);
           rl_point = col;
+          //Success
+          return;
         }
         else
         {
           rl_end = 0;
           rl_point = 0;
         }
-
-        return;
       }
     }
   }
-  //printf("failure");
+
+  if (attempts == 1)
+  {
+    return;
+  }
+  else
+  {
+    athame_get_vim_info(attempts-1);
+  }
 }
 
 char* athame_get_line_from_vim(int row)
