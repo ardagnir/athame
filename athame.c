@@ -41,6 +41,7 @@ int from_vim;
 int to_vim;
 FILE* dev_null;
 int key_sent;
+int athame_row;
 
 char athame_mode[3] = {'n', '\0', '\0'};
 
@@ -118,6 +119,7 @@ void athame_update_vim(int col)
   }
   fwrite("\n", 1, 1, contentsFile);
   fclose(contentsFile);
+  athame_row = hs->length;
   snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 0)", hs->length+1, col+1, hs->length+1, col+1);
   xfree(hs);
 
@@ -138,6 +140,24 @@ void athame_update_vim(int col)
   athame_sleep(15*TIME_AMOUNT);
 }
 
+void athame_poll_vim()
+{
+  int pid = fork();
+  if (pid == 0)
+  {
+    dup2(fileno(dev_null), STDOUT_FILENO);
+  //  dup2(fileno(dev_null), STDERR_FILENO);
+    execl ("/usr/bin/vim", "/usr/bin/vim", "--servername", "athame", "--remote-expr", "Vimbed_Poll()", NULL);
+    printf("Expr Error:%d", errno);
+    exit (EXIT_FAILURE);
+  }
+  else if (pid == -1)
+  {
+    //TODO: error handling
+    perror("ERROR! Couldn't run vim remote-expr!");
+  }
+}
+
 char athame_loop(int instream)
 {
   char returnVal = 0;
@@ -155,7 +175,7 @@ char athame_loop(int instream)
     if (results>0)
     {
       if(FD_ISSET(from_vim, &files)){
-        athame_get_vim_info(3);
+        athame_get_vim_info();
       }
       if(FD_ISSET(instream, &files)){
         returnVal = athame_process_input(instream);
@@ -181,7 +201,7 @@ void athame_extraVimRead(int timer)
       athame_sleep(timer/2);
       results = select(from_vim + 1, &files, NULL, NULL, &timeout);
       if (results > 0)
-        athame_get_vim_info(3);
+        athame_get_vim_info();
       if (timeout.tv_usec > 5000)
       {
         timeout.tv_usec -= 5000; //Sanity check. We can't go on for ever.
@@ -226,7 +246,16 @@ void athame_send_to_vim(char input)
   write(to_vim, &input, 1);
 }
 
-void athame_get_vim_info(int attempts)
+void athame_get_vim_info(){
+  if (!athame_get_vim_info_inner(3,0))
+  {
+    athame_poll_vim();
+    athame_sleep(15*TIME_AMOUNT);
+    athame_get_vim_info_inner(3,1);
+  }
+}
+
+int athame_get_vim_info_inner(int attempts, int changed)
 {
   ssize_t bytes_read;
   read(from_vim, athame_buffer, DEFAULT_BUFFER_SIZE-1);
@@ -240,6 +269,17 @@ void athame_get_vim_info(int attempts)
   if(mode)
   {
     strncpy(athame_mode, mode, 3);
+    if (strcmp(athame_mode, "c") == 0)
+    {
+      char* command = strtok(NULL, "\n");
+      if (command)
+      {
+        strcpy(rl_line_buffer, command);
+        rl_end = strlen(command);
+        rl_point = rl_end;
+      }
+      return 0;
+    }
     char* location = strtok(NULL, "\n");
     if(location)
     {
@@ -249,15 +289,29 @@ void athame_get_vim_info(int attempts)
         int col = atoi(strtok(NULL, ","));
         int row = atoi(strtok(NULL, ","));
 
+        if(athame_row != row)
+        {
+          athame_row = row;
+          changed = 1;
+        }
+
         char* line_text = athame_get_line_from_vim(row);
 
         if (line_text)
         {
-          strcpy(rl_line_buffer, line_text);
+          if(strcmp(rl_line_buffer, line_text) != 0)
+          {
+            changed = 1;
+            strcpy(rl_line_buffer, line_text);
+          }
           rl_end = strlen(line_text);
-          rl_point = col;
+          if(rl_point != col)
+          {
+            rl_point = col;
+            changed = 1;
+          }
           //Success
-          return;
+          return changed;
         }
         else
         {
@@ -268,13 +322,13 @@ void athame_get_vim_info(int attempts)
     }
   }
 
-  if (attempts == 1)
+  if (attempts <= 1)
   {
-    return;
+    return 0;
   }
   else
   {
-    athame_get_vim_info(attempts-1);
+    return athame_get_vim_info_inner(attempts-1, changed);
   }
 }
 
