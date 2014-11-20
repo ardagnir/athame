@@ -209,17 +209,6 @@ char athame_process_input(int instream)
     {
       //Backspace
       if (result == '\177'){
-        //Give time to sync up with vim. This is more important near rl_point==0 because the fastest way to send backspaces is to hold down the backspace key.
-        switch(rl_point){
-          case 1:
-            athame_extraVimRead(20 * TIME_AMOUNT);
-          case 2:
-            athame_extraVimRead(10 * TIME_AMOUNT);
-          default:
-            athame_extraVimRead(5 * TIME_AMOUNT);
-        }
-        if (rl_point == 0) //Don't let vim delete into previous line. It's annoying.
-          return 0;
         result = '\b';
       }
       athame_send_to_vim(result);
