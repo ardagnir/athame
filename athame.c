@@ -40,8 +40,8 @@ int readline_to_vim[2];
 int from_vim;
 int to_vim;
 FILE* dev_null;
-int key_sent;
 int athame_row;
+int updated;
 
 char athame_mode[3] = {'n', '\0', '\0'};
 
@@ -50,7 +50,6 @@ int error;
 void athame_init()
 {
   dev_null = fopen("/dev/null", "w");
-  key_sent = 0;
   pipe(vim_to_readline);
   pipe(readline_to_vim);
   int pid = fork();
@@ -137,6 +136,49 @@ void athame_update_vim(int col)
     //TODO: error handling
     perror("ERROR! Couldn't run vim remote-expr!");
   }
+  updated = 1;
+  athame_sleep(15*TIME_AMOUNT);
+}
+
+void athame_update_vimline(int row, int col)
+{
+  FILE* contentsFile = fopen("/tmp/vimbed/athame/contents.txt", "r");
+  FILE* tempFile = fopen("/tmp/vimbed/athame/temp.txt", "w+");
+
+  int reading_row = 0;
+  while (fgets(athame_buffer, DEFAULT_BUFFER_SIZE, contentsFile))
+  {
+    if(row != reading_row)
+    {
+      fwrite(athame_buffer, 1, strlen(athame_buffer), tempFile);
+    }
+    else
+    {
+      fwrite(rl_line_buffer, 1, rl_end, tempFile);
+      fwrite("\n", 1, 1, tempFile);
+    }
+    reading_row++;
+  }
+  fclose(contentsFile);
+  fclose(tempFile);
+  rename("/tmp/vimbed/athame/temp.txt", "/tmp/vimbed/athame/contents.txt");
+  snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 0)", row+1, col+1, row+1, col+1);
+
+  int pid = fork();
+  if (pid == 0)
+  {
+    dup2(fileno(dev_null), STDOUT_FILENO);
+  //  dup2(fileno(dev_null), STDERR_FILENO);
+    execl ("/usr/bin/vim", "/usr/bin/vim", "--servername", "athame", "--remote-expr", athame_buffer, NULL);
+    printf("Expr Error:%d", errno);
+    exit (EXIT_FAILURE);
+  }
+  else if (pid == -1)
+  {
+    //TODO: error handling
+    perror("ERROR! Couldn't run vim remote-expr!");
+  }
+  updated = 1;
   athame_sleep(15*TIME_AMOUNT);
 }
 
@@ -161,16 +203,19 @@ void athame_poll_vim()
 char athame_loop(int instream)
 {
   char returnVal = 0;
+
+  if(!updated)
+  {
+    athame_update_vimline(athame_row, rl_point);
+  }
+
   while(!returnVal)
   {
     fd_set files;
     FD_ZERO(&files);
     FD_SET(instream, &files);
     FD_SET(from_vim, &files);
-    if (key_sent)
-    {
-      rl_redisplay();
-    }
+    rl_redisplay();
     int results = select(MAX(from_vim, instream)+1, &files, NULL, NULL, NULL);
     if (results>0)
     {
@@ -183,6 +228,7 @@ char athame_loop(int instream)
     }
   }
   athame_extraVimRead(100);
+  updated = 0;
   return returnVal;
 }
 
@@ -220,7 +266,6 @@ char athame_process_input(int instream)
   int chars_read = read(instream, &result, 1);
   if (chars_read == 1)
   {
-    key_sent = 1;
     if((result == '\r' || result == '\t') && strcmp(athame_mode, "c") != 0 )
     {
       return result;
