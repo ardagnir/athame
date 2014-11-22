@@ -53,7 +53,7 @@ char servername[16];
 
 char athame_mode[3] = {'n', '\0', '\0'};
 
-int error;
+int athame_failed;
 
 void athame_init()
 {
@@ -63,6 +63,8 @@ void athame_init()
   snprintf(meta_file_name, 48, "%s/meta.txt", dir_name);
   snprintf(messages_file_name, 48, "%s/messages.txt", dir_name);
   snprintf(temp_file_name, 48, "%s/temp.txt", dir_name);
+
+  athame_failed = 0;
 
   mkdir(dir_name, S_IRWXU);
 
@@ -79,7 +81,7 @@ void athame_init()
     close(readline_to_vim[1]);
     if (execl("/usr/bin/vim", "/usr/bin/vim", "--servername", servername, "-S", "~/.athamerc", "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", NULL)!=0)
     {
-      printf("Error:%d", errno);
+      printf("Error: %d", errno);
       close(vim_to_readline[1]);
       close(readline_to_vim[0]);
       exit(EXIT_FAILURE);
@@ -97,8 +99,6 @@ void athame_init()
     vim_pid = pid;
     from_vim = vim_to_readline[0];
     to_vim = readline_to_vim[1];
-
-    athame_sleep(15*TIME_AMOUNT);
 
     athame_update_vim(0);
   }
@@ -130,6 +130,33 @@ void athame_sleep(int msec)
 
 void athame_update_vim(int col)
 {
+  struct timespec timeout;
+  timeout.tv_sec = 1;
+  timeout.tv_nsec = 0;
+  fd_set files;
+  FD_ZERO(&files);
+  FD_SET(from_vim, &files);
+  sigset_t block_signals;
+  sigfillset(&block_signals);
+  //Wait for vim to start up
+  int results = pselect(from_vim + 1, &files, NULL, NULL, &timeout, &block_signals);
+
+  athame_sleep(5); //We get text from vim before it sets up its server.
+
+  if (results <= 0)
+  {
+    athame_failed = 1;
+  }
+
+  if (!athame_failed)
+  {
+    read(from_vim, athame_buffer, 5);
+    athame_buffer[5] = 0;
+    if(strcmp(athame_buffer, "Error") == 0)
+    {
+      athame_failed = 1;
+    }
+  }
   FILE* contentsFile = fopen(contents_file_name, "w+");
   HISTORY_STATE* hs = history_get_history_state();
   int counter;
@@ -144,22 +171,25 @@ void athame_update_vim(int col)
   snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 0)", hs->length+1, col+1, hs->length+1, col+1);
   xfree(hs);
 
-  int pid = fork();
-  if (pid == 0)
+  if(!athame_failed)
   {
-    dup2(fileno(dev_null), STDOUT_FILENO);
-  //  dup2(fileno(dev_null), STDERR_FILENO);
-    execl ("/usr/bin/vim", "/usr/bin/vim", "--servername", servername, "--remote-expr", athame_buffer, NULL);
-    printf("Expr Error:%d", errno);
-    exit (EXIT_FAILURE);
+    int pid = fork();
+    if (pid == 0)
+    {
+      dup2(fileno(dev_null), STDOUT_FILENO);
+    //  dup2(fileno(dev_null), STDERR_FILENO);
+      execl ("/usr/bin/vim", "/usr/bin/vim", "--servername", servername, "--remote-expr", athame_buffer, NULL);
+      printf("Expr Error:%d", errno);
+      exit (EXIT_FAILURE);
+    }
+    else if (pid == -1)
+    {
+      //TODO: error handling
+      perror("ERROR! Couldn't run vim remote-expr!");
+    }
+    updated = 1;
+    athame_sleep(20*TIME_AMOUNT);
   }
-  else if (pid == -1)
-  {
-    //TODO: error handling
-    perror("ERROR! Couldn't run vim remote-expr!");
-  }
-  updated = 1;
-  athame_sleep(20*TIME_AMOUNT);
 }
 
 void athame_update_vimline(int row, int col)
@@ -226,7 +256,7 @@ char athame_loop(int instream)
 {
   char returnVal = 0;
 
-  if(!updated)
+  if(!updated && !athame_failed)
   {
     athame_update_vimline(athame_row, rl_point);
   }
@@ -288,7 +318,7 @@ char athame_process_input(int instream)
   int chars_read = read(instream, &result, 1);
   if (chars_read == 1)
   {
-    if((result == '\r' || result == '\t') && strcmp(athame_mode, "c") != 0 )
+    if(athame_failed || ((result == '\r' || result == '\t') && strcmp(athame_mode, "c") != 0 ))
     {
       return result;
     }
@@ -326,8 +356,17 @@ int athame_get_vim_info_inner(int attempts, int changed)
 {
   ssize_t bytes_read;
   read(from_vim, athame_buffer, DEFAULT_BUFFER_SIZE-1);
+  if(athame_failed)
+  {
+    return 1;
+  }
 
   FILE* metaFile = fopen(meta_file_name, "r+"); //Change to r
+  if (!metaFile)
+  {
+    athame_failed = 1;
+    return 1;
+  }
   bytes_read = fread(athame_buffer, 1, DEFAULT_BUFFER_SIZE-1, metaFile);
   fclose(metaFile);
 
