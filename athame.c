@@ -19,6 +19,8 @@
 */
 
 #include <sys/select.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,6 +44,12 @@ int to_vim;
 FILE* dev_null;
 int athame_row;
 int updated;
+char contents_file_name[48];
+char meta_file_name[48];
+char messages_file_name[48];
+char temp_file_name[48];
+char dir_name[32];
+char servername[16];
 
 char athame_mode[3] = {'n', '\0', '\0'};
 
@@ -49,6 +57,15 @@ int error;
 
 void athame_init()
 {
+  snprintf(servername, 16, "athame_%d", getpid());
+  snprintf(dir_name, 48, "/tmp/vimbed/%s", servername);
+  snprintf(contents_file_name, 48, "%s/contents.txt", dir_name);
+  snprintf(meta_file_name, 48, "%s/meta.txt", dir_name);
+  snprintf(messages_file_name, 48, "%s/messages.txt", dir_name);
+  snprintf(temp_file_name, 48, "%s/temp.txt", dir_name);
+
+  mkdir(dir_name, S_IRWXU);
+
   dev_null = fopen("/dev/null", "w");
   pipe(vim_to_readline);
   pipe(readline_to_vim);
@@ -60,7 +77,7 @@ void athame_init()
     dup2(vim_to_readline[1], STDERR_FILENO);
     close(vim_to_readline[0]);
     close(readline_to_vim[1]);
-    if (execl("/usr/bin/vim", "/usr/bin/vim", "--servername", "athame", "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", NULL)!=0)
+    if (execl("/usr/bin/vim", "/usr/bin/vim", "--servername", servername, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", NULL)!=0)
     {
       printf("Error:%d", errno);
       close(vim_to_readline[1]);
@@ -93,6 +110,11 @@ void athame_cleanup()
   close(from_vim);
   fclose(dev_null);
   kill(vim_pid);
+  unlink(contents_file_name);
+  unlink(meta_file_name);
+  unlink(messages_file_name);
+  unlink(temp_file_name);
+  rmdir(dir_name);
 }
 
 void athame_sleep(int msec)
@@ -108,7 +130,7 @@ void athame_sleep(int msec)
 
 void athame_update_vim(int col)
 {
-  FILE* contentsFile = fopen("/tmp/vimbed/athame/contents.txt", "w+");
+  FILE* contentsFile = fopen(contents_file_name, "w+");
   HISTORY_STATE* hs = history_get_history_state();
   int counter;
   for(counter; counter < hs->length; counter++)
@@ -127,7 +149,7 @@ void athame_update_vim(int col)
   {
     dup2(fileno(dev_null), STDOUT_FILENO);
   //  dup2(fileno(dev_null), STDERR_FILENO);
-    execl ("/usr/bin/vim", "/usr/bin/vim", "--servername", "athame", "--remote-expr", athame_buffer, NULL);
+    execl ("/usr/bin/vim", "/usr/bin/vim", "--servername", servername, "--remote-expr", athame_buffer, NULL);
     printf("Expr Error:%d", errno);
     exit (EXIT_FAILURE);
   }
@@ -137,13 +159,13 @@ void athame_update_vim(int col)
     perror("ERROR! Couldn't run vim remote-expr!");
   }
   updated = 1;
-  athame_sleep(15*TIME_AMOUNT);
+  athame_sleep(20*TIME_AMOUNT);
 }
 
 void athame_update_vimline(int row, int col)
 {
-  FILE* contentsFile = fopen("/tmp/vimbed/athame/contents.txt", "r");
-  FILE* tempFile = fopen("/tmp/vimbed/athame/temp.txt", "w+");
+  FILE* contentsFile = fopen(contents_file_name, "r");
+  FILE* tempFile = fopen(temp_file_name, "w+");
 
   int reading_row = 0;
   while (fgets(athame_buffer, DEFAULT_BUFFER_SIZE, contentsFile))
@@ -161,7 +183,7 @@ void athame_update_vimline(int row, int col)
   }
   fclose(contentsFile);
   fclose(tempFile);
-  rename("/tmp/vimbed/athame/temp.txt", "/tmp/vimbed/athame/contents.txt");
+  rename(temp_file_name, contents_file_name);
   snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 0)", row+1, col+1, row+1, col+1);
 
   int pid = fork();
@@ -169,7 +191,7 @@ void athame_update_vimline(int row, int col)
   {
     dup2(fileno(dev_null), STDOUT_FILENO);
   //  dup2(fileno(dev_null), STDERR_FILENO);
-    execl ("/usr/bin/vim", "/usr/bin/vim", "--servername", "athame", "--remote-expr", athame_buffer, NULL);
+    execl ("/usr/bin/vim", "/usr/bin/vim", "--servername", servername, "--remote-expr", athame_buffer, NULL);
     printf("Expr Error:%d", errno);
     exit (EXIT_FAILURE);
   }
@@ -189,7 +211,7 @@ void athame_poll_vim()
   {
     dup2(fileno(dev_null), STDOUT_FILENO);
   //  dup2(fileno(dev_null), STDERR_FILENO);
-    execl ("/usr/bin/vim", "/usr/bin/vim", "--servername", "athame", "--remote-expr", "Vimbed_Poll()", NULL);
+    execl ("/usr/bin/vim", "/usr/bin/vim", "--servername", servername, "--remote-expr", "Vimbed_Poll()", NULL);
     printf("Expr Error:%d", errno);
     exit (EXIT_FAILURE);
   }
@@ -305,7 +327,7 @@ int athame_get_vim_info_inner(int attempts, int changed)
   ssize_t bytes_read;
   read(from_vim, athame_buffer, DEFAULT_BUFFER_SIZE-1);
 
-  FILE* metaFile = fopen("/tmp/vimbed/athame/meta.txt", "r+"); //Change to r
+  FILE* metaFile = fopen(meta_file_name, "r+"); //Change to r
   bytes_read = fread(athame_buffer, 1, DEFAULT_BUFFER_SIZE-1, metaFile);
   fclose(metaFile);
 
@@ -379,7 +401,7 @@ int athame_get_vim_info_inner(int attempts, int changed)
 
 char* athame_get_line_from_vim(int row)
 {
-  FILE* contentsFile = fopen("/tmp/vimbed/athame/contents.txt", "r");
+  FILE* contentsFile = fopen(contents_file_name, "r");
   int bytes_read = fread(athame_buffer, 1, DEFAULT_BUFFER_SIZE-1, contentsFile);
   athame_buffer[bytes_read] = 0;
 
