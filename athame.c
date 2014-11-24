@@ -252,6 +252,14 @@ void athame_poll_vim()
   }
 }
 
+char athame_bottom_display(char* string)
+{
+  rl_save_prompt();
+  sprintf(athame_buffer, "\n\e[A\e[s\e[999E\e[K%s\e[u", string);
+  rl_message(athame_buffer);
+  rl_restore_prompt();
+}
+
 char athame_loop(int instream)
 {
   char returnVal = 0;
@@ -260,6 +268,11 @@ char athame_loop(int instream)
   {
     athame_update_vimline(athame_row, rl_point);
   }
+  else
+  {
+    rl_redisplay();
+  }
+
 
   while(!returnVal)
   {
@@ -267,7 +280,16 @@ char athame_loop(int instream)
     FD_ZERO(&files);
     FD_SET(instream, &files);
     FD_SET(from_vim, &files);
+
+    if (strcmp(athame_mode, "i") == 0){
+      athame_bottom_display("--INSERT--");
+    }
+    else{
+      athame_bottom_display("");
+    }
+
     rl_redisplay();
+
     int results = select(MAX(from_vim, instream)+1, &files, NULL, NULL, NULL);
     if (results>0)
     {
