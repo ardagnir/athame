@@ -257,7 +257,7 @@ void athame_poll_vim()
 char athame_bottom_display(char* string)
 {
   rl_save_prompt();
-  sprintf(athame_buffer, "\n\e[A\e[s\e[999E\e[K%s\e[u", string);
+  sprintf(athame_buffer, "\n\e[A\e[s\e[999E\e[K\e[1m%s\e[0m\e[u", string);
   rl_message(athame_buffer);
   rl_restore_prompt();
 }
