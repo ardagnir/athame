@@ -52,6 +52,7 @@ char dir_name[32];
 char servername[16];
 
 char athame_mode[3] = {'n', '\0', '\0'};
+char athame_displaying_mode[3] = {'n', '\0', '\0'};
 
 int athame_failed;
 
@@ -282,11 +283,14 @@ char athame_loop(int instream)
     FD_SET(instream, &files);
     FD_SET(from_vim, &files);
 
-    if (strcmp(athame_mode, "i") == 0){
-      athame_bottom_display("--INSERT--");
-    }
-    else{
-      athame_bottom_display("");
+    if (strcmp(athame_mode, athame_displaying_mode)!=0) {
+      strcpy(athame_displaying_mode, athame_mode);
+      if (strcmp(athame_mode, "i") == 0){
+          athame_bottom_display("--INSERT--");
+      }
+      else{
+        athame_bottom_display("");
+      }
     }
 
     rl_redisplay();
