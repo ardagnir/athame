@@ -100,7 +100,7 @@ void athame_init()
     from_vim = vim_to_readline[0];
     to_vim = readline_to_vim[1];
 
-    athame_update_vim(0);
+    athame_failed = athame_update_vim(0);
   }
 }
 
@@ -128,8 +128,9 @@ void athame_sleep(int msec)
     }
 }
 
-void athame_update_vim(int col)
+int athame_update_vim(int col)
 {
+  int failure = 1;
   struct timespec timeout;
   timeout.tv_sec = 1;
   timeout.tv_nsec = 0;
@@ -145,19 +146,22 @@ void athame_update_vim(int col)
 
   if (results <= 0)
   {
-    athame_failed = 1;
+    return failure;
   }
 
-  if (!athame_failed)
+  read(from_vim, athame_buffer, 5);
+  athame_buffer[5] = 0;
+  if(strcmp(athame_buffer, "Error") == 0)
   {
-    read(from_vim, athame_buffer, 5);
-    athame_buffer[5] = 0;
-    if(strcmp(athame_buffer, "Error") == 0)
-    {
-      athame_failed = 1;
-    }
+    return failure;
   }
+
   FILE* contentsFile = fopen(contents_file_name, "w+");
+
+  if(!contentsFile){
+    return failure;
+  }
+
   HISTORY_STATE* hs = history_get_history_state();
   int counter;
   for(counter; counter < hs->length; counter++)
@@ -171,25 +175,22 @@ void athame_update_vim(int col)
   snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 0)", hs->length+1, col+1, hs->length+1, col+1);
   xfree(hs);
 
-  if(!athame_failed)
+  int pid = fork();
+  if (pid == 0)
   {
-    int pid = fork();
-    if (pid == 0)
-    {
-      dup2(fileno(dev_null), STDOUT_FILENO);
-    //  dup2(fileno(dev_null), STDERR_FILENO);
-      execl ("/usr/bin/vim", "/usr/bin/vim", "--servername", servername, "--remote-expr", athame_buffer, NULL);
-      printf("Expr Error:%d", errno);
-      exit (EXIT_FAILURE);
-    }
-    else if (pid == -1)
-    {
-      //TODO: error handling
-      perror("ERROR! Couldn't run vim remote-expr!");
-    }
-    updated = 1;
-    athame_sleep(20*TIME_AMOUNT);
+    dup2(fileno(dev_null), STDOUT_FILENO);
+  //  dup2(fileno(dev_null), STDERR_FILENO);
+    execl ("/usr/bin/vim", "/usr/bin/vim", "--servername", servername, "--remote-expr", athame_buffer, NULL);
+    printf("Expr Error:%d", errno);
+    exit (EXIT_FAILURE);
   }
+  else if (pid == -1)
+  {
+    //TODO: error handling
+    perror("ERROR! Couldn't run vim remote-expr!");
+  }
+  updated = 1;
+  athame_sleep(20*TIME_AMOUNT);
 }
 
 void athame_update_vimline(int row, int col)
