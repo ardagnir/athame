@@ -365,12 +365,11 @@ void athame_send_to_vim(char input)
   write(to_vim, &input, 1);
 }
 
-void athame_get_vim_info(){
+void athame_get_vim_info()
+{
   if (!athame_get_vim_info_inner(3,0))
   {
     athame_poll_vim();
-    athame_sleep(15*TIME_AMOUNT);
-    athame_get_vim_info_inner(3,1);
   }
 }
 
