@@ -57,6 +57,7 @@ int tab_fix = 0; //We just sent a fake space to help completion work. Now delete
 
 char athame_mode[3] = {'n', '\0', '\0'};
 char athame_displaying_mode[3] = {'n', '\0', '\0'};
+int end_col; //For visual mode
 
 int athame_failed;
 
@@ -258,12 +259,39 @@ void athame_poll_vim()
   }
 }
 
-char athame_bottom_display(char* string)
+void athame_bottom_display(char* string)
 {
-  rl_save_prompt();
-  sprintf(athame_buffer, "\n\e[A\e[s\e[999E\e[K\e[1m%s\e[0m\e[u", string);
-  rl_message(athame_buffer);
-  rl_restore_prompt();
+    printf("\n\e[A\e[s\e[999E\e[K\e[1m%s\e[0m\e[u", string);
+    fflush(stdout);
+    rl_forced_update_display();
+}
+
+void athame_redisplay()
+{
+  if (strcmp(athame_mode, "v") == 0)
+  {
+    athame_highlight(rl_point, end_col);
+  }
+  else
+  {
+    rl_redisplay();
+  }
+}
+
+int athame_highlight(int start, int end)
+{
+  if (end <= start || end > rl_end)
+  {
+    return -1;
+  }
+
+  char highlighted[DEFAULT_BUFFER_SIZE];
+  strncpy(highlighted, rl_line_buffer + start, end-start - 1); //The cursor takes up the last highlight space
+  highlighted[end - start - 1] = '\0';
+  printf("\e[A\n");
+  rl_forced_update_display();
+  printf("\e[99D\e[%dC\e[7m%s\e[0m\e", strlen(rl_prompt) + start, highlighted);
+  fflush(stdout);
 }
 
 char athame_loop(int instream)
@@ -284,7 +312,7 @@ char athame_loop(int instream)
   }
   else
   {
-    rl_redisplay();
+    athame_redisplay();
   }
 
 
@@ -295,17 +323,35 @@ char athame_loop(int instream)
     FD_SET(instream, &files);
     FD_SET(from_vim, &files);
 
-    if (strcmp(athame_mode, athame_displaying_mode)!=0) {
+    if (strcmp(athame_mode, athame_displaying_mode) != 0) {
       strcpy(athame_displaying_mode, athame_mode);
-      if (strcmp(athame_mode, "i") == 0){
-          athame_bottom_display("--INSERT--");
+      if (strcmp(athame_mode, "i") == 0)
+      {
+        athame_bottom_display("--INSERT--");
       }
-      else{
+      else if (strcmp(athame_mode, "v") == 0)
+      {
+        athame_bottom_display("--VISUAL--");
+      }
+      else if (strcmp(athame_mode, "V") == 0)
+      {
+        athame_bottom_display("--VISUAL LINE--");
+      }
+      else if (strcmp(athame_mode, "s") == 0)
+      {
+        athame_bottom_display("--SELECT--");
+      }
+      else if (strcmp(athame_mode, "R") == 0)
+      {
+        athame_bottom_display("--REPLACE--");
+      }
+      else
+      {
         athame_bottom_display("");
       }
     }
 
-    rl_redisplay();
+    athame_redisplay();
 
     int results = select(MAX(from_vim, instream)+1, &files, NULL, NULL, NULL);
     if (results>0)
@@ -348,7 +394,7 @@ void athame_extraVimRead(int timer)
         break;
       }
     } while (results > 0);
-    rl_redisplay();
+    athame_redisplay();
 }
 
 char athame_process_input(int instream)
@@ -434,11 +480,16 @@ int athame_get_vim_info_inner(int attempts, int changed)
     char* location = strtok(NULL, "\n");
     if(location)
     {
+      char* location2 = strtok(NULL, "\n");
       if(strtok(location, ","))
       {
         //TODO: better function
         int col = atoi(strtok(NULL, ","));
         int row = atoi(strtok(NULL, ","));
+
+        if(location2 && strtok(location2, ",")) {
+          end_col = atoi(strtok(NULL, ","));
+        }
 
         if(athame_row != row)
         {

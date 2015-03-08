@@ -1,7 +1,13 @@
 Athame
 ======
 
-Athame is a patchset for readline to add full vim support by routing your keystrokes through an actual vim process. It is currently proof-of-concept and might seriously break your computer.
+Athame is a patchset for readline to add full vim support by routing your keystrokes through an actual vim process.
+
+*Doesn't readline already come with a vi-mode?*
+
+Yes, and if you're fine with a basic vi imitation designed by a bunch of Emacs users, feel free to use it. ...but for the crazy Vim fanatics who sacrifice goats to the modal gods, Athame gives you the full power of Vim.
+
+**Athame is not stable. Do not use this on a production system.**
 
 
 ##Requirements
@@ -21,7 +27,7 @@ Athame is a patchset for readline to add full vim support by routing your keystr
     ./configure
     make
 
-**Step 4:** You can now install, but **remember that athame isn't fully functional and will break things, including bash**:
+**Step 4:** You can now install, but **remember that athame might break things, including bash**:
 
     sudo make install
 
