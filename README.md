@@ -31,6 +31,15 @@ Yes, and if you're fine with a basic vi imitation designed by a bunch of Emacs u
 
     sudo make install
 
+**Step 5:** Add an athamerc. Athame's vim sources this in addition to your vimrc. At the minimum, you should probably have the following, since allowing backspace to cross lineborders is annoying in a shell:
+
+    echo "set backspace-=eol" > ~/.athamerc
+
+##How to Use
+Athame stores your vim history in a vim buffer with an empty line at the bottom and displays the cursor's current line. Every key you type is sent to vim and operates on this buffer. This allows you to use j/k/arrows to transverse history. Since this is vim, you can use ? to search back and / to search forwards. The buffer is rebuilt from your new history after each command, so don't worry about destructive commands.
+
+Unless you are using the vim commandline(:,/,?), tabs and carriage returns are carried out by standard readline code.
+
 ##Licesnse
 
 GPL v3
