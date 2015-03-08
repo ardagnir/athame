@@ -51,6 +51,10 @@ char temp_file_name[48];
 char dir_name[32];
 char servername[16];
 
+ //Keep track of if last key was a tab. We need to fake keys between tabpresses or readline completion gets confused.
+int last_tab = 0;
+int tab_fix = 0; //We just sent a fake space to help completion work. Now delete it.
+
 char athame_mode[3] = {'n', '\0', '\0'};
 char athame_displaying_mode[3] = {'n', '\0', '\0'};
 
@@ -266,6 +270,14 @@ char athame_loop(int instream)
 {
   char returnVal = 0;
 
+  if(tab_fix)
+  {
+    //Delete the space we just sent to get completion working.
+    tab_fix = 0;
+    updated = 1; //We don't want to override the actual vim change.
+    return '\b';
+  }
+
   if(!updated && !athame_failed)
   {
     athame_update_vimline(athame_row, rl_point);
@@ -347,6 +359,7 @@ char athame_process_input(int instream)
   {
     if(athame_failed || ((result == '\r' || result == '\t') && strcmp(athame_mode, "c") != 0 ))
     {
+      last_tab = (result == '\t');
       return result;
     }
     else
@@ -356,6 +369,12 @@ char athame_process_input(int instream)
         result = '\b';
       }
       athame_send_to_vim(result);
+      if(last_tab)
+      {
+        last_tab = 0;
+        tab_fix = 1;
+        return ' ';
+      }
       return 0;
     }
   }
