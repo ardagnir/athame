@@ -471,9 +471,7 @@ int athame_get_vim_info_inner(int attempts, int changed)
       char* command = strtok(NULL, "\n");
       if (command)
       {
-        strcpy(rl_line_buffer, command);
-        rl_end = strlen(command);
-        rl_point = rl_end;
+        athame_bottom_display(command);
       }
       return 0;
     }
