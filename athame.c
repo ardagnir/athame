@@ -1,6 +1,6 @@
 /* athame.c -- Full vim integration for readline.*/
 
-/* Copyright (C) 2014 James Kolb
+/* Copyright (C) 2015 James Kolb
 
    This file is part of the Athame patch for readline (Athame).
 
@@ -152,6 +152,7 @@ int athame_update_vim(int col)
 
   if (results <= 0)
   {
+    printf("Athame Failure: Pipe");
     return failure;
   }
 
@@ -159,12 +160,14 @@ int athame_update_vim(int col)
   athame_buffer[5] = 0;
   if(strcmp(athame_buffer, "Error") == 0)
   {
+    printf("Athame Failure: Found Error string");
     return failure;
   }
 
   FILE* contentsFile = fopen(contents_file_name, "w+");
 
   if(!contentsFile){
+    printf("Athame Failure: No contents file");
     return failure;
   }
 
@@ -181,22 +184,31 @@ int athame_update_vim(int col)
   snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 0)", hs->length+1, col+1, hs->length+1, col+1);
   xfree(hs);
 
+  athame_remote_expr(athame_buffer);
+  updated = 1;
+  athame_sleep(20*TIME_AMOUNT);
+}
+
+void athame_remote_expr(char* expr)
+{
+  char remote_expr_buffer[DEFAULT_BUFFER_SIZE];
   int pid = fork();
   if (pid == 0)
   {
     dup2(fileno(dev_null), STDOUT_FILENO);
-  //  dup2(fileno(dev_null), STDERR_FILENO);
-    execl ("/usr/bin/vim", "/usr/bin/vim", "--servername", servername, "--remote-expr", athame_buffer, NULL);
+    dup2(fileno(dev_null), STDERR_FILENO);
+    //This is faster, but we it's managing to mess up the terminal, even with stdout/stderr redirrected.
+    //snprintf(remote_expr_buffer, DEFAULT_BUFFER_SIZE-1, "+call remote_expr('%s', '%s')", servername, expr);
+    //execl ("/usr/bin/vim", "/usr/bin/vim", remote_expr_buffer, "+q!", "-u", "NONE", "-v", "-s", "/dev/null", NULL);
+    execl ("/usr/bin/vim", "/usr/bin/vim", "--servername", servername, "--remote-expr", expr, NULL);
     printf("Expr Error:%d", errno);
     exit (EXIT_FAILURE);
   }
   else if (pid == -1)
   {
     //TODO: error handling
-    perror("ERROR! Couldn't run vim remote-expr!");
+    perror("ERROR! Couldn't run vim remote_expr!");
   }
-  updated = 1;
-  athame_sleep(20*TIME_AMOUNT);
 }
 
 void athame_update_vimline(int row, int col)
@@ -223,40 +235,14 @@ void athame_update_vimline(int row, int col)
   rename(temp_file_name, contents_file_name);
   snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 0)", row+1, col+1, row+1, col+1);
 
-  int pid = fork();
-  if (pid == 0)
-  {
-    dup2(fileno(dev_null), STDOUT_FILENO);
-  //  dup2(fileno(dev_null), STDERR_FILENO);
-    execl ("/usr/bin/vim", "/usr/bin/vim", "--servername", servername, "--remote-expr", athame_buffer, NULL);
-    printf("Expr Error:%d", errno);
-    exit (EXIT_FAILURE);
-  }
-  else if (pid == -1)
-  {
-    //TODO: error handling
-    perror("ERROR! Couldn't run vim remote-expr!");
-  }
+  athame_remote_expr(athame_buffer);
   updated = 1;
   athame_sleep(15*TIME_AMOUNT);
 }
 
 void athame_poll_vim()
 {
-  int pid = fork();
-  if (pid == 0)
-  {
-    dup2(fileno(dev_null), STDOUT_FILENO);
-  //  dup2(fileno(dev_null), STDERR_FILENO);
-    execl ("/usr/bin/vim", "/usr/bin/vim", "--servername", servername, "--remote-expr", "Vimbed_Poll()", NULL);
-    printf("Expr Error:%d", errno);
-    exit (EXIT_FAILURE);
-  }
-  else if (pid == -1)
-  {
-    //TODO: error handling
-    perror("ERROR! Couldn't run vim remote-expr!");
-  }
+  athame_remote_expr("Vimbed_Poll()");
 }
 
 void athame_bottom_display(char* string)
@@ -455,8 +441,14 @@ int athame_get_vim_info_inner(int attempts, int changed)
   FILE* metaFile = fopen(meta_file_name, "r+"); //Change to r
   if (!metaFile)
   {
-    athame_failed = 1;
-    return 1;
+    athame_sleep(50);
+    metaFile = fopen(meta_file_name, "r+"); //Change to r
+    if (!metaFile)
+    {
+      printf("Athame Failure: no metafile");
+      athame_failed = 1;
+      return 1;
+    }
   }
   bytes_read = fread(athame_buffer, 1, DEFAULT_BUFFER_SIZE-1, metaFile);
   fclose(metaFile);
