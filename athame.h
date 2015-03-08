@@ -26,6 +26,6 @@ void athame_extraVimRead(int timer);
 int athame_update_vim(int col);
 char* athame_get_line_from_vim(int row);
 void athame_sleep(int msec);
-int athame_get_vim_info_inner(int attempts, int changed);
+int athame_get_vim_info_inner();
 void athame_update_vimline(int row, int col);
 void athame_remote_expr(char* expr);

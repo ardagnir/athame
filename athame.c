@@ -39,6 +39,7 @@
 #define BOLD 1
 
 static char athame_buffer[DEFAULT_BUFFER_SIZE];
+static char last_vim_command[DEFAULT_BUFFER_SIZE];
 int vim_pid;
 int vim_to_readline[2];
 int readline_to_vim[2];
@@ -53,6 +54,7 @@ char messages_file_name[48];
 char temp_file_name[48];
 char dir_name[32];
 char servername[16];
+int key_pressed = 0;
 
  //Keep track of if last key was a tab. We need to fake keys between tabpresses or readline completion gets confused.
 int last_tab = 0;
@@ -72,6 +74,8 @@ void athame_init()
   snprintf(meta_file_name, 48, "%s/meta.txt", dir_name);
   snprintf(messages_file_name, 48, "%s/messages.txt", dir_name);
   snprintf(temp_file_name, 48, "%s/temp.txt", dir_name);
+
+  last_vim_command[0] = '\0';
 
   athame_failed = 0;
 
@@ -257,13 +261,10 @@ void athame_bottom_display(char* string, int style)
 
 void athame_redisplay()
 {
-  if (strcmp(athame_mode, "v") == 0)
+  rl_redisplay();
+  if (strcmp(athame_mode, "v") == 0 || strcmp(athame_mode, "c") == 0)
   {
     athame_highlight(rl_point, end_col);
-  }
-  else
-  {
-    rl_redisplay();
   }
 }
 
@@ -334,7 +335,7 @@ char athame_loop(int instream)
       {
         athame_bottom_display("--REPLACE--", 1);
       }
-      else
+      else if (strcmp(athame_mode, "c") !=0)
       {
         athame_bottom_display("", 1);
       }
@@ -353,12 +354,14 @@ char athame_loop(int instream)
       }
     }
   }
-  athame_extraVimRead(100);
+  if(key_pressed)
+  {
+    athame_extraVimRead(100);
+  }
   updated = 0;
   return returnVal;
 }
 
-//Timer is the number of milliseconds that we will wait if there is NO input
 void athame_extraVimRead(int timer)
 {
     fd_set files;
@@ -367,22 +370,11 @@ void athame_extraVimRead(int timer)
     int results;
     struct timeval timeout;
     timeout.tv_sec = 0;
-    timeout.tv_usec = timer * 500;
-    do
-    {
-      athame_sleep(timer/2);
-      results = select(from_vim + 1, &files, NULL, NULL, &timeout);
-      if (results > 0)
-        athame_get_vim_info();
-      if (timeout.tv_usec > 5000)
-      {
-        timeout.tv_usec -= 5000; //Sanity check. We can't go on for ever.
-      }
-      else
-      {
-        break;
-      }
-    } while (results > 0);
+    timeout.tv_usec = timer * 250;
+    athame_sleep(timer * 3 / 4);
+    results = select(from_vim + 1, &files, NULL, NULL, &timeout);
+    if (results > 0)
+      athame_get_vim_info();
     athame_redisplay();
 }
 
@@ -392,6 +384,8 @@ char athame_process_input(int instream)
   int chars_read = read(instream, &result, 1);
   if (chars_read == 1)
   {
+    key_pressed = 1;
+
     if(athame_failed || ((result == '\r' || result == '\t') && strcmp(athame_mode, "c") != 0 ))
     {
       last_tab = (result == '\t');
@@ -432,8 +426,9 @@ void athame_get_vim_info()
   }
 }
 
-int athame_get_vim_info_inner(int attempts, int changed)
+int athame_get_vim_info_inner()
 {
+  int changed = 0;
   ssize_t bytes_read;
   read(from_vim, athame_buffer, DEFAULT_BUFFER_SIZE-1);
   if(athame_failed)
@@ -464,11 +459,17 @@ int athame_get_vim_info_inner(int attempts, int changed)
     if (strcmp(athame_mode, "c") == 0)
     {
       char* command = strtok(NULL, "\n");
-      if (command)
+      if (command && strcmp(command, last_vim_command) != 0)
       {
+        strncpy(last_vim_command, command, DEFAULT_BUFFER_SIZE-1);
+        last_vim_command[DEFAULT_BUFFER_SIZE-1] = '\0';
         athame_bottom_display(command, 0);
+        changed = 1;
       }
-      return 0;
+    }
+    else
+    {
+      last_vim_command[0] = '\0';
     }
     char* location = strtok(NULL, "\n");
     if(location)
@@ -476,12 +477,29 @@ int athame_get_vim_info_inner(int attempts, int changed)
       char* location2 = strtok(NULL, "\n");
       if(strtok(location, ","))
       {
-        //TODO: better function
-        int col = atoi(strtok(NULL, ","));
-        int row = atoi(strtok(NULL, ","));
+        char* colStr = strtok(NULL, ",");
+        if(!colStr){
+          return changed;
+        }
+        char* rowStr = strtok(NULL, ",");
+        if(!rowStr){
+          return changed;
+        }
+        int col = atoi(colStr);
+        int row = atoi(rowStr);
 
-        if(location2 && strtok(location2, ",")) {
-          end_col = atoi(strtok(NULL, ","));
+        if(location2 && strtok(location2, ","))
+        {
+          colStr = strtok(NULL, ",");
+          if(!colStr)
+          {
+            return changed;
+          }
+          end_col = atoi(colStr);
+        }
+        else
+        {
+          end_col = col;
         }
 
         if(athame_row != row)
@@ -517,14 +535,7 @@ int athame_get_vim_info_inner(int attempts, int changed)
     }
   }
 
-  if (attempts <= 1)
-  {
-    return 0;
-  }
-  else
-  {
-    return athame_get_vim_info_inner(attempts-1, changed);
-  }
+  return changed;
 }
 
 char* athame_get_line_from_vim(int row)
