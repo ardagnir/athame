@@ -35,6 +35,9 @@
 #define DEFAULT_BUFFER_SIZE 1024
 #define MAX(A, B) (((A) > (B)) ? (A) : (B))
 
+#define NORMAL 0
+#define BOLD 1
+
 static char athame_buffer[DEFAULT_BUFFER_SIZE];
 int vim_pid;
 int vim_to_readline[2];
@@ -245,9 +248,9 @@ void athame_poll_vim()
   athame_remote_expr("Vimbed_Poll()");
 }
 
-void athame_bottom_display(char* string)
+void athame_bottom_display(char* string, int style)
 {
-    printf("\n\e[A\e[s\e[999E\e[K\e[1m%s\e[0m\e[u", string);
+    printf("\n\e[A\e[s\e[999E\e[K\e[%dm%s\e[0m\e[u", style, string);
     fflush(stdout);
     rl_forced_update_display();
 }
@@ -313,27 +316,27 @@ char athame_loop(int instream)
       strcpy(athame_displaying_mode, athame_mode);
       if (strcmp(athame_mode, "i") == 0)
       {
-        athame_bottom_display("--INSERT--");
+        athame_bottom_display("--INSERT--", 1);
       }
       else if (strcmp(athame_mode, "v") == 0)
       {
-        athame_bottom_display("--VISUAL--");
+        athame_bottom_display("--VISUAL--", 1);
       }
       else if (strcmp(athame_mode, "V") == 0)
       {
-        athame_bottom_display("--VISUAL LINE--");
+        athame_bottom_display("--VISUAL LINE--", 1);
       }
       else if (strcmp(athame_mode, "s") == 0)
       {
-        athame_bottom_display("--SELECT--");
+        athame_bottom_display("--SELECT--", 1);
       }
       else if (strcmp(athame_mode, "R") == 0)
       {
-        athame_bottom_display("--REPLACE--");
+        athame_bottom_display("--REPLACE--", 1);
       }
       else
       {
-        athame_bottom_display("");
+        athame_bottom_display("", 1);
       }
     }
 
@@ -463,7 +466,7 @@ int athame_get_vim_info_inner(int attempts, int changed)
       char* command = strtok(NULL, "\n");
       if (command)
       {
-        athame_bottom_display(command);
+        athame_bottom_display(command, 0);
       }
       return 0;
     }

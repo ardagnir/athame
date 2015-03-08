@@ -1,6 +1,6 @@
 /* athame.h -- Full vim integration for readline.*/
 
-/* Copyright (C) 2014 James Kolb
+/* Copyright (C) 2015 James Kolb
 
    This file is part of the Athame patch for readline (Athame).
 
