@@ -41,6 +41,7 @@
 static char athame_buffer[DEFAULT_BUFFER_SIZE];
 static char last_vim_command[DEFAULT_BUFFER_SIZE];
 int vim_pid;
+int expr_pid = 0;
 int vim_to_readline[2];
 int readline_to_vim[2];
 int from_vim;
@@ -199,8 +200,16 @@ int athame_update_vim(int col)
 void athame_remote_expr(char* expr)
 {
   char remote_expr_buffer[DEFAULT_BUFFER_SIZE];
-  int pid = fork();
-  if (pid == 0)
+  int status;
+
+  //wait for last remote_expr to finish
+  if (expr_pid != 0)
+  {
+    waitpid(expr_pid, status, 0);
+  }
+
+  expr_pid = fork();
+  if (expr_pid == 0)
   {
     dup2(fileno(dev_null), STDOUT_FILENO);
     dup2(fileno(dev_null), STDERR_FILENO);
@@ -211,7 +220,7 @@ void athame_remote_expr(char* expr)
     printf("Expr Error:%d", errno);
     exit (EXIT_FAILURE);
   }
-  else if (pid == -1)
+  else if (expr_pid == -1)
   {
     //TODO: error handling
     perror("ERROR! Couldn't run vim remote_expr!");
