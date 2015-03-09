@@ -308,11 +308,6 @@ char athame_loop(int instream)
 
   while(!returnVal)
   {
-    fd_set files;
-    FD_ZERO(&files);
-    FD_SET(instream, &files);
-    FD_SET(from_vim, &files);
-
     if (strcmp(athame_mode, athame_displaying_mode) != 0) {
       strcpy(athame_displaying_mode, athame_mode);
       if (strcmp(athame_mode, "i") == 0)
@@ -343,14 +338,31 @@ char athame_loop(int instream)
 
     athame_redisplay();
 
-    int results = select(MAX(from_vim, instream)+1, &files, NULL, NULL, NULL);
-    if (results>0)
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 500 * 1000;
+
+    int results = 0;
+    while(results == 0)
     {
-      if(FD_ISSET(from_vim, &files)){
-        athame_get_vim_info();
+      fd_set files;
+      FD_ZERO(&files);
+      FD_SET(instream, &files);
+      FD_SET(from_vim, &files);
+
+      results = select(MAX(from_vim, instream)+1, &files, NULL, NULL, strcmp(athame_mode, "c") == 0 ? &timeout : NULL);
+      if (results > 0)
+      {
+        if(FD_ISSET(from_vim, &files)){
+          athame_get_vim_info();
+        }
+        if(FD_ISSET(instream, &files)){
+          returnVal = athame_process_input(instream);
+        }
       }
-      if(FD_ISSET(instream, &files)){
-        returnVal = athame_process_input(instream);
+      else
+      {
+        athame_get_vim_info_inner(0);
       }
     }
   }
@@ -420,17 +432,21 @@ void athame_send_to_vim(char input)
 
 void athame_get_vim_info()
 {
-  if (!athame_get_vim_info_inner(3,0))
+  if (!athame_get_vim_info_inner(1))
   {
     athame_poll_vim();
   }
 }
 
-int athame_get_vim_info_inner()
+int athame_get_vim_info_inner(int read_pipe)
 {
   int changed = 0;
   ssize_t bytes_read;
-  read(from_vim, athame_buffer, DEFAULT_BUFFER_SIZE-1);
+  if(read_pipe)
+  {
+    read(from_vim, athame_buffer, DEFAULT_BUFFER_SIZE-1);
+  }
+
   if(athame_failed)
   {
     return 1;
@@ -464,7 +480,7 @@ int athame_get_vim_info_inner()
         strncpy(last_vim_command, command, DEFAULT_BUFFER_SIZE-1);
         last_vim_command[DEFAULT_BUFFER_SIZE-1] = '\0';
         athame_bottom_display(command, 0);
-        changed = 1;
+        //Don't record a change because the highlight for incsearch might not have changed yet.
       }
     }
     else
@@ -479,23 +495,29 @@ int athame_get_vim_info_inner()
       {
         char* colStr = strtok(NULL, ",");
         if(!colStr){
-          return changed;
+          return 0;
         }
         char* rowStr = strtok(NULL, ",");
         if(!rowStr){
-          return changed;
+          return 0;
         }
         int col = atoi(colStr);
         int row = atoi(rowStr);
 
         if(location2 && strtok(location2, ","))
         {
+          int new_end;
           colStr = strtok(NULL, ",");
           if(!colStr)
           {
-            return changed;
+            return 0;
           }
-          end_col = atoi(colStr);
+          new_end = atoi(colStr);
+          if(new_end != end_col)
+          {
+            end_col = new_end;
+            changed = 1;
+          }
         }
         else
         {
