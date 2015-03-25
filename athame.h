@@ -28,4 +28,4 @@ char* athame_get_line_from_vim(int row);
 void athame_sleep(int msec);
 int athame_get_vim_info_inner(int read_pipe);
 void athame_update_vimline(int row, int col);
-void athame_remote_expr(char* expr);
+void athame_remote_expr(char* expr, int important);

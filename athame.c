@@ -192,12 +192,12 @@ int athame_update_vim(int col)
   snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 0)", hs->length+1, col+1, hs->length+1, col+1);
   xfree(hs);
 
-  athame_remote_expr(athame_buffer);
+  athame_remote_expr(athame_buffer, 1);
   updated = 1;
   athame_sleep(20*TIME_AMOUNT);
 }
 
-void athame_remote_expr(char* expr)
+void athame_remote_expr(char* expr, int important)
 {
   char remote_expr_buffer[DEFAULT_BUFFER_SIZE];
   int status;
@@ -205,7 +205,10 @@ void athame_remote_expr(char* expr)
   //wait for last remote_expr to finish
   if (expr_pid != 0)
   {
-    waitpid(expr_pid, status, 0);
+    if (waitpid(expr_pid, status, important?0:WNOHANG) == 0)
+    {
+      return;
+    }
   }
 
   expr_pid = fork();
@@ -251,14 +254,14 @@ void athame_update_vimline(int row, int col)
   rename(temp_file_name, contents_file_name);
   snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 0)", row+1, col+1, row+1, col+1);
 
-  athame_remote_expr(athame_buffer);
+  athame_remote_expr(athame_buffer, 1);
   updated = 1;
   athame_sleep(15*TIME_AMOUNT);
 }
 
 void athame_poll_vim()
 {
-  athame_remote_expr("Vimbed_Poll()");
+  athame_remote_expr("Vimbed_Poll()", 0);
 }
 
 void athame_bottom_display(char* string, int style)
@@ -362,11 +365,11 @@ char athame_loop(int instream)
       results = select(MAX(from_vim, instream)+1, &files, NULL, NULL, strcmp(athame_mode, "c") == 0 ? &timeout : NULL);
       if (results > 0)
       {
-        if(FD_ISSET(from_vim, &files)){
-          athame_get_vim_info();
-        }
         if(FD_ISSET(instream, &files)){
           returnVal = athame_process_input(instream);
+        }
+        else if(FD_ISSET(from_vim, &files)){
+          athame_get_vim_info();
         }
       }
       else
