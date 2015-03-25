@@ -195,6 +195,7 @@ int athame_update_vim(int col)
   athame_remote_expr(athame_buffer, 1);
   updated = 1;
   athame_sleep(20*TIME_AMOUNT);
+  return 0;
 }
 
 void athame_remote_expr(char* expr, int important)
