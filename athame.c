@@ -192,21 +192,22 @@ int athame_update_vim(int col)
   snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 0)", hs->length+1, col+1, hs->length+1, col+1);
   xfree(hs);
 
+  //TODO: Remove this sleep once vimbed uses an input file
+  athame_sleep(30*TIME_AMOUNT);
   athame_remote_expr(athame_buffer, 1);
   updated = 1;
-  athame_sleep(20*TIME_AMOUNT);
+  waitpid(expr_pid, NULL, 0);
   return 0;
 }
 
 void athame_remote_expr(char* expr, int important)
 {
   char remote_expr_buffer[DEFAULT_BUFFER_SIZE];
-  int status;
 
   //wait for last remote_expr to finish
   if (expr_pid != 0)
   {
-    if (waitpid(expr_pid, status, important?0:WNOHANG) == 0)
+    if (waitpid(expr_pid, NULL, important?0:WNOHANG) == 0)
     {
       return;
     }
@@ -466,16 +467,17 @@ int athame_get_vim_info_inner(int read_pipe)
   }
 
   FILE* metaFile = fopen(meta_file_name, "r+"); //Change to r
-  if (!metaFile)
+  int sanity = 10;
+  while (!metaFile && sanity-- > 0)
   {
     athame_sleep(50);
     metaFile = fopen(meta_file_name, "r+"); //Change to r
-    if (!metaFile)
-    {
-      printf("Athame Failure: no metafile");
-      athame_failed = 1;
-      return 1;
-    }
+  }
+  if (!metaFile)
+  {
+    printf("Athame Failure: no metafile");
+    athame_failed = 1;
+    return 1;
   }
   bytes_read = fread(athame_buffer, 1, DEFAULT_BUFFER_SIZE-1, metaFile);
   fclose(metaFile);
