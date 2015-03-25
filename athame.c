@@ -56,6 +56,7 @@ char temp_file_name[48];
 char dir_name[32];
 char servername[16];
 int key_pressed = 0;
+int needs_poll = 0;
 
  //Keep track of if last key was a tab. We need to fake keys between tabpresses or readline completion gets confused.
 int last_tab = 0;
@@ -196,20 +197,19 @@ int athame_update_vim(int col)
   athame_sleep(30*TIME_AMOUNT);
   athame_remote_expr(athame_buffer, 1);
   updated = 1;
-  waitpid(expr_pid, NULL, 0);
   return 0;
 }
 
-void athame_remote_expr(char* expr, int important)
+int athame_remote_expr(char* expr, int block)
 {
   char remote_expr_buffer[DEFAULT_BUFFER_SIZE];
 
   //wait for last remote_expr to finish
   if (expr_pid != 0)
   {
-    if (waitpid(expr_pid, NULL, important?0:WNOHANG) == 0)
+    if (waitpid(expr_pid, NULL, block?0:WNOHANG) == 0)
     {
-      return;
+      return -1;
     }
   }
 
@@ -230,6 +230,11 @@ void athame_remote_expr(char* expr, int important)
     //TODO: error handling
     perror("ERROR! Couldn't run vim remote_expr!");
   }
+  if(block)
+  {
+    waitpid(expr_pid, NULL, 0);
+  }
+  return 0;
 }
 
 void athame_update_vimline(int row, int col)
@@ -258,12 +263,12 @@ void athame_update_vimline(int row, int col)
 
   athame_remote_expr(athame_buffer, 1);
   updated = 1;
-  waitpid(expr_pid, NULL, 0);
 }
 
 void athame_poll_vim()
 {
-  athame_remote_expr("Vimbed_Poll()", 0);
+  //Poll Vim. If we fail, postpone the poll by setting needs_poll to true
+  needs_poll = (athame_remote_expr("Vimbed_Poll()", 0) != 0);
 }
 
 void athame_bottom_display(char* string, int style)
@@ -364,7 +369,7 @@ char athame_loop(int instream)
       FD_SET(instream, &files);
       FD_SET(from_vim, &files);
 
-      results = select(MAX(from_vim, instream)+1, &files, NULL, NULL, strcmp(athame_mode, "c") == 0 ? &timeout : NULL);
+      results = select(MAX(from_vim, instream)+1, &files, NULL, NULL, (strcmp(athame_mode, "c") == 0 || needs_poll)? &timeout : NULL);
       if (results > 0)
       {
         if(FD_ISSET(instream, &files)){
@@ -376,7 +381,14 @@ char athame_loop(int instream)
       }
       else
       {
-        athame_get_vim_info_inner(0);
+        if(needs_poll)
+        {
+          athame_poll_vim();
+        }
+        else
+        {
+          athame_get_vim_info_inner(0);
+        }
       }
     }
   }
