@@ -258,7 +258,7 @@ void athame_update_vimline(int row, int col)
 
   athame_remote_expr(athame_buffer, 1);
   updated = 1;
-  athame_sleep(15*TIME_AMOUNT);
+  waitpid(expr_pid, NULL, 0);
 }
 
 void athame_poll_vim()
