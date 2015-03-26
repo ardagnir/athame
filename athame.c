@@ -49,12 +49,12 @@ int to_vim;
 FILE* dev_null;
 int athame_row;
 int updated;
-char contents_file_name[48];
-char meta_file_name[48];
-char messages_file_name[48];
-char temp_file_name[48];
-char dir_name[32];
-char servername[16];
+char contents_file_name[64];
+char meta_file_name[64];
+char messages_file_name[64];
+char temp_file_name[64];
+char dir_name[64];
+char servername[32];
 int key_pressed = 0;
 int needs_poll = 0;
 
@@ -70,12 +70,12 @@ int athame_failed;
 
 void athame_init()
 {
-  snprintf(servername, 16, "athame_%d", getpid());
-  snprintf(dir_name, 48, "/tmp/vimbed/%s", servername);
-  snprintf(contents_file_name, 48, "%s/contents.txt", dir_name);
-  snprintf(meta_file_name, 48, "%s/meta.txt", dir_name);
-  snprintf(messages_file_name, 48, "%s/messages.txt", dir_name);
-  snprintf(temp_file_name, 48, "%s/temp.txt", dir_name);
+  snprintf(servername, 32, "athame_%d_%d", getpid(), rand() % (1000000000));
+  snprintf(dir_name, 64, "/tmp/vimbed/%s", servername);
+  snprintf(contents_file_name, 64, "%s/contents.txt", dir_name);
+  snprintf(meta_file_name, 64, "%s/meta.txt", dir_name);
+  snprintf(messages_file_name, 64, "%s/messages.txt", dir_name);
+  snprintf(temp_file_name, 64, "%s/temp.txt", dir_name);
 
   last_vim_command[0] = '\0';
 
@@ -479,17 +479,9 @@ int athame_get_vim_info_inner(int read_pipe)
   }
 
   FILE* metaFile = fopen(meta_file_name, "r+"); //Change to r
-  int sanity = 10;
-  while (!metaFile && sanity-- > 0)
-  {
-    athame_sleep(50);
-    metaFile = fopen(meta_file_name, "r+"); //Change to r
-  }
   if (!metaFile)
   {
-    printf("Athame Failure: no metafile");
-    athame_failed = 1;
-    return 1;
+    return 0;
   }
   bytes_read = fread(athame_buffer, 1, DEFAULT_BUFFER_SIZE-1, metaFile);
   fclose(metaFile);
