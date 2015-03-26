@@ -81,6 +81,7 @@ void athame_init()
 
   athame_failed = 0;
 
+  mkdir("/tmp/vimbed", S_IRWXU);
   mkdir(dir_name, S_IRWXU);
 
   dev_null = fopen("/dev/null", "w");
