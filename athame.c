@@ -274,8 +274,12 @@ void athame_poll_vim()
 
 void athame_bottom_display(char* string, int style)
 {
+    int temp = rl_point;
+    rl_point = 0;
+    rl_redisplay();
     printf("\n\e[A\e[s\e[999E\e[K\e[%dm%s\e[0m\e[u", style, string);
     fflush(stdout);
+    rl_point = temp;
     rl_forced_update_display();
 }
 
@@ -398,6 +402,9 @@ char athame_loop(int instream)
     athame_extraVimRead(100);
   }
   updated = 0;
+  athame_bottom_display("", 1);
+  athame_displaying_mode[0] = 'n';
+  athame_displaying_mode[1] = '\0';
   return returnVal;
 }
 

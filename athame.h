@@ -29,3 +29,4 @@ void athame_sleep(int msec);
 int athame_get_vim_info_inner(int read_pipe);
 void athame_update_vimline(int row, int col);
 int athame_remote_expr(char* expr, int bock);
+void athame_bottom_display(char* string, int style);
