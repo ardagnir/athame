@@ -302,9 +302,10 @@ int athame_highlight(int start, int end)
   char highlighted[DEFAULT_BUFFER_SIZE];
   strncpy(highlighted, rl_line_buffer + start, end-start - 1); //The cursor takes up the last highlight space
   highlighted[end - start - 1] = '\0';
-  printf("\e[A\n");
+  printf("\e[1G");
+  fflush(stdout);
   rl_forced_update_display();
-  printf("\e[99D\e[%dC\e[7m%s\e[0m\e", strlen(rl_prompt) + start, highlighted);
+  printf("\e[1G\e[%dC\e[7m%s\e[0m\e", strlen(rl_prompt) + start, highlighted);
   fflush(stdout);
 }
 
