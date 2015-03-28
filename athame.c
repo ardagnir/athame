@@ -65,8 +65,11 @@ int tab_fix = 0; //We just sent a fake space to help completion work. Now delete
 char athame_mode[3] = {'n', '\0', '\0'};
 char athame_displaying_mode[3] = {'n', '\0', '\0'};
 int end_col; //For visual mode
+int end_row; //For visual mode
 
 int athame_failed;
+
+int athame_dirty = 0;
 
 void athame_init()
 {
@@ -283,31 +286,95 @@ void athame_bottom_display(char* string, int style)
     rl_forced_update_display();
 }
 
+int athame_clear_dirty()
+{
+  if (!athame_dirty){
+    return 0;
+  }
+
+  int count = athame_dirty;
+  while(athame_dirty)
+  {
+    printf("\e[2K\n");
+    athame_dirty--;
+  }
+  while(count)
+  {
+    printf("\e[A");
+    count--;
+  }
+  fflush(stdout);
+  return 1;
+}
+
 void athame_redisplay()
 {
-  rl_redisplay();
   if (strcmp(athame_mode, "v") == 0 || strcmp(athame_mode, "c") == 0)
   {
+    athame_clear_dirty();
     athame_highlight(rl_point, end_col);
   }
+  else
+  {
+    rl_redisplay();
+    return;
+    if(athame_clear_dirty()){
+      rl_forced_update_display();
+    }
+    else
+    {
+      rl_redisplay();
+    }
+  }
+}
+
+void athame_draw_line_with_highlight(char* text, int start, int end)
+{
+  char highlighted[DEFAULT_BUFFER_SIZE];
+  strncpy(highlighted, text+start, end-start);
+  highlighted[end - start] = '\0';
+  printf("\e[1G\e[%dC%s", strlen(rl_prompt), text);
+  printf("\e[1G\e[%dC\e[7m%s\e[0m", strlen(rl_prompt) + start, highlighted);
+  fflush(stdout);
 }
 
 int athame_highlight(int start, int end)
 {
-  if (end <= start || end > rl_end)
-  {
-    return -1;
-  }
-
-  char highlighted[DEFAULT_BUFFER_SIZE];
-  strncpy(highlighted, rl_line_buffer + start, end-start - 1); //The cursor takes up the last highlight space
-  highlighted[end - start - 1] = '\0';
   printf("\e[1G");
   fflush(stdout);
+  int temp = rl_end;
+  rl_line_buffer[rl_end+1] = '\0';
+  rl_end = 0;
   rl_forced_update_display();
-  printf("\e[1G\e[%dC\e[7m%s\e[0m\e", strlen(rl_prompt) + start, highlighted);
+  rl_end = temp;
+  char * new_string = strtok(rl_line_buffer, "\n");
+  while (new_string){
+    char * next_string;
+    int this_start;
+    int this_end;
+    next_string = strtok(NULL, "\n");
+
+    if (new_string == rl_line_buffer){
+      this_start = start;
+    }
+    else {
+      this_start = 0;
+    }
+    if (next_string || (end < start && this_start !=0)){
+      this_end = strlen(new_string);
+    }
+    else {
+      this_end = end;  
+    }
+    athame_draw_line_with_highlight(new_string, this_start, this_end);
+    printf("\n");
+    athame_dirty++;
+    new_string = next_string;
+  }
+  printf("\e[%dA", athame_dirty);
   fflush(stdout);
 }
+
 
 char athame_loop(int instream)
 {
@@ -534,22 +601,31 @@ int athame_get_vim_info_inner(int read_pipe)
 
         if(location2 && strtok(location2, ","))
         {
-          int new_end;
+          int new_end_col;
+          int new_end_row;
           colStr = strtok(NULL, ",");
           if(!colStr)
           {
             return 0;
           }
-          new_end = atoi(colStr);
-          if(new_end != end_col)
+          new_end_col = atoi(colStr);
+          rowStr = strtok(NULL, ",");
+          if(!rowStr)
           {
-            end_col = new_end;
+            return 0;
+          }
+          new_end_row = atoi(rowStr);
+          if(new_end_col != end_col || new_end_row != end_row)
+          {
+            end_col = new_end_col;
+            end_row = new_end_row;
             changed = 1;
           }
         }
         else
         {
           end_col = col;
+          end_row = row;
         }
 
         if(athame_row != row)
@@ -558,7 +634,7 @@ int athame_get_vim_info_inner(int read_pipe)
           changed = 1;
         }
 
-        char* line_text = athame_get_line_from_vim(row);
+        char* line_text = athame_get_lines_from_vim(row, end_row);
 
         if (line_text)
         {
@@ -588,7 +664,7 @@ int athame_get_vim_info_inner(int read_pipe)
   return changed;
 }
 
-char* athame_get_line_from_vim(int row)
+char* athame_get_lines_from_vim(int start_row, int end_row)
 {
   FILE* contentsFile = fopen(contents_file_name, "r");
   int bytes_read = fread(athame_buffer, 1, DEFAULT_BUFFER_SIZE-1, contentsFile);
@@ -597,7 +673,7 @@ char* athame_get_line_from_vim(int row)
   int current_line = 0;
   int failure = 0;
   char* line_text = athame_buffer;
-  while (current_line < row )
+  while (current_line < start_row )
   {
     line_text = strchr(line_text, '\n');
     while(!line_text)
@@ -616,15 +692,25 @@ char* athame_get_line_from_vim(int row)
   int len = strlen(line_text);
   memmove(athame_buffer, line_text, len + 1);
 
-  char* next_line = strchr(athame_buffer, '\n');
+  //char* next_line = strchr(athame_buffer, '\n');
 
   //Some of the line might have gotten cut off by segmentation
-  if(!next_line)
-  {
+  //if(!next_line)
+ // {
      bytes_read = fread(athame_buffer+len, 1, DEFAULT_BUFFER_SIZE-1-len, contentsFile);
      athame_buffer[bytes_read+len] = 0;
-     next_line = strchr(athame_buffer, '\n');
-  }
+     char* next_line = athame_buffer;
+     for(current_line = start_row; current_line <= end_row; current_line++)
+     {
+       next_line = strchr(next_line, '\n') + 1;
+       if(!(next_line -1) || next_line > athame_buffer + bytes_read + len - 1){
+          next_line = 0;
+          next_line++;
+          break;
+       }
+     }
+     next_line--;
+  //}
 
   if(next_line)
   {
