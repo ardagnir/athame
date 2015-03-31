@@ -31,7 +31,6 @@
 #include "athame.h"
 #include "readline.h"
 
-#define TIME_AMOUNT 4
 #define DEFAULT_BUFFER_SIZE 1024
 #define MAX(A, B) (((A) > (B)) ? (A) : (B))
 #define MIN(A, B) (((A) < (B)) ? (A) : (B))
@@ -162,8 +161,6 @@ int athame_update_vim(int col)
   //Wait for vim to start up
   int results = pselect(from_vim + 1, &files, NULL, NULL, &timeout, &block_signals);
 
-  athame_sleep(5); //We get text from vim before it sets up its server.
-
   if (results <= 0)
   {
     printf("Athame Failure: Pipe");
@@ -198,10 +195,31 @@ int athame_update_vim(int col)
   snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 0)", hs->length+1, col+1, hs->length+1, col+1);
   xfree(hs);
 
-  //TODO: Remove this sleep once vimbed uses an input file
-  athame_sleep(30*TIME_AMOUNT);
+  if(wait_for_vimbed())
+  {
+    return failure;
+  }
+
   athame_remote_expr(athame_buffer, 1);
   updated = 1;
+  return 0;
+}
+
+int wait_for_vimbed()
+{
+  //Check for existance of metafile to see if vimbed has loaded.
+  FILE* metaFile = 0;
+  int sanity = 100;
+  while (!metaFile)
+  {
+    if(sanity-- < 0)
+    {
+      return 1;
+    }
+    athame_sleep(15);
+    metaFile = fopen(meta_file_name, "r+");
+  }
+  fclose(metaFile);
   return 0;
 }
 
