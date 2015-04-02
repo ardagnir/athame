@@ -71,8 +71,15 @@ int athame_failed;
 
 int athame_dirty = 0;
 
+char first_char;
+
 void athame_init()
 {
+  first_char = get_first_char();
+  if(first_char == '\r')
+  {
+    return;
+  }
   snprintf(servername, 32, "athame_%d_%d", getpid(), rand() % (1000000000));
   snprintf(dir_name, 64, "/tmp/vimbed/%s", servername);
   snprintf(contents_file_name, 64, "%s/contents.txt", dir_name);
@@ -125,15 +132,35 @@ void athame_init()
 
 void athame_cleanup()
 {
-  close(to_vim);
-  close(from_vim);
-  fclose(dev_null);
-  kill(vim_pid);
-  unlink(contents_file_name);
-  unlink(meta_file_name);
-  unlink(messages_file_name);
-  unlink(temp_file_name);
-  rmdir(dir_name);
+  if(first_char != '\r')
+  {
+    close(to_vim);
+    close(from_vim);
+    fclose(dev_null);
+    kill(vim_pid);
+    unlink(contents_file_name);
+    unlink(meta_file_name);
+    unlink(messages_file_name);
+    unlink(temp_file_name);
+    rmdir(dir_name);
+  }
+}
+
+char get_first_char()
+{
+  char return_val = '\0';
+  fd_set files;
+  FD_ZERO(&files);
+  FD_SET(fileno(stdin), &files);
+  struct timeval timeout;
+  timeout.tv_sec = 0;
+  timeout.tv_usec = 1 * 1000;
+
+  int results = select(fileno(stdin)+1, &files, NULL, NULL, &timeout);
+  if(results){
+    read(fileno(stdin), &return_val, 1);
+  }
+  return return_val;
 }
 
 void athame_sleep(int msec)
@@ -403,6 +430,10 @@ int athame_highlight(int start, int end)
 char athame_loop(int instream)
 {
   char returnVal = 0;
+  if(first_char == '\r')
+  {
+    return first_char;
+  }
 
   if(tab_fix)
   {
@@ -456,34 +487,40 @@ char athame_loop(int instream)
 
     struct timeval timeout;
     int results = 0;
-    while(results == 0)
-    {
-      fd_set files;
-      FD_ZERO(&files);
-      FD_SET(instream, &files);
-      FD_SET(from_vim, &files);
-      timeout.tv_sec = 0;
-      timeout.tv_usec = 500 * 1000;
+    if(first_char){
+      athame_process_char(first_char);
+      first_char = 0;
+    }
+    else {
+      while(results == 0)
+      {
+        fd_set files;
+        FD_ZERO(&files);
+        FD_SET(instream, &files);
+        FD_SET(from_vim, &files);
+        timeout.tv_sec = 0;
+        timeout.tv_usec = 500 * 1000;
 
-      results = select(MAX(from_vim, instream)+1, &files, NULL, NULL, (strcmp(athame_mode, "c") == 0 || needs_poll)? &timeout : NULL);
-      if (results > 0)
-      {
-        if(FD_ISSET(instream, &files)){
-          returnVal = athame_process_input(instream);
-        }
-        else if(FD_ISSET(from_vim, &files)){
-          athame_get_vim_info();
-        }
-      }
-      else
-      {
-        if(needs_poll)
+        results = select(MAX(from_vim, instream)+1, &files, NULL, NULL, (strcmp(athame_mode, "c") == 0 || needs_poll)? &timeout : NULL);
+        if (results > 0)
         {
-          athame_poll_vim();
+          if(FD_ISSET(instream, &files)){
+            returnVal = athame_process_input(instream);
+          }
+          else if(FD_ISSET(from_vim, &files)){
+            athame_get_vim_info();
+          }
         }
         else
         {
-          athame_get_vim_info_inner(0);
+          if(needs_poll)
+          {
+            athame_poll_vim();
+          }
+          else
+          {
+            athame_get_vim_info_inner(0);
+          }
         }
       }
     }
@@ -523,32 +560,36 @@ char athame_process_input(int instream)
   int chars_read = read(instream, &result, 1);
   if (chars_read == 1)
   {
-    key_pressed = 1;
-
-    if(athame_failed || ((result == '\r' || result == '\t') && strcmp(athame_mode, "c") != 0 ))
-    {
-      last_tab = (result == '\t');
-      return result;
-    }
-    else
-    {
-      //Backspace
-      if (result == '\177'){
-        result = '\b';
-      }
-      athame_send_to_vim(result);
-      if(last_tab)
-      {
-        last_tab = 0;
-        tab_fix = 1;
-        return ' ';
-      }
-      return 0;
-    }
+    return athame_process_char(result);
   }
   else
   {
     return EOF;
+  }
+}
+
+char athame_process_char(char char_read){
+  if(athame_failed || ((char_read == '\r' || char_read == '\t') && strcmp(athame_mode, "c") != 0 ))
+  {
+    last_tab = (char_read == '\t');
+    return char_read;
+  }
+  else
+  {
+    key_pressed = 1;
+
+    //Backspace
+    if (char_read == '\177'){
+      char_read = '\b';
+    }
+    athame_send_to_vim(char_read);
+    if(last_tab)
+    {
+      last_tab = 0;
+      tab_fix = 1;
+      return ' ';
+    }
+    return 0;
   }
 }
 
