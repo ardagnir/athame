@@ -415,6 +415,8 @@ readline_internal_setup ()
     rl_vi_insertion_mode (1, 'i');	/* don't want to reset last */
 #endif /* VI_MODE */
 
+  athame_init();
+
   /* If we're not echoing, we still want to at least print a prompt, because
      rl_redisplay will not do it for us.  If the calling application has a
      custom redisplay function, though, let that function handle it. */
@@ -451,6 +453,8 @@ readline_internal_teardown (eof)
   HIST_ENTRY *entry;
 
   RL_CHECK_SIGNALS ();
+
+  athame_cleanup();
 
   /* Restore the original of this history line, iff the line that we
      are editing was originally in the history, AND the line has changed. */
@@ -643,9 +647,7 @@ readline_internal ()
   int eof;
 
   readline_internal_setup ();
-  athame_init();
   eof = readline_internal_charloop ();
-  athame_cleanup();
   return (readline_internal_teardown (eof));
 }
 
