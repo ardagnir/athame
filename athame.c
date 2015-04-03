@@ -212,7 +212,7 @@ int athame_update_vim(int col)
 
   HISTORY_STATE* hs = history_get_history_state();
   int counter;
-  for(counter; counter < hs->length; counter++)
+  for(counter = 0; counter < hs->length; counter++)
   {
     fwrite(hs->entries[counter]->line, 1, strlen(hs->entries[counter]->line), contentsFile);
     fwrite("\n", 1, 1, contentsFile);
