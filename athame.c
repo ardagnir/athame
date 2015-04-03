@@ -128,6 +128,7 @@ void athame_init()
 
     athame_failed = athame_update_vim(0);
   }
+  athame_bottom_display("--INSERT--", 1);
 }
 
 void athame_cleanup()

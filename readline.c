@@ -415,8 +415,6 @@ readline_internal_setup ()
     rl_vi_insertion_mode (1, 'i');	/* don't want to reset last */
 #endif /* VI_MODE */
 
-  athame_init();
-
   /* If we're not echoing, we still want to at least print a prompt, because
      rl_redisplay will not do it for us.  If the calling application has a
      custom redisplay function, though, let that function handle it. */
@@ -441,6 +439,8 @@ readline_internal_setup ()
 
   if (rl_pre_input_hook)
     (*rl_pre_input_hook) ();
+
+  athame_init();
 
   RL_CHECK_SIGNALS ();
 }
