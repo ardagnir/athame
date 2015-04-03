@@ -80,6 +80,9 @@ void athame_init()
   {
     return;
   }
+  //Note that this rand() is not seeded.by athame.
+  //It only establishes uniqueness within a single process using readline.
+  //The pid establishes uniqueness between processes and makes debugging easier.
   snprintf(servername, 32, "athame_%d_%d", getpid(), rand() % (1000000000));
   snprintf(dir_name, 64, "/tmp/vimbed/%s", servername);
   snprintf(contents_file_name, 64, "%s/contents.txt", dir_name);
