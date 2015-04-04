@@ -53,6 +53,7 @@ char contents_file_name[64];
 char meta_file_name[64];
 char messages_file_name[64];
 char temp_file_name[64];
+char vimbed_file_name[256];
 char dir_name[64];
 char servername[32];
 int key_pressed = 0;
@@ -89,6 +90,7 @@ void athame_init()
   snprintf(meta_file_name, 64, "%s/meta.txt", dir_name);
   snprintf(messages_file_name, 64, "%s/messages.txt", dir_name);
   snprintf(temp_file_name, 64, "%s/temp.txt", dir_name);
+  snprintf(vimbed_file_name, 256, "%s/athame/vimbed.vim", RL_LIBRARY_LOCATION);
 
   last_vim_command[0] = '\0';
 
@@ -108,7 +110,7 @@ void athame_init()
     dup2(vim_to_readline[1], STDERR_FILENO);
     close(vim_to_readline[0]);
     close(readline_to_vim[1]);
-    if (execl("/usr/bin/vim", "/usr/bin/vim", "--servername", servername, "-S", "~/.athamerc", "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", NULL)!=0)
+    if (execl("/usr/bin/vim", "/usr/bin/vim", "--servername", servername, "-S", vimbed_file_name, "-S", "~/.athamerc", "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", NULL)!=0)
     {
       printf("Error: %d", errno);
       close(vim_to_readline[1]);

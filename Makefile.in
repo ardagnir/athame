@@ -76,7 +76,7 @@ ETAGS = etags
 CTAGS = ctags -tw
 
 CFLAGS = @CFLAGS@
-LOCAL_CFLAGS = @LOCAL_CFLAGS@ -DRL_LIBRARY_VERSION='"$(RL_LIBRARY_VERSION)"'
+LOCAL_CFLAGS = @LOCAL_CFLAGS@ -DRL_LIBRARY_VERSION='"$(RL_LIBRARY_VERSION)"' -DRL_LIBRARY_LOCATION='"${libdir}"'
 CPPFLAGS = @CPPFLAGS@
 
 DEFS = @DEFS@ @CROSS_COMPILE@
@@ -223,6 +223,13 @@ force:
 
 install:	$(INSTALL_TARGETS)
 
+install-athame:
+	$(RM) $(libdir)/athame/vimbed.vim && $(RM) -r $(libdir)/athame
+	$(CP) -r $(srcdir)/vimbed/plugin $(libdir)/athame
+
+uninstall-athame:
+	$(RM) -r $(libdir)/athame
+
 install-headers: installdirs ${INSTALLED_HEADERS}
 	for f in ${INSTALLED_HEADERS}; do \
 		$(INSTALL_DATA) $(srcdir)/$$f $(DESTDIR)$(includedir)/readline ; \
@@ -234,7 +241,7 @@ uninstall-headers:
 
 maybe-uninstall-headers: uninstall-headers
 
-install-static: installdirs $(STATIC_LIBS) install-headers install-doc install-examples
+install-static: installdirs $(STATIC_LIBS) install-headers install-doc install-examples install-athame
 	-$(MV) $(DESTDIR)$(libdir)/libreadline.a $(DESTDIR)$(libdir)/libreadline.old
 	$(INSTALL_DATA) libreadline.a $(DESTDIR)$(libdir)/libreadline.a
 	-test -n "$(RANLIB)" && $(RANLIB) $(DESTDIR)$(libdir)/libreadline.a
@@ -247,7 +254,7 @@ installdirs: $(srcdir)/support/mkinstalldirs
 		$(DESTDIR)$(includedir)/readline $(DESTDIR)$(libdir) \
 		$(DESTDIR)$(infodir) $(DESTDIR)$(man3dir) $(DESTDIR)$(docdir)
 
-uninstall: uninstall-headers uninstall-doc uninstall-examples
+uninstall: uninstall-headers uninstall-doc uninstall-examples uninstall-athame
 	-test -n "$(DESTDIR)$(libdir)" && cd $(DESTDIR)$(libdir) && \
 		${RM} libreadline.a libreadline.old libhistory.a libhistory.old $(SHARED_LIBS)
 	-( cd shlib; ${MAKE} ${MFLAGS} DESTDIR=${DESTDIR} uninstall )

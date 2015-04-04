@@ -1,0 +1,3 @@
+[submodule "vimbed"]
+	path = vimbed
+	url = http://github.com/ardagnir/vimbed

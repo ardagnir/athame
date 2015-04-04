@@ -64,7 +64,7 @@ localedir = @localedir@
 DESTDIR =
 
 CFLAGS = @CFLAGS@
-LOCAL_CFLAGS = @LOCAL_CFLAGS@ -DRL_LIBRARY_VERSION='"$(RL_LIBRARY_VERSION)"'
+LOCAL_CFLAGS = @LOCAL_CFLAGS@ -DRL_LIBRARY_VERSION='"$(RL_LIBRARY_VERSION)"' -DRL_LIBRARY_LOCATION='"${libdir}"'
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@ @LOCAL_LDFLAGS@ @CFLAGS@
 
@@ -191,7 +191,14 @@ installdirs: $(topdir)/support/mkdirs
 	-$(SHELL) $(topdir)/support/mkdirs $(DESTDIR)$(libdir)
 	-$(SHELL) $(topdir)/support/mkdirs $(DESTDIR)$(bindir)
 
-install-supported: installdirs $(SHLIB_STATUS)
+install-athame:
+	$(RM) $(libdir)/athame/vimbed.vim && $(RM) -r $(libdir)/athame
+	$(CP) -r $(topdir)/vimbed/plugin $(libdir)/athame
+
+uninstall-athame:
+	$(RM) -r $(libdir)/athame
+
+install-supported: installdirs $(SHLIB_STATUS) install-athame
 	$(SHELL) $(topdir)/support/shlib-install -O $(host_os) -V $(host_vendor) -d $(DESTDIR)$(libdir) -b $(DESTDIR)$(bindir) -i "$(INSTALL_DATA)" $(SHARED_HISTORY)
 	$(SHELL) $(topdir)/support/shlib-install -O $(host_os) -V $(host_vendor) -d $(DESTDIR)$(libdir) -b $(DESTDIR)$(bindir) -i "$(INSTALL_DATA)" $(SHARED_READLINE)
 	@echo install: you may need to run ldconfig
@@ -201,7 +208,7 @@ install-unsupported:
 
 install: install-$(SHLIB_STATUS)
 
-uninstall-supported:
+uninstall-supported: uninstall-athame
 	$(SHELL) $(topdir)/support/shlib-install -O $(host_os) -V $(host_vendor) -d $(DESTDIR)$(libdir) -b $(DESTDIR)$(bindir) -U $(SHARED_HISTORY)
 	$(SHELL) $(topdir)/support/shlib-install -O $(host_os) -V $(host_vendor) -d $(DESTDIR)$(libdir) -b $(DESTDIR)$(bindir) -U $(SHARED_READLINE)
 	@echo uninstall: you may need to run ldconfig
