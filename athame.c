@@ -225,6 +225,9 @@ int athame_update_vim(int col)
     return failure;
   }
 
+  //Send vim a return incase there was a warning (for example no ~/.athamerc)
+  athame_send_to_vim('\r');
+
   HISTORY_STATE* hs = history_get_history_state();
   int counter;
   for(counter = 0; counter < hs->length; counter++)
