@@ -272,10 +272,10 @@ int athame_remote_expr(char* expr, int block)
   {
     dup2(fileno(dev_null), STDOUT_FILENO);
     dup2(fileno(dev_null), STDERR_FILENO);
-    //This is faster, but we it's managing to mess up the terminal, even with stdout/stderr redirrected.
-    //snprintf(remote_expr_buffer, DEFAULT_BUFFER_SIZE-1, "+call remote_expr('%s', '%s')", servername, expr);
-    //execl ("/usr/bin/vim", "/usr/bin/vim", remote_expr_buffer, "+q!", "-u", "NONE", "-v", "-s", "/dev/null", NULL);
-    execl ("/usr/bin/vim", "/usr/bin/vim", "--servername", servername, "--remote-expr", expr, NULL);
+    //This is just a faster version of:
+    //execl ("/usr/bin/vim", "/usr/bin/vim", "--servername", servername, "--remote-expr", expr, NULL);
+    snprintf(remote_expr_buffer, DEFAULT_BUFFER_SIZE-1, "+call remote_expr('%s', '%s')", servername, expr);
+    execl ("/usr/bin/vim", "/usr/bin/vim", remote_expr_buffer, "+q!", "-u", "NONE", "-v", "-s", "/dev/null", NULL);
     printf("Expr Error:%d", errno);
     exit (EXIT_FAILURE);
   }
