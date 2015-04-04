@@ -463,7 +463,10 @@ static int athame_highlight(int start, int end)
     athame_dirty++;
     new_string = next_string;
   }
-  printf("\e[%dA", athame_dirty);
+  if(athame_dirty)
+  {
+    printf("\e[%dA", athame_dirty);
+  }
   fflush(stdout);
 }
 
