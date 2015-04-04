@@ -536,25 +536,33 @@ char athame_loop(int instream)
           timeout.tv_usec = 500 * 1000;
 
           results = select(MAX(from_vim, instream)+1, &files, NULL, NULL, (strcmp(athame_mode, "c") == 0 || needs_poll)? &timeout : NULL);
-          if (results > 0)
+          if (waitpid(vim_pid, NULL, WNOHANG) == 0) //Is vim still running?
           {
-            if(FD_ISSET(instream, &files)){
-              returnVal = athame_process_input(instream);
+            if (results > 0)
+            {
+              if(FD_ISSET(instream, &files)){
+                returnVal = athame_process_input(instream);
+              }
+              else if(!athame_failed && FD_ISSET(from_vim, &files)){
+                athame_get_vim_info();
+              }
             }
-            else if(!athame_failed && FD_ISSET(from_vim, &files)){
-              athame_get_vim_info();
+            else
+            {
+              if(needs_poll)
+              {
+                athame_poll_vim();
+              }
+              else
+              {
+                athame_get_vim_info_inner(0);
+              }
             }
           }
           else
           {
-            if(needs_poll)
-            {
-              athame_poll_vim();
-            }
-            else
-            {
-              athame_get_vim_info_inner(0);
-            }
+            athame_fail_str = "Vim quit";
+            athame_failed = 1;
           }
         }
       }
