@@ -18,18 +18,19 @@
    along with Athame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-void athame_send_to_vim(char input);
-void athame_get_vim_info();
-char athame_loop(int instream);
-char athame_process_input(int instream);
-char athame_process_char(char instream);
-void athame_extraVimRead(int timer);
-int athame_update_vim(int col);
-char* athame_get_lines_from_vim(int start_row, int end_row);
-void athame_sleep(int msec);
-int athame_get_vim_info_inner(int read_pipe);
-void athame_update_vimline(int row, int col);
-int athame_remote_expr(char* expr, int bock);
-void athame_bottom_display(char* string, int style, int color);
-int wait_for_vimbed();
-char get_first_char();
+#ifndef _ATHAME_H_
+#define _ATHAME_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern void athame_init();
+extern char athame_loop(int instream);
+extern void athame_cleanup();
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* !_ATHAME_H_ */

@@ -44,43 +44,60 @@
 static char athame_buffer[DEFAULT_BUFFER_SIZE];
 static char last_vim_command[DEFAULT_BUFFER_SIZE];
 static const char* athame_fail_str;
-int vim_pid;
-int expr_pid = 0;
-int vim_to_readline[2];
-int readline_to_vim[2];
-int from_vim;
-int to_vim;
-FILE* dev_null;
-int athame_row;
-int updated;
-char contents_file_name[64];
-char meta_file_name[64];
-char messages_file_name[64];
-char temp_file_name[64];
-char vimbed_file_name[256];
-char dir_name[64];
-char servername[32];
-int key_pressed = 0;
-int needs_poll = 0;
+static int vim_pid;
+static int expr_pid = 0;
+static int vim_to_readline[2];
+static int readline_to_vim[2];
+static int from_vim;
+static int to_vim;
+static FILE* dev_null;
+static int athame_row;
+static int updated;
+static char contents_file_name[64];
+static char meta_file_name[64];
+static char messages_file_name[64];
+static char temp_file_name[64];
+static char vimbed_file_name[256];
+static char dir_name[64];
+static char servername[32];
+static int key_pressed = 0;
+static int needs_poll = 0;
 
  //Keep track of if last key was a tab. We need to fake keys between tabpresses or readline completion gets confused.
-int last_tab = 0;
-int tab_fix = 0; //We just sent a fake space to help completion work. Now delete it.
+static int last_tab = 0;
+static int tab_fix = 0; //We just sent a fake space to help completion work. Now delete it.
 
-char athame_mode[3] = {'n', '\0', '\0'};
-char athame_displaying_mode[3] = {'n', '\0', '\0'};
-int end_col; //For visual mode
-int end_row; //For visual mode
+static char athame_mode[3] = {'n', '\0', '\0'};
+static char athame_displaying_mode[3] = {'n', '\0', '\0'};
+static int end_col; //For visual mode
+static int end_row; //For visual mode
 
-int athame_failed;
+static int athame_failed;
 
-int athame_dirty = 0;
+static int athame_dirty = 0;
 
-char first_char;
+static char first_char;
+
+/* Forward declarations used in this file. */
+static void athame_send_to_vim(char input);
+static void athame_get_vim_info();
+static char athame_process_input(int instream);
+static char athame_process_char(char instream);
+static void athame_extraVimRead(int timer);
+static int athame_update_vim(int col);
+static char* athame_get_lines_from_vim(int start_row, int end_row);
+static void athame_sleep(int msec);
+static int athame_get_vim_info_inner(int read_pipe);
+static void athame_update_vimline(int row, int col);
+static int athame_remote_expr(char* expr, int bock);
+static void athame_bottom_display(char* string, int style, int color);
+static int athame_wait_for_vimbed();
+static char athame_get_first_char();
+static int athame_highlight(int start, int end);
 
 void athame_init()
 {
-  first_char = get_first_char();
+  first_char = athame_get_first_char();
   if(first_char == '\r')
   {
     return;
@@ -162,7 +179,7 @@ void athame_cleanup()
   }
 }
 
-char get_first_char()
+static char athame_get_first_char()
 {
   char return_val = '\0';
   fd_set files;
@@ -179,7 +196,7 @@ char get_first_char()
   return return_val;
 }
 
-void athame_sleep(int msec)
+static void athame_sleep(int msec)
 {
     struct timespec timeout, timeout2;
     timeout.tv_sec = 0;
@@ -190,7 +207,7 @@ void athame_sleep(int msec)
     }
 }
 
-int athame_update_vim(int col)
+static int athame_update_vim(int col)
 {
   int failure = 1;
   struct timespec timeout;
@@ -241,7 +258,7 @@ int athame_update_vim(int col)
   snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 0)", hs->length+1, col+1, hs->length+1, col+1);
   xfree(hs);
 
-  if(wait_for_vimbed())
+  if(athame_wait_for_vimbed())
   {
     athame_fail_str = "clientserver/vimbed error";
     return failure;
@@ -252,7 +269,7 @@ int athame_update_vim(int col)
   return 0;
 }
 
-int wait_for_vimbed()
+static int athame_wait_for_vimbed()
 {
   //Check for existance of metafile to see if vimbed has loaded.
   FILE* metaFile = 0;
@@ -270,7 +287,7 @@ int wait_for_vimbed()
   return 0;
 }
 
-int athame_remote_expr(char* expr, int block)
+static int athame_remote_expr(char* expr, int block)
 {
   char remote_expr_buffer[DEFAULT_BUFFER_SIZE];
 
@@ -304,7 +321,7 @@ int athame_remote_expr(char* expr, int block)
   return 0;
 }
 
-void athame_update_vimline(int row, int col)
+static void athame_update_vimline(int row, int col)
 {
   FILE* contentsFile = fopen(contents_file_name, "r");
   FILE* tempFile = fopen(temp_file_name, "w+");
@@ -332,13 +349,13 @@ void athame_update_vimline(int row, int col)
   updated = 1;
 }
 
-void athame_poll_vim()
+static void athame_poll_vim()
 {
   //Poll Vim. If we fail, postpone the poll by setting needs_poll to true
   needs_poll = (athame_remote_expr("Vimbed_Poll()", 0) != 0);
 }
 
-void athame_bottom_display(char* string, int style, int color)
+static void athame_bottom_display(char* string, int style, int color)
 {
     int temp = rl_point;
     rl_point = 0;
@@ -356,7 +373,7 @@ void athame_bottom_display(char* string, int style, int color)
     rl_forced_update_display();
 }
 
-int athame_clear_dirty()
+static int athame_clear_dirty()
 {
   if (!athame_dirty){
     return 0;
@@ -377,7 +394,7 @@ int athame_clear_dirty()
   return 1;
 }
 
-void athame_redisplay()
+static void athame_redisplay()
 {
   if (strcmp(athame_mode, "v") == 0 || strcmp(athame_mode, "V") == 0 || strcmp(athame_mode, "s") == 0 || strcmp(athame_mode, "c") == 0)
   {
@@ -396,7 +413,7 @@ void athame_redisplay()
   }
 }
 
-void athame_draw_line_with_highlight(char* text, int start, int end)
+static void athame_draw_line_with_highlight(char* text, int start, int end)
 {
   char highlighted[DEFAULT_BUFFER_SIZE];
   strncpy(highlighted, text+start, end-start);
@@ -410,7 +427,7 @@ void athame_draw_line_with_highlight(char* text, int start, int end)
   fflush(stdout);
 }
 
-int athame_highlight(int start, int end)
+static int athame_highlight(int start, int end)
 {
   char highlight_buffer[DEFAULT_BUFFER_SIZE];
   strncpy(highlight_buffer, rl_line_buffer, MIN(rl_end, DEFAULT_BUFFER_SIZE));
@@ -585,7 +602,7 @@ char athame_loop(int instream)
   return returnVal;
 }
 
-void athame_extraVimRead(int timer)
+static void athame_extraVimRead(int timer)
 {
   fd_set files;
   FD_ZERO(&files);
@@ -603,7 +620,7 @@ void athame_extraVimRead(int timer)
   athame_redisplay();
 }
 
-char athame_process_input(int instream)
+static char athame_process_input(int instream)
 {
   char result;
   int chars_read = read(instream, &result, 1);
@@ -617,7 +634,7 @@ char athame_process_input(int instream)
   }
 }
 
-char athame_process_char(char char_read){
+static char athame_process_char(char char_read){
   if(athame_failed || ((char_read == '\r' || char_read == '\t') && strcmp(athame_mode, "c") != 0 ))
   {
     if(athame_failed)
@@ -650,12 +667,12 @@ char athame_process_char(char char_read){
   }
 }
 
-void athame_send_to_vim(char input)
+static void athame_send_to_vim(char input)
 {
   write(to_vim, &input, 1);
 }
 
-void athame_get_vim_info()
+static void athame_get_vim_info()
 {
   if (!athame_get_vim_info_inner(1))
   {
@@ -663,7 +680,7 @@ void athame_get_vim_info()
   }
 }
 
-int athame_get_vim_info_inner(int read_pipe)
+static int athame_get_vim_info_inner(int read_pipe)
 {
   int changed = 0;
   ssize_t bytes_read;
@@ -800,7 +817,7 @@ int athame_get_vim_info_inner(int read_pipe)
   return changed;
 }
 
-char* athame_get_lines_from_vim(int start_row, int end_row)
+static char* athame_get_lines_from_vim(int start_row, int end_row)
 {
   FILE* contentsFile = fopen(contents_file_name, "r");
   int bytes_read = fread(athame_buffer, 1, DEFAULT_BUFFER_SIZE-1, contentsFile);
