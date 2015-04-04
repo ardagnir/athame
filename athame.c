@@ -137,7 +137,7 @@ void athame_init()
     dup2(vim_to_readline[1], STDERR_FILENO);
     close(vim_to_readline[0]);
     close(readline_to_vim[1]);
-    if (execl("/usr/bin/vim", "/usr/bin/vim", "--servername", servername, "-S", vimbed_file_name, "-S", "~/.athamerc", "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", NULL)!=0)
+    if (execlp("vim", "vim", "--servername", servername, "-S", vimbed_file_name, "-S", "~/.athamerc", "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", NULL)!=0)
     {
       printf("Error: %d", errno);
       close(vim_to_readline[1]);
@@ -231,7 +231,7 @@ static int athame_update_vim(int col)
   athame_buffer[5] = 0;
   if(strcmp(athame_buffer, "Error") == 0)
   {
-    athame_fail_str = "Couldn't load /usr/bin/vim";
+    athame_fail_str = "Couldn't load vim";
     return failure;
   }
 
@@ -305,7 +305,7 @@ static int athame_remote_expr(char* expr, int block)
   {
     dup2(fileno(dev_null), STDOUT_FILENO);
     dup2(fileno(dev_null), STDERR_FILENO);
-    execl ("/usr/bin/vim", "/usr/bin/vim", "--servername", servername, "--remote-expr", expr, NULL);
+    execlp("vim", "vim", "--servername", servername, "--remote-expr", expr, NULL);
     printf("Expr Error:%d", errno);
     exit (EXIT_FAILURE);
   }
