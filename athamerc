@@ -1,1 +1,2 @@
+set ttimeoutlen=10 "Otherwise, you have to wait for the escape key.
 set backspace-=eol
