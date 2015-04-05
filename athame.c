@@ -606,7 +606,10 @@ char athame_loop(int instream)
       athame_extraVimRead(100);
     }
     updated = 0;
-    athame_bottom_display("", BOLD, DEFAULT);
+    //Hide bottom display if we leave athame for realsies, but not for the space/delete hack
+    if(returnVal == '\r' || returnVal == '\t'){
+      athame_bottom_display("", BOLD, DEFAULT);
+    }
     athame_displaying_mode[0] = 'n';
     athame_displaying_mode[1] = '\0';
   }
