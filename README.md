@@ -1,7 +1,7 @@
 Athame
 ======
 
-Athame is a patchset for readline to add full vim support by routing your keystrokes through an actual vim process.
+Athame is a patchset for readline to add full Vim support by routing your keystrokes through an actual Vim process.
 
 *Doesn't readline already come with a vi-mode?*
 
@@ -20,7 +20,7 @@ Yes, and if you're fine with a basic vi imitation designed by a bunch of Emacs u
     git clone --recursive http://github.com/ardagnir/athame
     cd athame
 
-*Note:* If you want to patch readline yourself, you can run `git diff readline-6.3 HEAD` after these steps to generate a patch)
+*Note: If you want to patch readline yourself, you can run `git diff readline-6.3 HEAD` after this step to generate a patch)*
 
 **Step 2:** Build and install readline
 
@@ -28,18 +28,18 @@ Yes, and if you're fine with a basic vi imitation designed by a bunch of Emacs u
     make SHLIB_LIBS=-lncurses
     sudo make install
 
-*Note:* Athame doesn't require ncurses, but most distros build readline with ncurses and a lot of software is built on this assumption.
+*Note: Athame doesn't require ncurses, but most distros build readline with ncurses and a lot of software is built on this assumption.*
 
 **Step 3:** Copy the default athamerc. This is optional but **strongly recommended.**
 
     cp athamerc ~/.athamerc
 
-*Note:* ~/.athamerc is like ~/.vimrc but for athame only. Add any athame-specific vim customization here.
+*Note: ~/.athamerc is like ~/.vimrc but for athame only. Add any athame-specific Vim customization here.*
 
 ##How to Use
-Athame stores your vim history in a vim buffer with an empty line at the bottom and displays the line(s) of the cursor/highlighted text. Every key you type is sent to vim and operates on this buffer. This allows you to use j/k/arrows to transverse history. Since this is vim, you can use ? to search back and / to search forwards. The buffer is rebuilt from your new history after each command, so don't worry about destructive commands.
+Athame stores your Vim history in a Vim buffer with an empty line at the bottom and displays the line(s) of the cursor/highlighted text. Every key you type is sent to Vim and operates on this buffer. This allows you to use j/k/arrows to transverse history. Since this is Vim, you can use ? to search back and / to search forwards. The buffer is rebuilt from your new history after each command, so don't worry about destructive commands.
 
-Unless you are using the vim commandline(:,/,?), tabs and carriage returns are carried out by standard readline code.
+Unless you are using the Vim commandline(:,/,?), tabs and carriage returns are carried out by standard readline code.
 
 ##Licesnse
 
