@@ -1,7 +1,7 @@
 Athame
 ======
 
-Athame is a patchset for readline to add full Vim support by routing your keystrokes through an actual Vim process.
+Athame is a patch for readline to add full Vim support by routing your keystrokes through an actual Vim process.
 
 *Doesn't readline already come with a vi-mode?*
 
@@ -20,7 +20,7 @@ Yes, and if you're fine with a basic vi imitation designed by a bunch of Emacs u
     git clone --recursive http://github.com/ardagnir/athame
     cd athame
 
-*Note: If you want to patch readline yourself, you can run `git diff readline-6.3 HEAD` after this step to generate a patch)*
+*Note: If you want to patch readline yourself, you can run `git diff readline-6.3 HEAD` after this step to generate a patch*
 
 **Step 2:** Build and install readline
 
