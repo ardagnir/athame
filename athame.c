@@ -54,9 +54,9 @@ static FILE* dev_null;
 static int athame_row;
 static int updated;
 static char contents_file_name[64];
+static char update_file_name[64];
 static char meta_file_name[64];
 static char messages_file_name[64];
-static char temp_file_name[64];
 static char vimbed_file_name[256];
 static char dir_name[64];
 static char servername[32];
@@ -91,7 +91,7 @@ static int athame_get_vim_info_inner(int read_pipe);
 static void athame_update_vimline(int row, int col);
 static int athame_remote_expr(char* expr, int bock);
 static void athame_bottom_display(char* string, int style, int color);
-static int athame_wait_for_vimbed();
+static int athame_wait_for_file();
 static char athame_get_first_char();
 static int athame_highlight(int start, int end);
 
@@ -108,9 +108,9 @@ void athame_init()
   snprintf(servername, 32, "athame_%d_%d", getpid(), rand() % (1000000000));
   snprintf(dir_name, 64, "/tmp/vimbed/%s", servername);
   snprintf(contents_file_name, 64, "%s/contents.txt", dir_name);
+  snprintf(update_file_name, 64, "%s/update.txt", dir_name);
   snprintf(meta_file_name, 64, "%s/meta.txt", dir_name);
   snprintf(messages_file_name, 64, "%s/messages.txt", dir_name);
-  snprintf(temp_file_name, 64, "%s/temp.txt", dir_name);
   snprintf(vimbed_file_name, 256, "%s/athame/vimbed.vim", RL_LIBRARY_LOCATION);
   if(vimbed_file_name[255] != '\0')
   {
@@ -172,9 +172,9 @@ void athame_cleanup()
     fclose(dev_null);
     kill(vim_pid);
     unlink(contents_file_name);
+    unlink(update_file_name);
     unlink(meta_file_name);
     unlink(messages_file_name);
-    unlink(temp_file_name);
     rmdir(dir_name);
   }
 }
@@ -235,9 +235,9 @@ static int athame_update_vim(int col)
     return failure;
   }
 
-  FILE* contentsFile = fopen(contents_file_name, "w+");
+  FILE* updateFile = fopen(update_file_name, "w+");
 
-  if(!contentsFile){
+  if(!updateFile){
     athame_fail_str = "Couldn't create temporary file in /tmp/vimbed";
     return failure;
   }
@@ -249,41 +249,50 @@ static int athame_update_vim(int col)
   int counter;
   for(counter = 0; counter < hs->length; counter++)
   {
-    fwrite(hs->entries[counter]->line, 1, strlen(hs->entries[counter]->line), contentsFile);
-    fwrite("\n", 1, 1, contentsFile);
+    fwrite(hs->entries[counter]->line, 1, strlen(hs->entries[counter]->line), updateFile);
+    fwrite("\n", 1, 1, updateFile);
   }
-  fwrite("\n", 1, 1, contentsFile);
-  fclose(contentsFile);
+  fwrite("\n", 1, 1, updateFile);
+  fclose(updateFile);
   athame_row = hs->length;
   snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 0)", hs->length+1, col+1, hs->length+1, col+1);
   xfree(hs);
 
-  if(athame_wait_for_vimbed())
+  //Wait for the metafile so we know vimbed has loaded
+  if(athame_wait_for_file(meta_file_name))
   {
     athame_fail_str = "clientserver/vimbed error";
     return failure;
   }
 
   athame_remote_expr(athame_buffer, 1);
+
+  //Wait for the contents_file so we know UpdateText has been handled
+  if(athame_wait_for_file(contents_file_name))
+  {
+    athame_fail_str = "vimbed error";
+    return failure;
+  }
+
   updated = 1;
   return 0;
 }
 
-static int athame_wait_for_vimbed()
+static int athame_wait_for_file(char* file_name)
 {
-  //Check for existance of metafile to see if vimbed has loaded.
-  FILE* metaFile = 0;
+  //Check for existance of a file to see if we have advanced that far
+  FILE* theFile = 0;
   int sanity = 100;
-  while (!metaFile)
+  while (!theFile)
   {
     if(sanity-- < 0)
     {
       return 1;
     }
     athame_sleep(15);
-    metaFile = fopen(meta_file_name, "r+");
+    theFile = fopen(file_name, "r");
   }
-  fclose(metaFile);
+  fclose(theFile);
   return 0;
 }
 
@@ -324,25 +333,24 @@ static int athame_remote_expr(char* expr, int block)
 static void athame_update_vimline(int row, int col)
 {
   FILE* contentsFile = fopen(contents_file_name, "r");
-  FILE* tempFile = fopen(temp_file_name, "w+");
+  FILE* updateFile = fopen(update_file_name, "w+");
 
   int reading_row = 0;
   while (fgets(athame_buffer, DEFAULT_BUFFER_SIZE, contentsFile))
   {
     if(row != reading_row)
     {
-      fwrite(athame_buffer, 1, strlen(athame_buffer), tempFile);
+      fwrite(athame_buffer, 1, strlen(athame_buffer), updateFile);
     }
     else
     {
-      fwrite(rl_line_buffer, 1, rl_end, tempFile);
-      fwrite("\n", 1, 1, tempFile);
+      fwrite(rl_line_buffer, 1, rl_end, updateFile);
+      fwrite("\n", 1, 1, updateFile);
     }
     reading_row++;
   }
   fclose(contentsFile);
-  fclose(tempFile);
-  rename(temp_file_name, contents_file_name);
+  fclose(updateFile);
   snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 0)", row+1, col+1, row+1, col+1);
 
   athame_remote_expr(athame_buffer, 1);
@@ -697,7 +705,7 @@ static int athame_get_vim_info_inner(int read_pipe)
     return 1;
   }
 
-  FILE* metaFile = fopen(meta_file_name, "r+"); //Change to r
+  FILE* metaFile = fopen(meta_file_name, "r");
   if (!metaFile)
   {
     return 0;
