@@ -7,7 +7,7 @@ Athame is a patchset for readline to add full vim support by routing your keystr
 
 Yes, and if you're fine with a basic vi imitation designed by a bunch of Emacs users, feel free to use it. ...but for the crazy Vim fanatics who sacrifice goats to the modal gods, Athame gives you the full power of Vim.
 
-**Athame is not stable. Do not use this on a production system.**
+**This is alpha-quality software. Use at your own risk.**
 
 
 ##Requirements
@@ -15,28 +15,29 @@ Yes, and if you're fine with a basic vi imitation designed by a bunch of Emacs u
 - Athame works best in GNU/Linux.
 
 ##Installation
-**Step 1:** If you don't have the [vimbed](https://github.com/ardagnir/vimbed) plugin, install it first using your plugin-manager. If you use pathogen:
+**Step 1:** Download the patched version of readline from this repo.
 
-    cd ~/.vim/bundle
-    git clone http://github.com/ardagnir/vimbed
+    git clone --recursive http://github.com/ardagnir/athame
+    cd athame
 
-**Step 2:** Download the patched version of readline from this repo. (If you want to patch readline yourself, you can run `git diff readline-6.3 HEAD` to generate a patch)
+*Note:* If you want to patch readline yourself, you can run `git diff readline-6.3 HEAD` after these steps to generate a patch)
 
-**Step 3:** From inside the patched readline source:
+**Step 2:** Build and install readline
 
-    ./configure
-    make
-
-**Step 4:** You can now install, but **remember that athame might break things, including bash**:
-
+    ./configure --prefix=/usr
+    make SHLIB_LIBS=-lncurses
     sudo make install
 
-**Step 5:** Add an athamerc. Athame's vim sources this in addition to your vimrc. At the minimum, you should probably have the following, since allowing backspace to cross lineborders is annoying in a shell:
+*Note:* Athame doesn't require ncurses, but most distros build readline with ncurses and a lot of software is built on this assumption.
 
-    echo "set backspace-=eol" > ~/.athamerc
+**Step 3:** Copy the default athamerc. This is optional but **strongly recommended.**
+
+    cp athamerc ~/.athamerc
+
+*Note:* ~/.athamerc is like ~/.vimrc but for athame only. Add any athame-specific vim customization here.
 
 ##How to Use
-Athame stores your vim history in a vim buffer with an empty line at the bottom and displays the cursor's current line. Every key you type is sent to vim and operates on this buffer. This allows you to use j/k/arrows to transverse history. Since this is vim, you can use ? to search back and / to search forwards. The buffer is rebuilt from your new history after each command, so don't worry about destructive commands.
+Athame stores your vim history in a vim buffer with an empty line at the bottom and displays the line(s) of the cursor/highlighted text. Every key you type is sent to vim and operates on this buffer. This allows you to use j/k/arrows to transverse history. Since this is vim, you can use ? to search back and / to search forwards. The buffer is rebuilt from your new history after each command, so don't worry about destructive commands.
 
 Unless you are using the vim commandline(:,/,?), tabs and carriage returns are carried out by standard readline code.
 
