@@ -106,16 +106,15 @@ void athame_init()
   //Note that this rand() is not seeded.by athame.
   //It only establishes uniqueness within a single process using readline.
   //The pid establishes uniqueness between processes and makes debugging easier.
-  snprintf(servername, 32, "athame_%d_%d", getpid(), rand() % (1000000000));
-  snprintf(dir_name, 64, "/tmp/vimbed/%s", servername);
-  snprintf(contents_file_name, 64, "%s/contents.txt", dir_name);
-  snprintf(update_file_name, 64, "%s/update.txt", dir_name);
-  snprintf(meta_file_name, 64, "%s/meta.txt", dir_name);
-  snprintf(messages_file_name, 64, "%s/messages.txt", dir_name);
-  snprintf(vimbed_file_name, 256, "%s/athame/vimbed.vim", RL_LIBRARY_LOCATION);
-  if(vimbed_file_name[255] != '\0')
+  snprintf(servername, 31, "athame_%d_%d", getpid(), rand() % (1000000000));
+  snprintf(dir_name, 63, "/tmp/vimbed/%s", servername);
+  snprintf(contents_file_name, 63, "%s/contents.txt", dir_name);
+  snprintf(update_file_name, 63, "%s/update.txt", dir_name);
+  snprintf(meta_file_name, 63, "%s/meta.txt", dir_name);
+  snprintf(messages_file_name, 63, "%s/messages.txt", dir_name);
+  snprintf(vimbed_file_name, 255, "%s/athame/vimbed.vim", RL_LIBRARY_LOCATION);
+  if(vimbed_file_name[254] != '\0')
   {
-    vimbed_file_name[255] = '\0';
     athame_failed = 1;
     athame_fail_str = "Vimbed path too long.";
   }
@@ -693,8 +692,7 @@ static char athame_process_char(char char_read){
   {
     if(athame_failed)
     {
-      snprintf(athame_buffer, DEFAULT_BUFFER_SIZE, "Athame Failure: %s", athame_fail_str);
-      athame_buffer[DEFAULT_BUFFER_SIZE-1] = '\0';
+      snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Athame Failure: %s", athame_fail_str);
       athame_bottom_display(athame_buffer, BOLD, RED);
       athame_sleep(5);
     }
