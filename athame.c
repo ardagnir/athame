@@ -94,6 +94,7 @@ static void athame_bottom_display(char* string, int style, int color);
 static int athame_wait_for_file();
 static char athame_get_first_char();
 static int athame_highlight(int start, int end);
+static void athame_bottom_mode();
 
 void athame_init()
 {
@@ -406,13 +407,24 @@ static void athame_redisplay()
 {
   if (strcmp(athame_mode, "v") == 0 || strcmp(athame_mode, "V") == 0 || strcmp(athame_mode, "s") == 0 || strcmp(athame_mode, "c") == 0)
   {
-    athame_clear_dirty();
+    // Athame_highlight assumes the cursor is on the current terminal row. If we came
+    // from normal readline display, that might not be the case
+    if(!athame_clear_dirty())
+    {
+      int temp = rl_point;
+      rl_point = 0;
+      rl_redisplay();
+      rl_point = temp;
+    }
     athame_highlight(rl_point, end_col);
+
   }
   else
   {
     if(athame_clear_dirty()){
       rl_forced_update_display();
+      //We weren't able to update this if we were dirty.
+      athame_bottom_mode();
     }
     else
     {
@@ -421,8 +433,22 @@ static void athame_redisplay()
   }
 }
 
-static void athame_draw_line_with_highlight(char* text, int start, int end)
+static int athame_term_width()
 {
+  int height, width;
+  rl_get_screen_size(&height, &width);
+  return width;
+}
+
+static int athame_draw_line_with_highlight(char* text, int start, int end)
+{
+  int prompt_len = strlen(rl_prompt);
+  //How much more than one line does the text take up (if it wraps)
+  int extra_lines = (strlen(text) + prompt_len - 1)/athame_term_width();
+  //How far down is the start of the highlight (if text wraps)
+  int extra_lines_s = (start + prompt_len) /athame_term_width();
+  //How far down is the end of the highlight (if text wraps)
+  int extra_lines_e = (end + prompt_len - 1) /athame_term_width();
   char highlighted[DEFAULT_BUFFER_SIZE];
   strncpy(highlighted, text+start, end-start);
   if(!highlighted[end - start - 1])
@@ -430,9 +456,21 @@ static void athame_draw_line_with_highlight(char* text, int start, int end)
     highlighted[end - start - 1] = ' ';
   }
   highlighted[end - start] = '\0';
-  printf("\e[1G\e[%dC%s", strlen(rl_prompt), text);
-  printf("\e[1G\e[%dC\e[7m%s\e[0m", strlen(rl_prompt) + start, highlighted);
-  fflush(stdout);
+  printf("\e[1G\e[%dC%s", prompt_len, text);
+  if (extra_lines - extra_lines_s) {
+    printf("\e[%dA", extra_lines - extra_lines_s);
+  }
+
+  if((prompt_len + start) % athame_term_width())
+    printf("\e[1G\e[%dC\e[7m%s\e[0m", (prompt_len + start) % athame_term_width(), highlighted);
+  else
+    printf("\e[1G\e[7m%s\e[0m", highlighted);
+
+  if (extra_lines - extra_lines_e){
+    printf("\e[%dB", extra_lines - extra_lines_e);
+  }
+  printf("\n");
+  return extra_lines + 1;
 }
 
 static int athame_highlight(int start, int end)
@@ -466,9 +504,7 @@ static int athame_highlight(int start, int end)
     else {
       this_end = end;
     }
-    athame_draw_line_with_highlight(new_string, this_start, this_end);
-    printf("\n");
-    athame_dirty++;
+    athame_dirty += athame_draw_line_with_highlight(new_string, this_start, this_end);
     new_string = next_string;
   }
   if(athame_dirty)
@@ -507,34 +543,7 @@ char athame_loop(int instream)
 
   while(!returnVal)
   {
-    if (strcmp(athame_mode, athame_displaying_mode) != 0 && !athame_failed) {
-      strcpy(athame_displaying_mode, athame_mode);
-      if (strcmp(athame_mode, "i") == 0)
-      {
-        athame_bottom_display("--INSERT--", BOLD, DEFAULT);
-      }
-      else if (strcmp(athame_mode, "v") == 0)
-      {
-        athame_bottom_display("--VISUAL--", BOLD, DEFAULT);
-      }
-      else if (strcmp(athame_mode, "V") == 0)
-      {
-        athame_bottom_display("--VISUAL LINE--", BOLD, DEFAULT);
-      }
-      else if (strcmp(athame_mode, "s") == 0)
-      {
-        athame_bottom_display("--SELECT--", BOLD, DEFAULT);
-      }
-      else if (strcmp(athame_mode, "R") == 0)
-      {
-        athame_bottom_display("--REPLACE--", BOLD, DEFAULT);
-      }
-      else if (strcmp(athame_mode, "c") !=0)
-      {
-        athame_bottom_display("", BOLD, DEFAULT);
-      }
-    }
-
+    athame_bottom_mode();
     athame_redisplay();
 
     struct timeval timeout;
@@ -614,6 +623,37 @@ char athame_loop(int instream)
     athame_displaying_mode[1] = '\0';
   }
   return returnVal;
+}
+
+static void athame_bottom_mode()
+{
+  if (strcmp(athame_mode, athame_displaying_mode) != 0 && !athame_failed && !athame_dirty) {
+    strcpy(athame_displaying_mode, athame_mode);
+    if (strcmp(athame_mode, "i") == 0)
+    {
+      athame_bottom_display("--INSERT--", BOLD, DEFAULT);
+    }
+    else if (strcmp(athame_mode, "v") == 0)
+    {
+      athame_bottom_display("--VISUAL--", BOLD, DEFAULT);
+    }
+    else if (strcmp(athame_mode, "V") == 0)
+    {
+      athame_bottom_display("--VISUAL LINE--", BOLD, DEFAULT);
+    }
+    else if (strcmp(athame_mode, "s") == 0)
+    {
+      athame_bottom_display("--SELECT--", BOLD, DEFAULT);
+    }
+    else if (strcmp(athame_mode, "R") == 0)
+    {
+      athame_bottom_display("--REPLACE--", BOLD, DEFAULT);
+    }
+    else if (strcmp(athame_mode, "c") !=0)
+    {
+      athame_bottom_display("", BOLD, DEFAULT);
+    }
+  }
 }
 
 static void athame_extraVimRead(int timer)
