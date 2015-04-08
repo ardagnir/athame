@@ -249,16 +249,23 @@ static int athame_update_vim(int col)
   athame_sleep(50);
 
   HISTORY_STATE* hs = history_get_history_state();
+  int extra_lines; //lines with 1 line in history that take include newlines
   int counter;
   for(counter = 0; counter < hs->length; counter++)
   {
     fwrite(hs->entries[counter]->line, 1, strlen(hs->entries[counter]->line), updateFile);
+    char* line_search = hs->entries[counter]->line;
+    while(line_search = strstr(line_search, "\n"))
+    {
+      line_search++;
+      extra_lines++;
+    }
     fwrite("\n", 1, 1, updateFile);
   }
   fwrite("\n", 1, 1, updateFile);
   fclose(updateFile);
-  athame_row = hs->length;
-  snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 0)", hs->length+1, col+1, hs->length+1, col+1);
+  athame_row = hs->length + extra_lines;
+  snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 0)", athame_row+1, col+1, athame_row+1, col+1);
   xfree(hs);
 
   //Wait for the metafile so we know vimbed has loaded
