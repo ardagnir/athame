@@ -3,12 +3,13 @@ Athame
 
 Athame is a patch for readline to add full Vim support by routing your keystrokes through an actual Vim process.
 
-*Doesn't readline already come with a vi-mode?*
+![Demo](http://i.imgur.com/MZCL1Vi.gif)
+
+**Doesn't readline already come with a vi-mode?**
 
 Yes, and if you're fine with a basic vi imitation designed by a bunch of Emacs users, feel free to use it. ...but for the crazy Vim fanatics who sacrifice goats to the modal gods, Athame gives you the full power of Vim.
 
-**This is alpha-quality software. Use at your own risk.**
-
+**This is alpha-quality software. It has bugs. Use at your own risk.**
 
 ##Requirements
 - Athame requires Vim (your version needs to have +clientserver).
