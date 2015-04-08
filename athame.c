@@ -450,7 +450,7 @@ static int athame_term_width()
 
 static int athame_draw_line_with_highlight(char* text, int start, int end)
 {
-  int prompt_len = strlen(rl_prompt);
+  int prompt_len = rl_expand_prompt (rl_prompt);
   //How much more than one line does the text take up (if it wraps)
   int extra_lines = (strlen(text) + prompt_len - 1)/athame_term_width();
   //How far down is the start of the highlight (if text wraps)
