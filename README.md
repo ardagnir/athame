@@ -42,6 +42,6 @@ Athame stores your Vim history in a Vim buffer with an empty line at the bottom 
 
 Unless you are using the Vim commandline(:,/,?), tabs and carriage returns are carried out by standard readline code.
 
-##Licesnse
+##License
 
-GPL v3
+The source code is licensed under GPL v3. License is available [here](/LICENSE).
