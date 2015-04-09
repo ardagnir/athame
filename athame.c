@@ -62,7 +62,7 @@ static char messages_file_name[64];
 static char vimbed_file_name[256];
 static char dir_name[64];
 static char servername[32];
-static int key_pressed = 0;
+static int sent_to_vim = 0;
 static int needs_poll = 0;
 
  //Keep track of if last key was a tab. We need to fake keys between tabpresses or readline completion gets confused.
@@ -546,6 +546,8 @@ char athame_loop(int instream)
     return '\b';
   }
 
+  sent_to_vim = 0;
+
   if(!updated && !athame_failed)
   {
     athame_update_vimline(athame_row, rl_point);
@@ -625,7 +627,7 @@ char athame_loop(int instream)
   }
   if(!athame_failed)
   {
-    if(key_pressed)
+    if(sent_to_vim)
     {
       athame_extraVimRead(100);
     }
@@ -719,7 +721,7 @@ static char athame_process_char(char char_read){
   }
   else
   {
-    key_pressed = 1;
+    sent_to_vim = 1;
 
     //Backspace
     if (char_read == '\177'){
