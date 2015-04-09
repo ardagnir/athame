@@ -629,6 +629,10 @@ char athame_loop(int instream)
   {
     if(sent_to_vim)
     {
+      if(strcmp(athame_mode, "i") == 0)
+      {
+        athame_send_to_vim('\x1d'); //<C-]> Finish abbrevs/kill mappings
+      }
       athame_extraVimRead(100);
     }
     updated = 0;
