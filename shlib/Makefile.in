@@ -192,11 +192,11 @@ installdirs: $(topdir)/support/mkdirs
 	-$(SHELL) $(topdir)/support/mkdirs $(DESTDIR)$(bindir)
 
 install-athame:
-	$(RM) $(libdir)/athame/vimbed.vim && $(RM) -r $(libdir)/athame
-	$(CP) -r $(topdir)/vimbed/plugin $(libdir)/athame
+	$(RM) $(DESTDIR)$(libdir)/athame/vimbed.vim && $(RM) -r $(DESTDIR)$(libdir)/athame
+	$(CP) -r $(topdir)/vimbed/plugin $(DESTDIR)$(libdir)/athame
 
 uninstall-athame:
-	$(RM) -r $(libdir)/athame
+	$(RM) -r $(DESTDIR)$(libdir)/athame
 
 install-supported: installdirs $(SHLIB_STATUS) install-athame
 	$(SHELL) $(topdir)/support/shlib-install -O $(host_os) -V $(host_vendor) -d $(DESTDIR)$(libdir) -b $(DESTDIR)$(bindir) -i "$(INSTALL_DATA)" $(SHARED_HISTORY)

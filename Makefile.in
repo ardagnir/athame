@@ -224,11 +224,11 @@ force:
 install:	$(INSTALL_TARGETS)
 
 install-athame:
-	$(RM) $(libdir)/athame/vimbed.vim && $(RM) -r $(libdir)/athame
-	$(CP) -r $(srcdir)/vimbed/plugin $(libdir)/athame
+	$(RM) $(DESTDIR)$(libdir)/athame/vimbed.vim && $(RM) -r $(DESTDIR)$(libdir)/athame
+	$(CP) -r $(srcdir)/vimbed/plugin $(DESTDIR)$(libdir)/athame
 
 uninstall-athame:
-	$(RM) -r $(libdir)/athame
+	$(RM) -r $(DESTDIR)$(libdir)/athame
 
 install-headers: installdirs ${INSTALLED_HEADERS}
 	for f in ${INSTALLED_HEADERS}; do \
