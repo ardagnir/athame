@@ -92,7 +92,7 @@ static void athame_sleep(int msec);
 static int athame_get_vim_info_inner(int read_pipe);
 static void athame_update_vimline(int row, int col);
 static int athame_remote_expr(char* expr, int bock);
-static void athame_bottom_display(char* string, int style, int color, int redraw);
+static void athame_bottom_display(char* string, int style, int color);
 static int athame_wait_for_file();
 static char athame_get_first_char();
 static int athame_highlight(int start, int end);
@@ -162,7 +162,7 @@ void athame_init()
 
     athame_failed = athame_update_vim(0);
   }
-  athame_bottom_display("--INSERT--", BOLD, DEFAULT, 1);
+  athame_bottom_display("--INSERT--", BOLD, DEFAULT);
 }
 
 void athame_cleanup()
@@ -375,10 +375,10 @@ static void athame_poll_vim()
   needs_poll = (athame_remote_expr("Vimbed_Poll()", 0) != 0);
 }
 
-static void athame_bottom_display(char* string, int style, int color, int redraw)
+static void athame_bottom_display(char* string, int style, int color)
 {
     int temp = rl_point;
-    if(redraw) {
+    if(!athame_dirty) {
       rl_point = 0;
       rl_redisplay();
     }
@@ -393,7 +393,7 @@ static void athame_bottom_display(char* string, int style, int color, int redraw
     }
 
     fflush(stdout);
-    if(redraw) {
+    if(!athame_dirty) {
       rl_point = temp;
       rl_forced_update_display();
     }
@@ -440,8 +440,6 @@ static void athame_redisplay()
   {
     if(athame_clear_dirty()){
       rl_forced_update_display();
-      //We weren't able to update this if we were dirty.
-      athame_bottom_mode();
     }
     else
     {
@@ -634,7 +632,7 @@ char athame_loop(int instream)
     updated = 0;
     //Hide bottom display if we leave athame for realsies, but not for the space/delete hack
     if(returnVal != ' ' && returnVal != '\b'){
-      athame_bottom_display("", BOLD, DEFAULT, 1);
+      athame_bottom_display("", BOLD, DEFAULT);
     }
     athame_displaying_mode[0] = 'n';
     athame_displaying_mode[1] = '\0';
@@ -644,31 +642,31 @@ char athame_loop(int instream)
 
 static void athame_bottom_mode()
 {
-  if (strcmp(athame_mode, athame_displaying_mode) != 0 && !athame_failed && !athame_dirty) {
+  if (strcmp(athame_mode, athame_displaying_mode) != 0 && !athame_failed) {
     strcpy(athame_displaying_mode, athame_mode);
     if (strcmp(athame_mode, "i") == 0)
     {
-      athame_bottom_display("--INSERT--", BOLD, DEFAULT, 1);
+      athame_bottom_display("--INSERT--", BOLD, DEFAULT);
     }
     else if (strcmp(athame_mode, "v") == 0)
     {
-      athame_bottom_display("--VISUAL--", BOLD, DEFAULT, 1);
+      athame_bottom_display("--VISUAL--", BOLD, DEFAULT);
     }
     else if (strcmp(athame_mode, "V") == 0)
     {
-      athame_bottom_display("--VISUAL LINE--", BOLD, DEFAULT, 1);
+      athame_bottom_display("--VISUAL LINE--", BOLD, DEFAULT);
     }
     else if (strcmp(athame_mode, "s") == 0)
     {
-      athame_bottom_display("--SELECT--", BOLD, DEFAULT, 1);
+      athame_bottom_display("--SELECT--", BOLD, DEFAULT);
     }
     else if (strcmp(athame_mode, "R") == 0)
     {
-      athame_bottom_display("--REPLACE--", BOLD, DEFAULT, 1);
+      athame_bottom_display("--REPLACE--", BOLD, DEFAULT);
     }
     else if (strcmp(athame_mode, "c") !=0)
     {
-      athame_bottom_display("", BOLD, DEFAULT, 1);
+      athame_bottom_display("", BOLD, DEFAULT);
     }
   }
 }
@@ -712,7 +710,7 @@ static char athame_process_char(char char_read){
     if(athame_failed)
     {
       snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Athame Failure: %s", athame_fail_str);
-      athame_bottom_display(athame_buffer, BOLD, RED, 1);
+      athame_bottom_display(athame_buffer, BOLD, RED);
       athame_sleep(5);
     }
 
@@ -785,7 +783,7 @@ static int athame_get_vim_info_inner(int read_pipe)
       {
         strncpy(last_vim_command, command, DEFAULT_BUFFER_SIZE-1);
         last_vim_command[DEFAULT_BUFFER_SIZE-1] = '\0';
-        athame_bottom_display(command, NORMAL, DEFAULT, 0);
+        athame_bottom_display(command, NORMAL, DEFAULT);
         //Don't record a change because the highlight for incsearch might not have changed yet.
       }
     }
