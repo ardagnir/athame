@@ -749,7 +749,7 @@ static char athame_process_input(int instream)
 
 static char athame_process_char(char char_read){
   //Unless in vim commandline send return/tab/<C-D>/<C-L> to readline instead of vim
-  if(athame_failed || (strstr("\r\t\x04\x0c", &char_read) && strcmp(athame_mode, "c") != 0 ))
+  if(athame_failed || (strchr("\r\t\x04\x0c", char_read) && strcmp(athame_mode, "c") != 0 ))
   {
     if(athame_failed)
     {
