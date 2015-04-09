@@ -618,8 +618,21 @@ char athame_loop(int instream)
           }
           else
           {
-            athame_fail_str = "Vim quit";
-            athame_failed = 1;
+            //Vim quit
+            if(sent_to_vim)
+            {
+              rl_line_buffer[0] = '\0';
+              rl_end = 0;
+              return '\x04'; //<C-D>
+            }
+            else
+            {
+              // If we didn't send anything to vim, it shouldn't have quit.
+              // We never want to kill the user's shell without giving them a chance
+              // to type anything.
+              athame_fail_str = "Vim quit";
+              athame_failed = 1;
+            }
           }
         }
       }
