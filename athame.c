@@ -18,6 +18,8 @@
    along with Athame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define READLINE_LIBRARY
+
 #include <sys/select.h>
 #include <sys/types.h>
 #include <sys/stat.h>
