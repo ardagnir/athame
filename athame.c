@@ -97,6 +97,8 @@ static int athame_wait_for_file();
 static char athame_get_first_char();
 static int athame_highlight(int start, int end);
 static void athame_bottom_mode();
+static int athame_term_height();
+static int athame_term_width();
 
 void athame_init()
 {
@@ -375,22 +377,38 @@ static void athame_poll_vim()
   needs_poll = (athame_remote_expr("Vimbed_Poll()", 0) != 0);
 }
 
+int last_height=0;
+
 static void athame_bottom_display(char* string, int style, int color)
 {
+    int term_height = athame_term_height();
+    if(!last_height)
+    {
+      last_height = term_height;
+    }
+
     int temp = rl_point;
     if(!athame_dirty) {
       rl_point = 0;
       rl_redisplay();
     }
 
+    //\n\e[A:          Add a line underneath if at bottom
+    //\e[s:            Save cursor position
+    //\e[%d;1H\e[K     Delete old athame_bottom_display
+    //\e[%d;1H         Go to position for new athame_bottom_display
+    //\e[%d;%dm%s\e[0m Write bottom display using given color/style
+    //\e[u             Return to saved position
     if (color)
     {
-      printf("\n\e[A\e[s\e[999E\e[K\e[%d;%dm%s\e[0m\e[u", style, color, string);
+      printf("\n\e[A\e[s\e[%d;1H\e[K\e[%d;1H\e[%d;%dm%s\e[0m\e[u", last_height, term_height, style, color, string);
     }
     else
     {
-      printf("\n\e[A\e[s\e[999E\e[K\e[%dm%s\e[0m\e[u", style, string);
+      printf("\n\e[A\e[s\e[%d;1H\e[K\e[%d;1H\e[%dm%s\e[0m\e[u", last_height, term_height, style, string);
     }
+
+    last_height = term_height;
 
     fflush(stdout);
     if(!athame_dirty) {
@@ -446,6 +464,13 @@ static void athame_redisplay()
       rl_redisplay();
     }
   }
+}
+
+static int athame_term_height()
+{
+  int height, width;
+  rl_get_screen_size(&height, &width);
+  return height;
 }
 
 static int athame_term_width()
