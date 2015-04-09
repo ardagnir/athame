@@ -564,7 +564,7 @@ char athame_loop(int instream)
     struct timeval timeout;
     int results = 0;
     if(first_char){
-      athame_process_char(first_char);
+      returnVal = athame_process_char(first_char);
       first_char = 0;
     }
     else {
@@ -631,7 +631,7 @@ char athame_loop(int instream)
     }
     updated = 0;
     //Hide bottom display if we leave athame for realsies, but not for the space/delete hack
-    if(returnVal == '\r' || returnVal == '\t'){
+    if(returnVal != ' ' && returnVal != '\b'){
       athame_bottom_display("", BOLD, DEFAULT, 1);
     }
     athame_displaying_mode[0] = 'n';
@@ -704,7 +704,8 @@ static char athame_process_input(int instream)
 }
 
 static char athame_process_char(char char_read){
-  if(athame_failed || ((char_read == '\r' || char_read == '\t') && strcmp(athame_mode, "c") != 0 ))
+  //Unless in vim commandline send return/tab/<C-D>/<C-L> to readline instead of vim
+  if(athame_failed || (strstr("\r\t\x04\x0c", &char_read) && strcmp(athame_mode, "c") != 0 ))
   {
     if(athame_failed)
     {
