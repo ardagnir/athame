@@ -805,8 +805,8 @@ static int athame_get_vim_info_inner(int read_pipe)
         if(!rowStr){
           return 0;
         }
-        int col = atoi(colStr);
-        int row = atoi(rowStr);
+        int col = strtol(colStr, NULL, 10);
+        int row = strtol(rowStr, NULL, 10);
 
         if(col < 0 || row < 0){
           col = 0;
@@ -822,13 +822,13 @@ static int athame_get_vim_info_inner(int read_pipe)
           {
             return 0;
           }
-          new_end_col = atoi(colStr);
+          new_end_col = strtol(colStr, NULL, 10);
           rowStr = strtok(NULL, ",");
           if(!rowStr)
           {
             return 0;
           }
-          new_end_row = atoi(rowStr);
+          new_end_row = strtol(rowStr, NULL, 10);
           if(new_end_col != end_col || new_end_row != end_row)
           {
             end_col = new_end_col;
