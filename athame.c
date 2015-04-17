@@ -894,13 +894,8 @@ static int athame_get_vim_info_inner(int read_pipe)
 
         //TODO: This command check is a temporary hack
         char* line_text;
-        if(athame_mode[0] == 'c') {
-          line_text = athame_get_lines_from_vim(row, row);
-        }
-        else {
-          int subtract_line = (end_row > row && end_col == 0 ? 1 : 0);
-          line_text = athame_get_lines_from_vim(row, end_row - subtract_line);
-        }
+        int subtract_line = (end_row > row && end_col == 0 ? 1 : 0);
+        line_text = athame_get_lines_from_vim(row, end_row - subtract_line);
 
         if (line_text)
         {
