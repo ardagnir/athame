@@ -62,7 +62,7 @@ static char messages_file_name[64];
 static char vimbed_file_name[256];
 static char dir_name[64];
 static char servername[32];
-static int key_pressed = 0;
+static int sent_to_vim = 0;
 static int needs_poll = 0;
 
  //Keep track of if last key was a tab. We need to fake keys between tabpresses or readline completion gets confused.
@@ -92,11 +92,13 @@ static void athame_sleep(int msec);
 static int athame_get_vim_info_inner(int read_pipe);
 static void athame_update_vimline(int row, int col);
 static int athame_remote_expr(char* expr, int bock);
-static void athame_bottom_display(char* string, int style, int color, int redraw);
+static void athame_bottom_display(char* string, int style, int color);
 static int athame_wait_for_file();
 static char athame_get_first_char();
 static int athame_highlight(int start, int end);
 static void athame_bottom_mode();
+static int athame_term_height();
+static int athame_term_width();
 
 void athame_init()
 {
@@ -162,7 +164,7 @@ void athame_init()
 
     athame_failed = athame_update_vim(0);
   }
-  athame_bottom_display("--INSERT--", BOLD, DEFAULT, 1);
+  athame_bottom_display("--INSERT--", BOLD, DEFAULT);
 }
 
 void athame_cleanup()
@@ -247,8 +249,8 @@ static int athame_update_vim(int col)
   //Send vim a return incase there was a warning (for example no ~/.athamerc)
   athame_send_to_vim('\r');
 
-  //TODO: This is a hack to fix a race condition
-  athame_sleep(50);
+  //Vim's clientserver takes a while to start up. TODO: Figure out exactly when we can move forward.
+  athame_sleep(100);
 
   HISTORY_STATE* hs = history_get_history_state();
   int extra_lines; //lines with 1 line in history that take include newlines
@@ -375,25 +377,41 @@ static void athame_poll_vim()
   needs_poll = (athame_remote_expr("Vimbed_Poll()", 0) != 0);
 }
 
-static void athame_bottom_display(char* string, int style, int color, int redraw)
+int last_height=0;
+
+static void athame_bottom_display(char* string, int style, int color)
 {
+    int term_height = athame_term_height();
+    if(!last_height)
+    {
+      last_height = term_height;
+    }
+
     int temp = rl_point;
-    if(redraw) {
+    if(!athame_dirty) {
       rl_point = 0;
       rl_redisplay();
     }
 
+    //\n\e[A:          Add a line underneath if at bottom
+    //\e[s:            Save cursor position
+    //\e[%d;1H\e[K     Delete old athame_bottom_display
+    //\e[%d;1H         Go to position for new athame_bottom_display
+    //\e[%d;%dm%s\e[0m Write bottom display using given color/style
+    //\e[u             Return to saved position
     if (color)
     {
-      printf("\n\e[A\e[s\e[999E\e[K\e[%d;%dm%s\e[0m\e[u", style, color, string);
+      printf("\n\e[A\e[s\e[%d;1H\e[K\e[%d;1H\e[%d;%dm%s\e[0m\e[u", last_height, term_height, style, color, string);
     }
     else
     {
-      printf("\n\e[A\e[s\e[999E\e[K\e[%dm%s\e[0m\e[u", style, string);
+      printf("\n\e[A\e[s\e[%d;1H\e[K\e[%d;1H\e[%dm%s\e[0m\e[u", last_height, term_height, style, string);
     }
 
+    last_height = term_height;
+
     fflush(stdout);
-    if(redraw) {
+    if(!athame_dirty) {
       rl_point = temp;
       rl_forced_update_display();
     }
@@ -440,14 +458,19 @@ static void athame_redisplay()
   {
     if(athame_clear_dirty()){
       rl_forced_update_display();
-      //We weren't able to update this if we were dirty.
-      athame_bottom_mode();
     }
     else
     {
       rl_redisplay();
     }
   }
+}
+
+static int athame_term_height()
+{
+  int height, width;
+  rl_get_screen_size(&height, &width);
+  return height;
 }
 
 static int athame_term_width()
@@ -548,6 +571,8 @@ char athame_loop(int instream)
     return '\b';
   }
 
+  sent_to_vim = 0;
+
   if(!updated && !athame_failed)
   {
     athame_update_vimline(athame_row, rl_point);
@@ -618,8 +643,21 @@ char athame_loop(int instream)
           }
           else
           {
-            athame_fail_str = "Vim quit";
-            athame_failed = 1;
+            //Vim quit
+            if(sent_to_vim)
+            {
+              rl_line_buffer[0] = '\0';
+              rl_end = 0;
+              return '\x04'; //<C-D>
+            }
+            else
+            {
+              // If we didn't send anything to vim, it shouldn't have quit.
+              // We never want to kill the user's shell without giving them a chance
+              // to type anything.
+              athame_fail_str = "Vim quit";
+              athame_failed = 1;
+            }
           }
         }
       }
@@ -627,14 +665,18 @@ char athame_loop(int instream)
   }
   if(!athame_failed)
   {
-    if(key_pressed)
+    if(sent_to_vim)
     {
+      if(strcmp(athame_mode, "i") == 0)
+      {
+        athame_send_to_vim('\x1d'); //<C-]> Finish abbrevs/kill mappings
+      }
       athame_extraVimRead(100);
     }
     updated = 0;
     //Hide bottom display if we leave athame for realsies, but not for the space/delete hack
     if(returnVal != ' ' && returnVal != '\b'){
-      athame_bottom_display("", BOLD, DEFAULT, 1);
+      athame_bottom_display("", BOLD, DEFAULT);
     }
     athame_displaying_mode[0] = 'n';
     athame_displaying_mode[1] = '\0';
@@ -644,31 +686,31 @@ char athame_loop(int instream)
 
 static void athame_bottom_mode()
 {
-  if (strcmp(athame_mode, athame_displaying_mode) != 0 && !athame_failed && !athame_dirty) {
+  if (strcmp(athame_mode, athame_displaying_mode) != 0 && !athame_failed) {
     strcpy(athame_displaying_mode, athame_mode);
     if (strcmp(athame_mode, "i") == 0)
     {
-      athame_bottom_display("--INSERT--", BOLD, DEFAULT, 1);
+      athame_bottom_display("--INSERT--", BOLD, DEFAULT);
     }
     else if (strcmp(athame_mode, "v") == 0)
     {
-      athame_bottom_display("--VISUAL--", BOLD, DEFAULT, 1);
+      athame_bottom_display("--VISUAL--", BOLD, DEFAULT);
     }
     else if (strcmp(athame_mode, "V") == 0)
     {
-      athame_bottom_display("--VISUAL LINE--", BOLD, DEFAULT, 1);
+      athame_bottom_display("--VISUAL LINE--", BOLD, DEFAULT);
     }
     else if (strcmp(athame_mode, "s") == 0)
     {
-      athame_bottom_display("--SELECT--", BOLD, DEFAULT, 1);
+      athame_bottom_display("--SELECT--", BOLD, DEFAULT);
     }
     else if (strcmp(athame_mode, "R") == 0)
     {
-      athame_bottom_display("--REPLACE--", BOLD, DEFAULT, 1);
+      athame_bottom_display("--REPLACE--", BOLD, DEFAULT);
     }
     else if (strcmp(athame_mode, "c") !=0)
     {
-      athame_bottom_display("", BOLD, DEFAULT, 1);
+      athame_bottom_display("", BOLD, DEFAULT);
     }
   }
 }
@@ -712,7 +754,7 @@ static char athame_process_char(char char_read){
     if(athame_failed)
     {
       snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Athame Failure: %s", athame_fail_str);
-      athame_bottom_display(athame_buffer, BOLD, RED, 1);
+      athame_bottom_display(athame_buffer, BOLD, RED);
       athame_sleep(5);
     }
 
@@ -721,7 +763,7 @@ static char athame_process_char(char char_read){
   }
   else
   {
-    key_pressed = 1;
+    sent_to_vim = 1;
 
     //Backspace
     if (char_read == '\177'){
@@ -785,7 +827,7 @@ static int athame_get_vim_info_inner(int read_pipe)
       {
         strncpy(last_vim_command, command, DEFAULT_BUFFER_SIZE-1);
         last_vim_command[DEFAULT_BUFFER_SIZE-1] = '\0';
-        athame_bottom_display(command, NORMAL, DEFAULT, 0);
+        athame_bottom_display(command, NORMAL, DEFAULT);
         //Don't record a change because the highlight for incsearch might not have changed yet.
       }
     }
@@ -807,8 +849,8 @@ static int athame_get_vim_info_inner(int read_pipe)
         if(!rowStr){
           return 0;
         }
-        int col = atoi(colStr);
-        int row = atoi(rowStr);
+        int col = strtol(colStr, NULL, 10);
+        int row = strtol(rowStr, NULL, 10);
 
         if(col < 0 || row < 0){
           col = 0;
@@ -824,13 +866,13 @@ static int athame_get_vim_info_inner(int read_pipe)
           {
             return 0;
           }
-          new_end_col = atoi(colStr);
+          new_end_col = strtol(colStr, NULL, 10);
           rowStr = strtok(NULL, ",");
           if(!rowStr)
           {
             return 0;
           }
-          new_end_row = atoi(rowStr);
+          new_end_row = strtol(rowStr, NULL, 10);
           if(new_end_col != end_col || new_end_row != end_row)
           {
             end_col = new_end_col;
@@ -852,13 +894,8 @@ static int athame_get_vim_info_inner(int read_pipe)
 
         //TODO: This command check is a temporary hack
         char* line_text;
-        if(athame_mode[0] == 'c') {
-          line_text = athame_get_lines_from_vim(row, row);
-        }
-        else {
-          int subtract_line = (end_row > row && end_col == 0 ? 1 : 0);
-          line_text = athame_get_lines_from_vim(row, end_row - subtract_line);
-        }
+        int subtract_line = (end_row > row && end_col == 0 ? 1 : 0);
+        line_text = athame_get_lines_from_vim(row, end_row - subtract_line);
 
         if (line_text)
         {
