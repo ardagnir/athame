@@ -249,8 +249,8 @@ static int athame_update_vim(int col)
   //Send vim a return incase there was a warning (for example no ~/.athamerc)
   athame_send_to_vim('\r');
 
-  //TODO: This is a hack to fix a race condition
-  athame_sleep(50);
+  //Vim's clientserver takes a while to start up. TODO: Figure out exactly when we can move forward.
+  athame_sleep(100);
 
   HISTORY_STATE* hs = history_get_history_state();
   int extra_lines; //lines with 1 line in history that take include newlines
