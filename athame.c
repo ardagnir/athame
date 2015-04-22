@@ -377,14 +377,16 @@ static void athame_poll_vim()
   needs_poll = (athame_remote_expr("Vimbed_Poll()", 0) != 0);
 }
 
-int last_height=0;
+int last_bdisplay_top = 0;
+int last_bdisplay_bottom = 0;
 
 static void athame_bottom_display(char* string, int style, int color)
 {
     int term_height = athame_term_height();
-    if(!last_height)
+    if(!last_bdisplay_bottom)
     {
-      last_height = term_height;
+      last_bdisplay_top = term_height;
+      last_bdisplay_bottom = term_height;
     }
 
     int temp = rl_point;
@@ -392,6 +394,16 @@ static void athame_bottom_display(char* string, int style, int color)
       rl_point = 0;
       rl_redisplay();
     }
+
+    int extra_lines = (strlen(string) - 1) / athame_term_width();
+    int i;
+    for(i = 0; i < extra_lines; i++)
+    {
+      printf("\n");
+    }
+
+    //Take into account both mutline commands and resizing.
+    int erase_point = MIN(last_bdisplay_top, last_bdisplay_top - last_bdisplay_bottom + term_height);
 
     //\n\e[A:          Add a line underneath if at bottom
     //\e[s:            Save cursor position
@@ -401,14 +413,20 @@ static void athame_bottom_display(char* string, int style, int color)
     //\e[u             Return to saved position
     if (color)
     {
-      printf("\n\e[A\e[s\e[%d;1H\e[K\e[%d;1H\e[%d;%dm%s\e[0m\e[u", last_height, term_height, style, color, string);
+      printf("\n\e[A\e[s\e[%d;1H\e[J\e[%d;1H\e[%d;%dm%s\e[0m\e[u", erase_point, term_height-extra_lines, style, color, string);
     }
     else
     {
-      printf("\n\e[A\e[s\e[%d;1H\e[K\e[%d;1H\e[%dm%s\e[0m\e[u", last_height, term_height, style, string);
+      printf("\n\e[A\e[s\e[%d;1H\e[J\e[%d;1H\e[%dm%s\e[0m\e[u", erase_point, term_height-extra_lines, style, string);
     }
 
-    last_height = term_height;
+    for(i = 0; i < extra_lines; i++)
+    {
+      printf("\e[A");
+    }
+
+    last_bdisplay_bottom = term_height;
+    last_bdisplay_top = term_height - extra_lines;
 
     fflush(stdout);
     if(!athame_dirty) {
