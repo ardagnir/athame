@@ -65,7 +65,7 @@ static int ap_get_line_buffer_length()
 
 static void ap_set_line_buffer(char* newText)
 {
-  setline(newText, 0);
+  setline(newText, ZSL_COPY);
 }
 
 static int ap_get_cursor()
