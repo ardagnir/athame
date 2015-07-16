@@ -94,7 +94,7 @@ static void ap_get_history_start()
 
 static char* ap_get_history_next()
 {
-  if (hs->entries[hs_counter])
+  if (hs->entries && hs->entries[hs_counter])
   {
     return hs->entries[hs_counter++]->line;
   }
