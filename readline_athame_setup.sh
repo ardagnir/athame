@@ -1,5 +1,5 @@
 #!/bin/sh
-# readline_athame_setup.sh -- Full vim integration for your shell.*/
+# readline_athame_setup.sh -- Full vim integration for your shell.
 #
 # Copyright (C) 2015 James Kolb
 #
