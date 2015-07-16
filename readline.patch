@@ -1,0 +1,223 @@
+diff -ru a/Makefile.in b/Makefile.in
+--- a/Makefile.in	2015-07-15 00:03:32.894897704 -0400
++++ b/Makefile.in	2015-07-14 23:36:13.208157503 -0400
+@@ -76,7 +76,7 @@
+ CTAGS = ctags -tw
+ 
+ CFLAGS = @CFLAGS@
+-LOCAL_CFLAGS = @LOCAL_CFLAGS@ -DRL_LIBRARY_VERSION='"$(RL_LIBRARY_VERSION)"'
++LOCAL_CFLAGS = @LOCAL_CFLAGS@ -DRL_LIBRARY_VERSION='"$(RL_LIBRARY_VERSION)"' -DVIMBED_LOCATION='"${libdir}/athame_readline"' -DATHAME_READLINE
+ CPPFLAGS = @CPPFLAGS@
+ 
+ DEFS = @DEFS@ @CROSS_COMPILE@
+@@ -116,7 +116,7 @@
+ 	   $(srcdir)/histfile.c $(srcdir)/nls.c $(srcdir)/search.c \
+ 	   $(srcdir)/shell.c $(srcdir)/savestring.c $(srcdir)/tilde.c \
+ 	   $(srcdir)/text.c $(srcdir)/misc.c $(srcdir)/compat.c \
+-	   $(srcdir)/mbutil.c $(srcdir)/xfree.c
++	   $(srcdir)/mbutil.c $(srcdir)/xfree.c $(srcdir)/athame.c
+ 
+ # The header files for this library.
+ HSOURCES = $(srcdir)/readline.h $(srcdir)/rldefs.h $(srcdir)/chardefs.h \
+@@ -126,7 +126,7 @@
+ 	   $(srcdir)/ansi_stdlib.h $(srcdir)/tcap.h $(srcdir)/rlstdc.h \
+ 	   $(srcdir)/xmalloc.h $(srcdir)/rlprivate.h $(srcdir)/rlshell.h \
+ 	   $(srcdir)/rltypedefs.h $(srcdir)/rlmbutil.h \
+-	   $(srcdir)/colors.h $(srcdir)/parse-colors.h
++	   $(srcdir)/colors.h $(srcdir)/parse-colors.h $(srcdir)/athame.h
+ 
+ HISTOBJ = history.o histexpand.o histfile.o histsearch.o shell.o mbutil.o
+ TILDEOBJ = tilde.o
+@@ -149,7 +149,7 @@
+ CREATED_TAGS = TAGS tags
+ 
+ INSTALLED_HEADERS = readline.h chardefs.h keymaps.h history.h tilde.h \
+-		    rlstdc.h rlconf.h rltypedefs.h
++		    rlstdc.h rlconf.h rltypedefs.h athame.h
+ 
+ OTHER_DOCS = $(srcdir)/CHANGES $(srcdir)/INSTALL $(srcdir)/README
+ OTHER_INSTALLED_DOCS = CHANGES INSTALL README
+@@ -223,6 +223,13 @@
+ 
+ install:	$(INSTALL_TARGETS)
+ 
++install-vimbed:
++	$(RM) $(DESTDIR)$(libdir)/athame_readline/vimbed.vim && $(RM) -r $(DESTDIR)$(libdir)/athame_readline
++	$(CP) -r $(srcdir)/vimbed/plugin $(DESTDIR)$(libdir)/athame_readline
++
++uninstall-vimbed:
++	$(RM) -r $(DESTDIR)$(libdir)/athame_readline
++
+ install-headers: installdirs ${INSTALLED_HEADERS}
+ 	for f in ${INSTALLED_HEADERS}; do \
+ 		$(INSTALL_DATA) $(srcdir)/$$f $(DESTDIR)$(includedir)/readline ; \
+@@ -234,7 +241,7 @@
+ 
+ maybe-uninstall-headers: uninstall-headers
+ 
+-install-static: installdirs $(STATIC_LIBS) install-headers install-doc install-examples
++install-static: installdirs $(STATIC_LIBS) install-headers install-doc install-examples install-vimbed
+ 	-$(MV) $(DESTDIR)$(libdir)/libreadline.a $(DESTDIR)$(libdir)/libreadline.old
+ 	$(INSTALL_DATA) libreadline.a $(DESTDIR)$(libdir)/libreadline.a
+ 	-test -n "$(RANLIB)" && $(RANLIB) $(DESTDIR)$(libdir)/libreadline.a
+@@ -247,7 +254,7 @@
+ 		$(DESTDIR)$(includedir)/readline $(DESTDIR)$(libdir) \
+ 		$(DESTDIR)$(infodir) $(DESTDIR)$(man3dir) $(DESTDIR)$(docdir)
+ 
+-uninstall: uninstall-headers uninstall-doc uninstall-examples
++uninstall: uninstall-headers uninstall-doc uninstall-examples uninstall-vimbed
+ 	-test -n "$(DESTDIR)$(libdir)" && cd $(DESTDIR)$(libdir) && \
+ 		${RM} libreadline.a libreadline.old libhistory.a libhistory.old $(SHARED_LIBS)
+ 	-( cd shlib; ${MAKE} ${MFLAGS} DESTDIR=${DESTDIR} uninstall )
+@@ -391,7 +398,7 @@
+ readline.o: readline.h keymaps.h rltypedefs.h chardefs.h tilde.h
+ readline.o: rldefs.h ${BUILD_DIR}/config.h rlconf.h
+ readline.o: history.h rlstdc.h
+-readline.o: posixstat.h ansi_stdlib.h posixjmp.h
++readline.o: posixstat.h ansi_stdlib.h posixjmp.h athame.h
+ rltty.o: rldefs.h ${BUILD_DIR}/config.h rlconf.h
+ rltty.o: rltty.h
+ rltty.o: readline.h keymaps.h rltypedefs.h chardefs.h tilde.h rlstdc.h
+@@ -510,6 +517,7 @@
+ text.o: rlmbutil.h
+ vi_mode.o: rlmbutil.h
+ 
++athame.o: $(srcdir)/athame.c
+ bind.o: $(srcdir)/bind.c
+ callback.o: $(srcdir)/callback.c
+ compat.o: $(srcdir)/compat.c
+@@ -548,6 +556,7 @@
+ history.o: $(srcdir)/history.c
+ histsearch.o: $(srcdir)/histsearch.c
+ 
++athame.o: athame.c
+ bind.o: bind.c
+ callback.o: callback.c
+ compat.o: compat.c
+diff -ru a/readline.c b/readline.c
+--- a/readline.c	2015-07-15 00:03:32.898231038 -0400
++++ b/readline.c	2015-07-15 00:07:56.201576180 -0400
+@@ -67,6 +67,7 @@
+ /* Some standard library routines. */
+ #include "readline.h"
+ #include "history.h"
++#include "athame.h"
+ 
+ #include "rlprivate.h"
+ #include "rlshell.h"
+@@ -439,6 +440,8 @@
+   if (rl_pre_input_hook)
+     (*rl_pre_input_hook) ();
+ 
++  athame_init();
++
+   RL_CHECK_SIGNALS ();
+ }
+ 
+@@ -451,6 +454,8 @@
+ 
+   RL_CHECK_SIGNALS ();
+ 
++  athame_cleanup();
++
+   /* Restore the original of this history line, iff the line that we
+      are editing was originally in the history, AND the line has changed. */
+   entry = current_history ();
+@@ -561,7 +566,7 @@
+ 	}
+ 
+       RL_SETSTATE(RL_STATE_READCMD);
+-      c = rl_read_key ();
++      c = athame_loop(fileno(rl_instream));
+       RL_UNSETSTATE(RL_STATE_READCMD);
+ 
+       /* look at input.c:rl_getc() for the circumstances under which this will
+diff -ru a/shlib/Makefile.in b/shlib/Makefile.in
+--- a/shlib/Makefile.in	2015-07-15 00:03:32.898231038 -0400
++++ b/shlib/Makefile.in	2015-07-14 23:37:04.674826478 -0400
+@@ -64,7 +64,7 @@
+ DESTDIR =
+ 
+ CFLAGS = @CFLAGS@
+-LOCAL_CFLAGS = @LOCAL_CFLAGS@ -DRL_LIBRARY_VERSION='"$(RL_LIBRARY_VERSION)"'
++LOCAL_CFLAGS = @LOCAL_CFLAGS@ -DRL_LIBRARY_VERSION='"$(RL_LIBRARY_VERSION)"' -DVIMBED_LOCATION='"${libdir}/athame_readline"' -DATHAME_READLINE
+ CPPFLAGS = @CPPFLAGS@
+ LDFLAGS = @LDFLAGS@ @LOCAL_LDFLAGS@ @CFLAGS@
+ 
+@@ -135,7 +135,7 @@
+ 	   $(topdir)/shell.c $(topdir)/savestring.c $(topdir)/tilde.c \
+ 	   $(topdir)/text.c $(topdir)/misc.c $(topdir)/compat.c \
+ 	   $(topdir)/colors.c $(topdir)/parse-colors.c \
+-	   $(topdir)/mbutil.c $(topdir)/xfree.c
++	   $(topdir)/mbutil.c $(topdir)/xfree.c $(topdir)/athame.c
+ 
+ # The header files for this library.
+ HSOURCES = $(topdir)/readline.h $(topdir)/rldefs.h $(topdir)/chardefs.h \
+@@ -145,7 +145,7 @@
+ 	   $(topdir)/ansi_stdlib.h $(topdir)/tcap.h $(topdir)/rlstdc.h \
+ 	   $(topdir)/xmalloc.h $(topdir)/rlprivate.h $(topdir)/rlshell.h \
+ 	   $(topdir)/rltypedefs.h $(topdir)/rlmbutil.h \
+-           $(topdir)/colors.h $(topdir)/parse-colors.h
++           $(topdir)/colors.h $(topdir)/parse-colors.h $(topdir)/athame.h
+ 
+ SHARED_HISTOBJ = history.so histexpand.so histfile.so histsearch.so shell.so \
+ 		 mbutil.so
+@@ -156,7 +156,7 @@
+ 	  util.so kill.so undo.so macro.so input.so callback.so terminal.so \
+ 	  text.so nls.so misc.so \
+ 	  $(SHARED_HISTOBJ) $(SHARED_TILDEOBJ) $(SHARED_COLORSOBJ) \
+-	  xmalloc.so xfree.so compat.so
++	  xmalloc.so xfree.so compat.so athame.so
+ 
+ ##########################################################################
+ 
+@@ -191,7 +191,14 @@
+ 	-$(SHELL) $(topdir)/support/mkdirs $(DESTDIR)$(libdir)
+ 	-$(SHELL) $(topdir)/support/mkdirs $(DESTDIR)$(bindir)
+ 
+-install-supported: installdirs $(SHLIB_STATUS)
++install-athame:
++	$(RM) $(DESTDIR)$(libdir)/athame_readline/vimbed.vim && $(RM) -r $(DESTDIR)$(libdir)/athame_readline
++	$(CP) -r $(topdir)/vimbed/plugin $(DESTDIR)$(libdir)/athame_readline
++
++uninstall-athame:
++	$(RM) -r $(DESTDIR)$(libdir)/athame_readline
++
++install-supported: installdirs $(SHLIB_STATUS) install-athame
+ 	$(SHELL) $(topdir)/support/shlib-install -O $(host_os) -V $(host_vendor) -d $(DESTDIR)$(libdir) -b $(DESTDIR)$(bindir) -i "$(INSTALL_DATA)" $(SHARED_HISTORY)
+ 	$(SHELL) $(topdir)/support/shlib-install -O $(host_os) -V $(host_vendor) -d $(DESTDIR)$(libdir) -b $(DESTDIR)$(bindir) -i "$(INSTALL_DATA)" $(SHARED_READLINE)
+ 	@echo install: you may need to run ldconfig
+@@ -201,7 +208,7 @@
+ 
+ install: install-$(SHLIB_STATUS)
+ 
+-uninstall-supported:
++uninstall-supported: uninstall-athame
+ 	$(SHELL) $(topdir)/support/shlib-install -O $(host_os) -V $(host_vendor) -d $(DESTDIR)$(libdir) -b $(DESTDIR)$(bindir) -U $(SHARED_HISTORY)
+ 	$(SHELL) $(topdir)/support/shlib-install -O $(host_os) -V $(host_vendor) -d $(DESTDIR)$(libdir) -b $(DESTDIR)$(bindir) -U $(SHARED_READLINE)
+ 	@echo uninstall: you may need to run ldconfig
+@@ -339,6 +346,8 @@
+ xmalloc.so: ${BUILD_DIR}/config.h
+ xmalloc.so: $(topdir)/ansi_stdlib.h
+ 
++readline.so: $(topdir)/athame.h
++
+ bind.so: $(topdir)/rlshell.h
+ histfile.so: $(topdir)/rlshell.h
+ nls.so: $(topdir)/rlshell.h
+@@ -425,6 +434,7 @@
+ colors.so: $(topdir)/rlmbutil.h
+ parse-colors.so: $(topdir)/rlmbutil.h
+ 
++athame.so: $(topdir)/athame.c
+ bind.so: $(topdir)/bind.c
+ callback.so: $(topdir)/callback.c
+ compat.so: $(topdir)/compat.c
+@@ -460,6 +470,7 @@
+ history.so: $(topdir)/history.c
+ histsearch.so: $(topdir)/histsearch.c
+ 
++athame.so: athame.c
+ bind.so: bind.c
+ callback.so: callback.c
+ comapt.so: compat.c

@@ -29,9 +29,15 @@
 #include <string.h>
 #include <errno.h>
 #include <time.h>
-#include "history.h"
 #include "athame.h"
-#include "readline.h"
+
+#ifdef ATHAME_READLINE
+  #include "athame_readline.h"
+#endif
+
+#ifdef ATHAME_ZSH
+  #include "athame_zsh.h"
+#endif
 
 #define DEFAULT_BUFFER_SIZE 1024
 #define MAX(A, B) (((A) > (B)) ? (A) : (B))
@@ -97,13 +103,16 @@ static int athame_wait_for_file();
 static char athame_get_first_char();
 static int athame_highlight(int start, int end);
 static void athame_bottom_mode();
-static int athame_term_height();
-static int athame_term_width();
 
 void athame_init()
 {
+  dev_null = 0;
+  from_vim = 0;
+  to_vim = 0;
+  vim_pid = 0;
+
   first_char = athame_get_first_char();
-  if(first_char == '\r')
+  if (first_char && strchr("\n\r", first_char) != 0)
   {
     return;
   }
@@ -116,16 +125,17 @@ void athame_init()
   snprintf(update_file_name, 63, "%s/update.txt", dir_name);
   snprintf(meta_file_name, 63, "%s/meta.txt", dir_name);
   snprintf(messages_file_name, 63, "%s/messages.txt", dir_name);
-  snprintf(vimbed_file_name, 255, "%s/athame/vimbed.vim", RL_LIBRARY_LOCATION);
+  snprintf(vimbed_file_name, 255, "%s/vimbed.vim", VIMBED_LOCATION);
+
+  athame_failed = 0;
   if(vimbed_file_name[254] != '\0')
   {
     athame_failed = 1;
     athame_fail_str = "Vimbed path too long.";
+    return;
   }
 
   last_vim_command[0] = '\0';
-
-  athame_failed = 0;
 
   mkdir("/tmp/vimbed", S_IRWXU);
   mkdir(dir_name, S_IRWXU);
@@ -169,18 +179,27 @@ void athame_init()
 
 void athame_cleanup()
 {
-  if(first_char != '\r')
+  if(to_vim)
   {
     close(to_vim);
-    close(from_vim);
-    fclose(dev_null);
-    kill(vim_pid);
-    unlink(contents_file_name);
-    unlink(update_file_name);
-    unlink(meta_file_name);
-    unlink(messages_file_name);
-    rmdir(dir_name);
   }
+  if(from_vim)
+  {
+    close(from_vim);
+  }
+  if(dev_null)
+  {
+    fclose(dev_null);
+  }
+  if(vim_pid)
+  {
+    kill(vim_pid, 9);
+  }
+  unlink(contents_file_name);
+  unlink(update_file_name);
+  unlink(meta_file_name);
+  unlink(messages_file_name);
+  rmdir(dir_name);
 }
 
 static char athame_get_first_char()
@@ -252,25 +271,28 @@ static int athame_update_vim(int col)
   //Vim's clientserver takes a while to start up. TODO: Figure out exactly when we can move forward.
   athame_sleep(100);
 
-  HISTORY_STATE* hs = history_get_history_state();
-  int extra_lines; //lines with 1 line in history that take include newlines
-  int counter;
-  for(counter = 0; counter < hs->length; counter++)
+  ap_get_history_start();
+  int total_lines = 0;
+  char* history_line;
+  while (history_line = ap_get_history_next())
   {
-    fwrite(hs->entries[counter]->line, 1, strlen(hs->entries[counter]->line), updateFile);
-    char* line_search = hs->entries[counter]->line;
-    while(line_search = strstr(line_search, "\n"))
+    fwrite(history_line, 1, strlen(history_line), updateFile);
+    // Count newlines in history
+    while(history_line = strstr(history_line, "\n"))
     {
-      line_search++;
-      extra_lines++;
+      history_line++;
+      total_lines++;
     }
     fwrite("\n", 1, 1, updateFile);
+    total_lines++;
   }
   fwrite("\n", 1, 1, updateFile);
+  athame_row = total_lines;
+  ap_get_history_end();
+
   fclose(updateFile);
-  athame_row = hs->length + extra_lines;
+
   snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 0)", athame_row+1, col+1, athame_row+1, col+1);
-  xfree(hs);
 
   //Wait for the metafile so we know vimbed has loaded
   if(athame_wait_for_file(meta_file_name))
@@ -358,7 +380,7 @@ static void athame_update_vimline(int row, int col)
     }
     else
     {
-      fwrite(rl_line_buffer, 1, rl_end, updateFile);
+      fwrite(ap_get_line_buffer(), 1, ap_get_line_buffer_length(), updateFile);
       fwrite("\n", 1, 1, updateFile);
     }
     reading_row++;
@@ -382,20 +404,20 @@ int last_bdisplay_bottom = 0;
 
 static void athame_bottom_display(char* string, int style, int color)
 {
-    int term_height = athame_term_height();
+    int term_height = ap_get_term_height();
     if(!last_bdisplay_bottom)
     {
       last_bdisplay_top = term_height;
       last_bdisplay_bottom = term_height;
     }
 
-    int temp = rl_point;
+    int temp = ap_get_cursor();
     if(!athame_dirty) {
-      rl_point = 0;
-      rl_redisplay();
+      ap_set_cursor(0);
+      ap_display();
     }
 
-    int extra_lines = (strlen(string) - 1) / athame_term_width();
+    int extra_lines = ((int)strlen(string) - 1) / ap_get_term_width();
     int i;
     for(i = 0; i < extra_lines; i++)
     {
@@ -430,8 +452,8 @@ static void athame_bottom_display(char* string, int style, int color)
 
     fflush(stdout);
     if(!athame_dirty) {
-      rl_point = temp;
-      rl_forced_update_display();
+      ap_set_cursor(temp);
+      ap_force_display();
     }
 }
 
@@ -464,49 +486,36 @@ static void athame_redisplay()
     // from normal readline display, that might not be the case
     if(!athame_clear_dirty())
     {
-      int temp = rl_point;
-      rl_point = 0;
-      rl_redisplay();
-      rl_point = temp;
+      int temp = ap_get_cursor();
+      ap_set_cursor(0);
+      ap_display();
+      ap_set_cursor(temp);
     }
-    athame_highlight(rl_point, end_col);
+    athame_highlight(ap_get_cursor(), end_col);
 
   }
   else
   {
     if(athame_clear_dirty()){
-      rl_forced_update_display();
+      ap_force_display();
     }
     else
     {
-      rl_redisplay();
+      ap_display();
     }
   }
 }
 
-static int athame_term_height()
-{
-  int height, width;
-  rl_get_screen_size(&height, &width);
-  return height;
-}
-
-static int athame_term_width()
-{
-  int height, width;
-  rl_get_screen_size(&height, &width);
-  return width;
-}
-
 static int athame_draw_line_with_highlight(char* text, int start, int end)
 {
-  int prompt_len = rl_expand_prompt (rl_prompt);
+  int prompt_len = ap_get_prompt_length();
+  int term_width = ap_get_term_width();
   //How much more than one line does the text take up (if it wraps)
-  int extra_lines = (strlen(text) + prompt_len - 1)/athame_term_width();
+  int extra_lines = ((int)strlen(text) + prompt_len - 1)/term_width;
   //How far down is the start of the highlight (if text wraps)
-  int extra_lines_s = (start + prompt_len) /athame_term_width();
+  int extra_lines_s = (start + prompt_len) /term_width;
   //How far down is the end of the highlight (if text wraps)
-  int extra_lines_e = (end + prompt_len - 1) /athame_term_width();
+  int extra_lines_e = (end + prompt_len - 1) /term_width;
   char highlighted[DEFAULT_BUFFER_SIZE];
   strncpy(highlighted, text+start, end-start);
   if(!highlighted[end - start - 1])
@@ -519,8 +528,8 @@ static int athame_draw_line_with_highlight(char* text, int start, int end)
     printf("\e[%dA", extra_lines - extra_lines_s);
   }
 
-  if((prompt_len + start) % athame_term_width())
-    printf("\e[1G\e[%dC\e[7m%s\e[0m", (prompt_len + start) % athame_term_width(), highlighted);
+  if((prompt_len + start) % term_width)
+    printf("\e[1G\e[%dC\e[7m%s\e[0m", (prompt_len + start) % term_width, highlighted);
   else
     printf("\e[1G\e[7m%s\e[0m", highlighted);
 
@@ -533,19 +542,18 @@ static int athame_draw_line_with_highlight(char* text, int start, int end)
 
 static int athame_highlight(int start, int end)
 {
-  char highlight_buffer[DEFAULT_BUFFER_SIZE];
-  strncpy(highlight_buffer, rl_line_buffer, MIN(rl_end, DEFAULT_BUFFER_SIZE));
-  highlight_buffer[MIN(rl_end, DEFAULT_BUFFER_SIZE)] = '\0';
+  char* highlight_buffer = strdup(ap_get_line_buffer());
+  int buffer_length = ap_get_line_buffer_length();
+  strncpy(highlight_buffer, highlight_buffer, MIN(buffer_length, DEFAULT_BUFFER_SIZE));
+  highlight_buffer[MIN(buffer_length, DEFAULT_BUFFER_SIZE)] = '\0';
   printf("\e[1G");
   fflush(stdout);
-  int temp = rl_end;
-  rl_line_buffer[MIN(DEFAULT_BUFFER_SIZE - 1, rl_end + 1)] = '\0';
-  rl_end = 0;
-  rl_forced_update_display();
-  rl_end = temp;
-  char * new_string = strtok(highlight_buffer, "\n");
+  ap_set_line_buffer("");
+  ap_force_display();
+  ap_set_line_buffer(highlight_buffer);
+  char* new_string = strtok(highlight_buffer, "\n");
   while (new_string){
-    char * next_string;
+    char* next_string;
     int this_start;
     int this_end;
     next_string = strtok(NULL, "\n");
@@ -565,6 +573,7 @@ static int athame_highlight(int start, int end)
     athame_dirty += athame_draw_line_with_highlight(new_string, this_start, this_end);
     new_string = next_string;
   }
+  free(highlight_buffer);
   if(athame_dirty)
   {
     printf("\e[%dA", athame_dirty);
@@ -576,7 +585,7 @@ static int athame_highlight(int start, int end)
 char athame_loop(int instream)
 {
   char returnVal = 0;
-  if(first_char == '\r')
+  if (first_char && strchr("\n\r", first_char) != 0)
   {
     return first_char;
   }
@@ -593,7 +602,7 @@ char athame_loop(int instream)
 
   if(!updated && !athame_failed)
   {
-    athame_update_vimline(athame_row, rl_point);
+    athame_update_vimline(athame_row, ap_get_cursor());
   }
   else
   {
@@ -664,8 +673,7 @@ char athame_loop(int instream)
             //Vim quit
             if(sent_to_vim)
             {
-              rl_line_buffer[0] = '\0';
-              rl_end = 0;
+              ap_set_line_buffer("");
               return '\x04'; //<C-D>
             }
             else
@@ -767,7 +775,7 @@ static char athame_process_input(int instream)
 
 static char athame_process_char(char char_read){
   //Unless in vim commandline send return/tab/<C-D>/<C-L> to readline instead of vim
-  if(athame_failed || (strchr("\r\t\x04\x0c", char_read) && strcmp(athame_mode, "c") != 0 ))
+  if(athame_failed || (strchr("\n\r\t\x04\x0c", char_read) && strcmp(athame_mode, "c") != 0 ))
   {
     if(athame_failed)
     {
@@ -777,6 +785,9 @@ static char athame_process_char(char char_read){
     }
 
     last_tab = (char_read == '\t');
+    if (char_read == '\t') {
+      return '\t';
+    }
     return char_read;
   }
   else
@@ -910,22 +921,20 @@ static int athame_get_vim_info_inner(int read_pipe)
           changed = 1;
         }
 
-        //TODO: This command check is a temporary hack
         char* line_text;
         int subtract_line = (end_row > row && end_col == 0 ? 1 : 0);
         line_text = athame_get_lines_from_vim(row, end_row - subtract_line);
 
         if (line_text)
         {
-          if(strcmp(rl_line_buffer, line_text) != 0)
+          if(strcmp(ap_get_line_buffer(), line_text) != 0)
           {
             changed = 1;
-            strcpy(rl_line_buffer, line_text);
+            ap_set_line_buffer(line_text);
           }
-          rl_end = strlen(line_text);
-          if(rl_point != col)
+          if(ap_get_cursor() != col)
           {
-            rl_point = col;
+            ap_set_cursor(col);
             changed = 1;
           }
           //Success
@@ -933,8 +942,8 @@ static int athame_get_vim_info_inner(int read_pipe)
         }
         else
         {
-          rl_end = 0;
-          rl_point = 0;
+          ap_set_cursor(0);
+          ap_set_line_buffer("");
         }
       }
     }
@@ -950,7 +959,6 @@ static char* athame_get_lines_from_vim(int start_row, int end_row)
   athame_buffer[bytes_read] = 0;
 
   int current_line = 0;
-  int failure = 0;
   char* line_text = athame_buffer;
   while (current_line < start_row )
   {

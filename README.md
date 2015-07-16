@@ -1,11 +1,11 @@
 Athame
 ======
 
-Athame is a patch for readline to add full Vim support by routing your keystrokes through an actual Vim process.
+Athame is a patch for your shell to add full Vim support by routing your keystrokes through an actual Vim process.
 
 ![Demo](http://i.imgur.com/MZCL1Vi.gif)
 
-**Doesn't readline already come with a vi-mode?**
+**Don't most shells already come with a vi-mode?**
 
 Yes, and if you're fine with a basic vi imitation designed by a bunch of Emacs users, feel free to use it. ...but for the crazy Vim fanatics who sacrifice goats to the modal gods, Athame gives you the full power of Vim.
 
@@ -16,20 +16,20 @@ Yes, and if you're fine with a basic vi imitation designed by a bunch of Emacs u
 - Athame works best in GNU/Linux.
 
 ##Installation
-**Step 1:** Download the patched version of readline from this repo.
+**Step 1:** Clone this repo recursively.
 
     git clone --recursive http://github.com/ardagnir/athame
     cd athame
 
-*Note: If you want to patch readline yourself, you can run `git diff readline-6.3 HEAD` after this step to generate a patch*
+**Step 2:** Run the appropriate setup script
 
-**Step 2:** Build and install readline
+    ./readline_athame_setup.sh
 
-    ./configure --prefix=/usr
-    make SHLIB_LIBS=-lncurses
-    sudo make install
+Or
 
-*Note: Athame doesn't require ncurses, but most distros build readline with ncurses and a lot of software is built on this assumption.*
+    ./zsh_athame_setup.sh
+
+*Note: If you want a more manual/custom install, read the setup script for a list of commands. It's very simple.*
 
 **Step 3:** Copy the default athamerc. This is optional but **strongly recommended.**
 
@@ -40,7 +40,7 @@ Yes, and if you're fine with a basic vi imitation designed by a bunch of Emacs u
 ##How to Use
 Athame stores your Vim history in a Vim buffer with an empty line at the bottom and displays the line(s) of the cursor/highlighted text. Every key you type is sent to Vim and operates on this buffer. This allows you to use j/k/arrows to transverse history. Since this is Vim, you can use ? to search back and / to search forwards. The buffer is rebuilt from your new history after each command, so don't worry about destructive commands.
 
-Unless you are using the Vim commandline(:,/,?), tabs and carriage returns are carried out by standard readline code.
+Unless you are using the Vim commandline(:,/,?), tabs and carriage returns are carried out by standard readline/zsh code.
 
 ##License
 
