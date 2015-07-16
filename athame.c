@@ -1,8 +1,8 @@
-/* athame.c -- Full vim integration for readline.*/
+/* athame.c -- Full vim integration for your shell.*/
 
 /* Copyright (C) 2015 James Kolb
 
-   This file is part of the Athame patch for readline (Athame).
+   This file is part of Athame.
 
    Athame is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
