@@ -131,19 +131,23 @@ static int ap_get_prompt_length()
   return strlen(lpromptbuf);
 }
 
-int history_num;
+
+Histent he;
 static void ap_get_history_start()
 {
-  history_num = 0;
+  he = hist_ring->down;
 }
 
+#define GETZLETEXT(ent) ((ent)->zle_text ? (ent)->zle_text : (ent)->node.nam)
 static char* ap_get_history_next()
 {
-  if(history_num++ == 0)
+  if (he == hist_ring)
   {
-    return "Sorry, athame doesn't yet support zsh's history.";
+    return 0;
   }
-  return NULL;
+  char* ret = GETZLETEXT(he);
+  he = down_histent(he);
+  return ret;
 }
 
 static void ap_get_history_end()
