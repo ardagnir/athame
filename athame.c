@@ -691,19 +691,18 @@ char athame_loop(int instream)
   }
   if(!athame_failed)
   {
-    if(sent_to_vim)
-    {
-      if(strcmp(athame_mode, "i") == 0)
-      {
-        athame_send_to_vim('\x1d'); //<C-]> Finish abbrevs/kill mappings
-      }
-      athame_extraVimRead(100);
-    }
-    updated = 0;
-    //Hide bottom display if we leave athame for realsies, but not for the space/delete hack
     if(returnVal != ' ' && returnVal != '\b'){
+      if(sent_to_vim)
+      {
+        if(strcmp(athame_mode, "i") == 0)
+        {
+          athame_send_to_vim('\x1d'); //<C-]> Finish abbrevs/kill mappings
+        }
+        athame_extraVimRead(100);
+      }
       athame_bottom_display("", BOLD, DEFAULT);
     }
+    updated = 0;
     athame_displaying_mode[0] = 'n';
     athame_displaying_mode[1] = '\0';
   }
