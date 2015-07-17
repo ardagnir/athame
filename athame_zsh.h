@@ -116,11 +116,13 @@ static void ap_force_display()
 
 static int ap_get_term_width()
 {
+  adjustwinsize(1);
   return zterm_columns;
 }
 
 static int ap_get_term_height()
 {
+  adjustwinsize(1);
   return zterm_lines;
 }
 
