@@ -334,8 +334,6 @@ static int athame_wait_for_file(char* file_name)
 
 static int athame_remote_expr(char* expr, int block)
 {
-  char remote_expr_buffer[DEFAULT_BUFFER_SIZE];
-
   //wait for last remote_expr to finish
   if (expr_pid != 0)
   {
@@ -516,7 +514,7 @@ static int athame_draw_line_with_highlight(char* text, int start, int end)
   int extra_lines_s = (start + prompt_len) /term_width;
   //How far down is the end of the highlight (if text wraps)
   int extra_lines_e = (end + prompt_len - 1) /term_width;
-  char highlighted[DEFAULT_BUFFER_SIZE];
+  char* highlighted = (char*) malloc(end-start+1);
   strncpy(highlighted, text+start, end-start);
   if(!highlighted[end - start - 1])
   {
@@ -533,6 +531,8 @@ static int athame_draw_line_with_highlight(char* text, int start, int end)
   else
     printf("\e[1G\e[7m%s\e[0m", highlighted);
 
+  free(highlighted);
+
   if (extra_lines - extra_lines_e){
     printf("\e[%dB", extra_lines - extra_lines_e);
   }
@@ -544,8 +544,7 @@ static int athame_highlight(int start, int end)
 {
   char* highlight_buffer = strdup(ap_get_line_buffer());
   int buffer_length = ap_get_line_buffer_length();
-  strncpy(highlight_buffer, highlight_buffer, MIN(buffer_length, DEFAULT_BUFFER_SIZE));
-  highlight_buffer[MIN(buffer_length, DEFAULT_BUFFER_SIZE)] = '\0';
+  highlight_buffer[buffer_length] = '\0';
   printf("\e[1G");
   fflush(stdout);
   ap_set_line_buffer("");
