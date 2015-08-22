@@ -53,7 +53,7 @@ static char athame_buffer[DEFAULT_BUFFER_SIZE];
 static char last_vim_command[DEFAULT_BUFFER_SIZE];
 static const char* athame_fail_str;
 static int vim_pid;
-static int expr_pid = 0;
+static int expr_pid;
 static int vim_to_readline[2];
 static int readline_to_vim[2];
 static int from_vim;
@@ -72,17 +72,17 @@ static int sent_to_vim = 0;
 static int needs_poll = 0;
 
  //Keep track of if last key was a tab. We need to fake keys between tabpresses or readline completion gets confused.
-static int last_tab = 0;
-static int tab_fix = 0; //We just sent a fake space to help completion work. Now delete it.
+static int last_tab;
+static int tab_fix; //We just sent a fake space to help completion work. Now delete it.
 
-static char athame_mode[3] = {'n', '\0', '\0'};
-static char athame_displaying_mode[3] = {'n', '\0', '\0'};
+static char athame_mode[3];
+static char athame_displaying_mode[3];
 static int end_col; //For visual mode
 static int end_row; //For visual mode
 
 static int athame_failed;
 
-static int athame_dirty = 0;
+static int athame_dirty;
 
 static char first_char;
 
@@ -106,6 +106,16 @@ static void athame_bottom_mode();
 
 void athame_init()
 {
+  last_tab = 0;
+  tab_fix = 0;
+  expr_pid = 0;
+  athame_dirty = 0;
+  updated = 0;
+  athame_mode[0] = 'n';
+  athame_mode[1] = '\0';
+  athame_displaying_mode[0] = 'n';
+  athame_displaying_mode[1] = '\0';
+
   dev_null = 0;
   from_vim = 0;
   to_vim = 0;
