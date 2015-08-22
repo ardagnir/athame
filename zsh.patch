@@ -1,25 +1,23 @@
 diff -ru a/Makefile.in b/Makefile.in
 --- a/Makefile.in	2014-12-13 18:55:54.000000000 -0500
 +++ b/Makefile.in	2015-07-15 22:06:56.455125410 -0400
-@@ -138,10 +138,16 @@
- 
- # ========== DEPENDENCIES FOR INSTALLING ==========
- 
--install: install.bin install.modules
--uninstall: uninstall.bin uninstall.modules
-+install: install.bin install.modules install.vimbed
-+uninstall: uninstall.bin uninstall.modules uninstall.vimbed
+@@ -142,8 +142,14 @@
+ uninstall: uninstall.bin uninstall.modules
  .PHONY: install uninstall
  
+-install.bin: install.bin-here
+-uninstall.bin: uninstall.bin-here
 +install.vimbed:
 +	if [ -f $(DESTDIR)$(libdir)/athame_zsh ]; then rm -r $(DESTDIR)$(libdir)/athame_zsh; fi
 +	cp -r $(dir_top)/$(subdir)/vimbed/plugin $(DESTDIR)/$(libdir)/athame_zsh
 +uninstall.vimbed:
 +	rm -r $(DESTDIR)$(libdir)/athame_zsh
 +
- install.bin: install.bin-here
- uninstall.bin: uninstall.bin-here
++install.bin: install.bin-here install.vimbed
++uninstall.bin: uninstall.bin-here uninstall.vimbed
  .PHONY: install.bin uninstall.bin
+
+ # install binary, creating install directory if necessary
 diff -ru a/Makemod.in.in b/Makemod.in.in
 --- a/Makemod.in.in	2014-12-13 18:55:54.000000000 -0500
 +++ b/Makemod.in.in	2015-07-15 21:52:18.235086024 -0400
