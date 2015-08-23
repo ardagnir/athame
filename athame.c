@@ -551,9 +551,11 @@ static int athame_highlight(int start, int end)
   highlight_buffer[buffer_length] = '\0';
   printf("\e[1G");
   fflush(stdout);
+  int cursor = ap_get_cursor();
   ap_set_line_buffer("");
   ap_force_display();
   ap_set_line_buffer(highlight_buffer);
+  ap_set_cursor(cursor);
   char* new_string = strtok(highlight_buffer, "\n");
   while (new_string){
     char* next_string;
@@ -944,7 +946,6 @@ static int athame_get_vim_info_inner(int read_pipe)
         }
         else
         {
-          ap_set_cursor(0);
           ap_set_line_buffer("");
         }
       }
