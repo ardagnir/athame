@@ -406,11 +406,11 @@ int last_bdisplay_bottom = 0;
 
 static void athame_bottom_display(char* string, int style, int color)
 {
-    int term_height = ap_get_term_height();
+    int max_term_height = MAX(ap_get_term_height(), last_bdisplay_bottom);
     if(!last_bdisplay_bottom)
     {
-      last_bdisplay_top = term_height;
-      last_bdisplay_bottom = term_height;
+      last_bdisplay_top = max_term_height;
+      last_bdisplay_bottom = max_term_height;
     }
 
     int temp = ap_get_cursor();
@@ -427,7 +427,7 @@ static void athame_bottom_display(char* string, int style, int color)
     }
 
     //Take into account both mutline commands and resizing.
-    int erase_point = MIN(last_bdisplay_top, last_bdisplay_top - last_bdisplay_bottom + term_height);
+    int erase_point = MIN(last_bdisplay_top, last_bdisplay_top - last_bdisplay_bottom + max_term_height);
 
     //\n\e[A:          Add a line underneath if at bottom
     //\e[s:            Save cursor position
@@ -437,11 +437,11 @@ static void athame_bottom_display(char* string, int style, int color)
     //\e[u             Return to saved position
     if (color)
     {
-      printf("\n\e[A\e[s\e[%d;1H\e[J\e[%d;1H\e[%d;%dm%s\e[0m\e[u", erase_point, term_height-extra_lines, style, color, string);
+      printf("\n\e[A\e[s\e[%d;1H\e[J\e[%d;1H\e[%d;%dm%s\e[0m\e[u", erase_point, max_term_height-extra_lines, style, color, string);
     }
     else
     {
-      printf("\n\e[A\e[s\e[%d;1H\e[J\e[%d;1H\e[%dm%s\e[0m\e[u", erase_point, term_height-extra_lines, style, string);
+      printf("\n\e[A\e[s\e[%d;1H\e[J\e[%d;1H\e[%dm%s\e[0m\e[u", erase_point, max_term_height-extra_lines, style, string);
     }
 
     for(i = 0; i < extra_lines; i++)
@@ -449,8 +449,8 @@ static void athame_bottom_display(char* string, int style, int color)
       printf("\e[A");
     }
 
-    last_bdisplay_bottom = term_height;
-    last_bdisplay_top = term_height - extra_lines;
+    last_bdisplay_bottom = max_term_height;
+    last_bdisplay_top = max_term_height - extra_lines;
 
     fflush(stdout);
     if(!athame_dirty) {
