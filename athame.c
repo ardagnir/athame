@@ -31,13 +31,7 @@
 #include <time.h>
 #include "athame.h"
 
-#ifdef ATHAME_READLINE
-  #include "athame_readline.h"
-#endif
-
-#ifdef ATHAME_ZSH
-  #include "athame_zsh.h"
-#endif
+#include "athame_intermediary.h"
 
 #define DEFAULT_BUFFER_SIZE 1024
 #define MAX(A, B) (((A) > (B)) ? (A) : (B))

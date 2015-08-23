@@ -21,6 +21,11 @@
 #Download zsh
 if [ ! -f zsh-5.0.8.tar.bz2 ]; then
   wget http://www.zsh.org/pub/zsh-5.0.8.tar.bz2
+  if [ "$(md5sum zsh-5.0.8.tar.bz2)" != "e6759e8dd7b714d624feffd0a73ba0fe  zsh-5.0.8.tar.bz2" ]; then
+    rm zsh-5.0.8.tar.bz2
+    echo "FAILED: Incorrect md5 hash" >&2
+    exit 1
+  fi
 fi
 
 #Unpack zsh dir
@@ -31,7 +36,8 @@ mv zsh-5.0.8 zsh-5.0.8_tmp
 #Patch zsh
 cd zsh-5.0.8_tmp/Src
 patch -p1 < ../../zsh.patch
-cp ../../athame* Zle/
+cp ../../athame.* Zle/
+cp ../../athame_zsh.h Zle/athame_intermediary.h
 cp -r ../../vimbed .
 cd ..
 
