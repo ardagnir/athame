@@ -68,7 +68,7 @@ static void ap_force_display()
 static int ap_get_term_width()
 {
   int height, width;
-  rl_resize_terminal(); //Incase the terminal changed size while readline wasn't looking.
+  _rl_sigwinch_resize_terminal(); //Incase the terminal changed size while readline wasn't looking.
   rl_get_screen_size(&height, &width);
   return width;
 }
@@ -76,7 +76,7 @@ static int ap_get_term_width()
 static int ap_get_term_height()
 {
   int height, width;
-  rl_resize_terminal(); //Incase the terminal changed size while readline wasn't looking.
+  _rl_sigwinch_resize_terminal(); //Incase the terminal changed size while readline wasn't looking.
   rl_get_screen_size(&height, &width);
   return height;
 }
