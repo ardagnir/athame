@@ -153,3 +153,8 @@ static char* ap_get_history_next()
 static void ap_get_history_end()
 {
 }
+
+static int ap_needs_to_leave()
+{
+  return 0;
+}

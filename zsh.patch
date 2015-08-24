@@ -82,7 +82,7 @@ diff -ru a/Zle/zle_keymap.c b/Zle/zle_keymap.c
  getkeybuf(int w)
  {
 -    int c = getbyte((long)w, NULL);
-+    int c = STOUC(athame_loop(SHTTY));
++    int c = STOUC(athame_loop(SHTTY, NULL));
  
      if(c < 0)
  	return EOF;

@@ -64,6 +64,7 @@ static char dir_name[64];
 static char servername[32];
 static int sent_to_vim = 0;
 static int needs_poll = 0;
+static FILE* athame_outstream = 0;
 
  //Keep track of if last key was a tab. We need to fake keys between tabpresses or readline completion gets confused.
 static int last_tab;
@@ -109,6 +110,7 @@ void athame_init()
   athame_mode[1] = '\0';
   athame_displaying_mode[0] = 'n';
   athame_displaying_mode[1] = '\0';
+  athame_outstream = stdout;
 
   dev_null = 0;
   from_vim = 0;
@@ -178,7 +180,6 @@ void athame_init()
 
     athame_failed = athame_update_vim(0);
   }
-  athame_bottom_display("--INSERT--", BOLD, DEFAULT);
 }
 
 void athame_cleanup()
@@ -423,7 +424,7 @@ static void athame_bottom_display(char* string, int style, int color)
     int i;
     for(i = 0; i < extra_lines; i++)
     {
-      printf("\n");
+      fprintf(athame_outstream, "\n");
     }
 
     //Take into account both mutline commands and resizing.
@@ -437,22 +438,22 @@ static void athame_bottom_display(char* string, int style, int color)
     //\e[u             Return to saved position
     if (color)
     {
-      printf("\n\e[A\e[s\e[%d;1H\e[J\e[%d;1H\e[%d;%dm%s\e[0m\e[u", erase_point, max_term_height-extra_lines, style, color, string);
+      fprintf(athame_outstream, "\n\e[A\e[s\e[%d;1H\e[J\e[%d;1H\e[%d;%dm%s\e[0m\e[u", erase_point, max_term_height-extra_lines, style, color, string);
     }
     else
     {
-      printf("\n\e[A\e[s\e[%d;1H\e[J\e[%d;1H\e[%dm%s\e[0m\e[u", erase_point, max_term_height-extra_lines, style, string);
+      fprintf(athame_outstream, "\n\e[A\e[s\e[%d;1H\e[J\e[%d;1H\e[%dm%s\e[0m\e[u", erase_point, max_term_height-extra_lines, style, string);
     }
 
     for(i = 0; i < extra_lines; i++)
     {
-      printf("\e[A");
+      fprintf(athame_outstream, "\e[A");
     }
 
     last_bdisplay_bottom = max_term_height;
     last_bdisplay_top = max_term_height - extra_lines;
 
-    fflush(stdout);
+    fflush(athame_outstream);
     if(!athame_dirty) {
       ap_set_cursor(temp);
       ap_force_display();
@@ -468,15 +469,15 @@ static int athame_clear_dirty()
   int count = athame_dirty;
   while(athame_dirty)
   {
-    printf("\e[2K\n");
+    fprintf(athame_outstream, "\e[2K\n");
     athame_dirty--;
   }
   while(count)
   {
-    printf("\e[A");
+    fprintf(athame_outstream, "\e[A");
     count--;
   }
-  fflush(stdout);
+  fflush(athame_outstream);
   return 1;
 }
 
@@ -525,22 +526,22 @@ static int athame_draw_line_with_highlight(char* text, int start, int end)
     highlighted[end - start - 1] = ' ';
   }
   highlighted[end - start] = '\0';
-  printf("\e[1G\e[%dC%s", prompt_len, text);
+  fprintf(athame_outstream, "\e[1G\e[%dC%s", prompt_len, text);
   if (extra_lines - extra_lines_s) {
-    printf("\e[%dA", extra_lines - extra_lines_s);
+    fprintf(athame_outstream, "\e[%dA", extra_lines - extra_lines_s);
   }
 
   if((prompt_len + start) % term_width)
-    printf("\e[1G\e[%dC\e[7m%s\e[0m", (prompt_len + start) % term_width, highlighted);
+    fprintf(athame_outstream, "\e[1G\e[%dC\e[7m%s\e[0m", (prompt_len + start) % term_width, highlighted);
   else
-    printf("\e[1G\e[7m%s\e[0m", highlighted);
+    fprintf(athame_outstream, "\e[1G\e[7m%s\e[0m", highlighted);
 
   free(highlighted);
 
   if (extra_lines - extra_lines_e){
-    printf("\e[%dB", extra_lines - extra_lines_e);
+    fprintf(athame_outstream, "\e[%dB", extra_lines - extra_lines_e);
   }
-  printf("\n");
+  fprintf(athame_outstream, "\n");
   return extra_lines + 1;
 }
 
@@ -549,8 +550,8 @@ static int athame_highlight(int start, int end)
   char* highlight_buffer = strdup(ap_get_line_buffer());
   int buffer_length = ap_get_line_buffer_length();
   highlight_buffer[buffer_length] = '\0';
-  printf("\e[1G");
-  fflush(stdout);
+  fprintf(athame_outstream, "\e[1G");
+  fflush(athame_outstream);
   int cursor = ap_get_cursor();
   ap_set_line_buffer("");
   ap_force_display();
@@ -581,14 +582,15 @@ static int athame_highlight(int start, int end)
   free(highlight_buffer);
   if(athame_dirty)
   {
-    printf("\e[%dA", athame_dirty);
+    fprintf(athame_outstream, "\e[%dA", athame_dirty);
   }
-  fflush(stdout);
+  fflush(athame_outstream);
 }
 
 
-char athame_loop(int instream)
+char athame_loop(int instream, FILE* outstream)
 {
+  athame_outstream = outstream ? outstream : stdout;
   char returnVal = 0;
   if (first_char && strchr("\n\r", first_char) != 0)
   {
@@ -692,6 +694,10 @@ char athame_loop(int instream)
           }
         }
       }
+    }
+    if (ap_needs_to_leave()) //We need to leave now
+    {
+       return '\0';
     }
   }
   if(!athame_failed)

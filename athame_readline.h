@@ -110,3 +110,8 @@ static void ap_get_history_end()
 {
   xfree(hs);
 }
+
+static int ap_needs_to_leave()
+{
+  return rl_done || rl_num_chars_to_read > 0 && rl_end >= rl_num_chars_to_read;
+}

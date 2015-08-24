@@ -26,7 +26,7 @@ extern "C" {
 #endif
 
 extern void athame_init();
-extern char athame_loop(int instream);
+extern char athame_loop(int instream, FILE* oustream);
 extern void athame_cleanup();
 
 #ifdef __cplusplus

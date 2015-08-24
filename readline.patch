@@ -128,7 +128,7 @@ diff -ru a/readline.c b/readline.c
  
        RL_SETSTATE(RL_STATE_READCMD);
 -      c = rl_read_key ();
-+      c = athame_loop(fileno(rl_instream));
++      c = athame_loop(fileno(rl_instream), rl_outstream);
        RL_UNSETSTATE(RL_STATE_READCMD);
  
        /* look at input.c:rl_getc() for the circumstances under which this will
