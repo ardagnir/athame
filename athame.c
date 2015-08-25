@@ -424,25 +424,25 @@ static void athame_bottom_display(char* string, int style, int color)
     int i;
     for(i = 0; i < extra_lines; i++)
     {
-      fprintf(athame_outstream, "\n");
+      fprintf(athame_outstream, "\e[B");
     }
 
     //Take into account both mutline commands and resizing.
     int erase_point = MIN(last_bdisplay_top, last_bdisplay_top - last_bdisplay_bottom + max_term_height);
 
-    //\n\e[A:          Add a line underneath if at bottom
-    //\e[s:            Save cursor position
-    //\e[%d;1H\e[K     Delete old athame_bottom_display
-    //\e[%d;1H         Go to position for new athame_bottom_display
-    //\e[%d;%dm%s\e[0m Write bottom display using given color/style
-    //\e[u             Return to saved position
+    //\e[s\n\e[u\e[B\e[A            Add a line underneath if at bottom
+    //\e[s                          Save cursor position
+    //\e[%d;1H\e[K                  Delete old athame_bottom_display
+    //\e[%d;1H                      Go to position for new athame_bottom_display
+    //\e[%d;%dm%s\e[0m              Write bottom display using given color/style
+    //\e[u                          Return to saved position
     if (color)
     {
-      fprintf(athame_outstream, "\n\e[A\e[s\e[%d;1H\e[J\e[%d;1H\e[%d;%dm%s\e[0m\e[u", erase_point, max_term_height-extra_lines, style, color, string);
+      fprintf(athame_outstream, "\e[s\n\e[u\e[B\e[A\e[s\e[%d;1H\e[J\e[%d;1H\e[%d;%dm%s\e[0m\e[u", erase_point, max_term_height-extra_lines, style, color, string);
     }
     else
     {
-      fprintf(athame_outstream, "\n\e[A\e[s\e[%d;1H\e[J\e[%d;1H\e[%dm%s\e[0m\e[u", erase_point, max_term_height-extra_lines, style, string);
+      fprintf(athame_outstream, "\e[s\n\e[u\e[B\e[A\e[s\e[%d;1H\e[J\e[%d;1H\e[%dm%s\e[0m\e[u", erase_point, max_term_height-extra_lines, style, string);
     }
 
     for(i = 0; i < extra_lines; i++)
@@ -456,7 +456,7 @@ static void athame_bottom_display(char* string, int style, int color)
     fflush(athame_outstream);
     if(!athame_dirty) {
       ap_set_cursor(temp);
-      ap_force_display();
+      ap_display();
     }
 }
 
