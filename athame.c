@@ -99,8 +99,9 @@ static char athame_get_first_char();
 static int athame_highlight(int start, int end);
 static void athame_bottom_mode();
 
-void athame_init()
+void athame_init(FILE* outstream)
 {
+  athame_outstream = outstream ? outstream : stderr;
   last_tab = 0;
   tab_fix = 0;
   expr_pid = 0;
@@ -179,6 +180,8 @@ void athame_init()
     to_vim = readline_to_vim[1];
 
     athame_failed = athame_update_vim(0);
+    athame_get_vim_info_inner(1);
+    athame_bottom_mode();
   }
 }
 
@@ -218,7 +221,7 @@ static char athame_get_first_char()
   timeout.tv_usec = 1 * 1000;
 
   int results = select(fileno(stdin)+1, &files, NULL, NULL, &timeout);
-  if(results){
+  if(results > 0){
     read(fileno(stdin), &return_val, 1);
   }
   return return_val;
@@ -588,9 +591,8 @@ static int athame_highlight(int start, int end)
 }
 
 
-char athame_loop(int instream, FILE* outstream)
+char athame_loop(int instream)
 {
-  athame_outstream = outstream ? outstream : stdout;
   char returnVal = 0;
   if (first_char && strchr("\n\r", first_char) != 0)
   {

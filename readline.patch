@@ -109,7 +109,7 @@ diff -ru a/readline.c b/readline.c
    if (rl_pre_input_hook)
      (*rl_pre_input_hook) ();
  
-+  athame_init();
++  athame_init(rl_outstream);
 +
    RL_CHECK_SIGNALS ();
  }
@@ -128,7 +128,7 @@ diff -ru a/readline.c b/readline.c
  
        RL_SETSTATE(RL_STATE_READCMD);
 -      c = rl_read_key ();
-+      c = athame_loop(fileno(rl_instream), rl_outstream);
++      c = athame_loop(fileno(rl_instream));
        RL_UNSETSTATE(RL_STATE_READCMD);
  
        /* look at input.c:rl_getc() for the circumstances under which this will

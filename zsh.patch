@@ -53,7 +53,7 @@ diff -ru a/Zle/zle_main.c b/Zle/zle_main.c
  void
  zlecore(void)
  {
-+    athame_init();
++    athame_init(NULL);
 +
      Keymap km;
  #if !defined(HAVE_POLL) && defined(HAVE_SELECT)
@@ -82,7 +82,7 @@ diff -ru a/Zle/zle_keymap.c b/Zle/zle_keymap.c
  getkeybuf(int w)
  {
 -    int c = getbyte((long)w, NULL);
-+    int c = STOUC(athame_loop(SHTTY, NULL));
++    int c = STOUC(athame_loop(SHTTY));
  
      if(c < 0)
  	return EOF;
