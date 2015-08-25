@@ -61,11 +61,13 @@ fi
 
 #Patch Zsh with Athame
 cd zsh-5.0.8_tmp/Src
-if [ $dirty = 0 ] && [ $athame = 1 ]; then
-  patch -p1 < ../../zsh.patch
+if [ $athame = 1 ]; then
+  if [ $dirty = 0 ]; then
+    patch -p1 < ../../zsh.patch
+    cp -r ../../vimbed .
+  fi
   cp ../../athame.* Zle/
   cp ../../athame_zsh.h Zle/athame_intermediary.h
-  cp -r ../../vimbed .
 fi
 cd ..
 

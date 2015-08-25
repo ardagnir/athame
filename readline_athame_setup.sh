@@ -76,15 +76,17 @@ if [ $dirty = 0 ]; then
     echo Patching with standard readline patch $patch
     patch -p0 < ../readline_patches/readline63-$(printf "%03d" $patch)
   done
+fi
 
-  if [ $athame = 1 ]; then
-    #Patch Readline with athame
-    echo "Patching with athame patch"
+if [ $athame = 1 ]; then
+  #Patch Readline with athame
+  echo "Patching with athame patch"
+  if [ $dirty = 0 ]; then
     patch -p1 < ../readline.patch
-    cp ../athame.* .
-    cp ../athame_readline.h athame_intermediary.h
     cp -r ../vimbed .
   fi
+  cp ../athame.* .
+  cp ../athame_readline.h athame_intermediary.h
 fi
 
 #Build and install Readline
