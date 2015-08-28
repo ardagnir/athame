@@ -111,7 +111,6 @@ void athame_init(FILE* outstream)
   athame_mode[1] = '\0';
   athame_displaying_mode[0] = 'n';
   athame_displaying_mode[1] = '\0';
-  athame_outstream = stdout;
 
   dev_null = 0;
   from_vim = 0;
