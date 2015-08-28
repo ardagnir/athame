@@ -22,6 +22,7 @@ redownload=0
 build=1
 athame=1
 dirty=0
+rc=1
 for arg in "$@"
 do
   case $arg in
@@ -29,12 +30,14 @@ do
     "--nobuild" ) build=0;;
     "--noathame" ) athame=0;;
     "--dirty" ) dirty=1;;
+    "--norc" ) rc=0;;
     "--help" ) echo -e " --redownload: redownload zsh\n" \
                         "--nobuild: stop before actually building src\n" \
                         "--noathame: setup normal zsh without athame\n" \
                         "--dirty: don't run the whole build process,\n" \
                         "         just make and install changes\n" \
                         "         (only use after a successful build)\n" \
+                        "--norc: don't copy the rc file to /etc/athamerc\n" \
                         "--help: display this message"; exit;;
   esac
 done
@@ -72,27 +75,35 @@ fi
 cd ..
 
 #Build and install zsh
-if [ $dirty = 0 ]; then
-  ./configure --prefix=/usr \
-      --docdir=/usr/share/doc/zsh \
-      --htmldir=/usr/share/doc/zsh/html \
-      --enable-etcdir=/etc/zsh \
-      --enable-zshenv=/etc/zsh/zshenv \
-      --enable-zlogin=/etc/zsh/zlogin \
-      --enable-zlogout=/etc/zsh/zlogout \
-      --enable-zprofile=/etc/zsh/zprofile \
-      --enable-zshrc=/etc/zsh/zshrc \
-      --enable-maildir-support \
-      --with-term-lib='ncursesw' \
-      --enable-multibyte \
-      --enable-function-subdirs \
-      --enable-fndir=/usr/share/zsh/functions \
-      --enable-scriptdir=/usr/share/zsh/scripts \
-      --with-tcsetpgrp \
-      --enable-pcre \
-      --enable-cap \
-      --enable-zsh-secure-free
+if [ $build = 1 ]; then
+  if [ $dirty = 0 ]; then
+    ./configure --prefix=/usr \
+        --docdir=/usr/share/doc/zsh \
+        --htmldir=/usr/share/doc/zsh/html \
+        --enable-etcdir=/etc/zsh \
+        --enable-zshenv=/etc/zsh/zshenv \
+        --enable-zlogin=/etc/zsh/zlogin \
+        --enable-zlogout=/etc/zsh/zlogout \
+        --enable-zprofile=/etc/zsh/zprofile \
+        --enable-zshrc=/etc/zsh/zshrc \
+        --enable-maildir-support \
+        --with-term-lib='ncursesw' \
+        --enable-multibyte \
+        --enable-function-subdirs \
+        --enable-fndir=/usr/share/zsh/functions \
+        --enable-scriptdir=/usr/share/zsh/scripts \
+        --with-tcsetpgrp \
+        --enable-pcre \
+        --enable-cap \
+        --enable-zsh-secure-free
+  fi
+  make
+  sudo make install
 fi
-make
-sudo make install
+
+if [ $rc = 1 ]; then
+  sudo cp ../athamerc /etc/athamerc
+fi
+
+#Leave the zsh dir
 cd ..

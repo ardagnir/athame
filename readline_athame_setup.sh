@@ -23,6 +23,7 @@ redownload=0
 build=1
 athame=1
 dirty=0
+rc=1
 for arg in "$@"
 do
   case $arg in
@@ -30,12 +31,14 @@ do
     "--nobuild" ) build=0;;
     "--noathame" ) athame=0;;
     "--dirty" ) dirty=1;;
+    "--norc" ) rc=0;;
     "--help" ) echo -e " --redownload: redownload readline and patches\n" \
                         "--nobuild: stop before actually building src\n" \
                         "--noathame: setup normal readline without athame\n" \
                         "--dirty: don't run the whole build process,\n" \
                         "         just make and install changes\n" \
                         "         (only use after a successful build)\n" \
+                        "--norc: don't copy the rc file to /etc/athamerc\n" \
                         "--help: display this message"; exit;;
   esac
 done
@@ -96,6 +99,10 @@ if [ $build = 1 ]; then
   fi
   make SHLIB_LIBS=-lncurses
   sudo make install
+fi
+
+if [ $rc = 1 ]; then
+  sudo cp ../athamerc /etc/athamerc
 fi
 
 #Leave readline dir

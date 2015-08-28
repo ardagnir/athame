@@ -141,6 +141,25 @@ void athame_init(FILE* outstream)
     return;
   }
 
+  char* etcrc = "/etc/athamerc";
+  char homerc[256];
+  char* athamerc;
+  snprintf(homerc, 255, "%s/.athamerc", getenv("HOME"));
+  if (!access(homerc, R_OK))
+  {
+    athamerc = homerc;
+  }
+  else if (!access(etcrc, R_OK))
+  {
+    athamerc = etcrc;
+  }
+  else
+  {
+    athame_failed = 1;
+    athame_fail_str = "No athamerc found.";
+    return;
+  }
+
   last_vim_command[0] = '\0';
 
   mkdir("/tmp/vimbed", S_IRWXU);
@@ -157,7 +176,7 @@ void athame_init(FILE* outstream)
     dup2(vim_to_readline[1], STDERR_FILENO);
     close(vim_to_readline[0]);
     close(readline_to_vim[1]);
-    if (execlp("vim", "vim", "--servername", servername, "-S", vimbed_file_name, "-S", "~/.athamerc", "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", NULL)!=0)
+    if (execlp("vim", "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", NULL)!=0)
     {
       printf("Error: %d", errno);
       close(vim_to_readline[1]);
