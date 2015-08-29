@@ -56,13 +56,13 @@ static int cs_confirmed;
 static FILE* dev_null;
 static int athame_row;
 static int updated;
-static char contents_file_name[64];
-static char update_file_name[64];
-static char meta_file_name[64];
-static char messages_file_name[64];
-static char vimbed_file_name[256];
-static char dir_name[64];
-static char servername[32];
+static char* contents_file_name;
+static char* update_file_name;
+static char* meta_file_name;
+static char* messages_file_name;
+static char* vimbed_file_name;
+static char* dir_name;
+static char* servername;
 static int sent_to_vim = 0;
 static int needs_poll = 0;
 static FILE* athame_outstream = 0;
@@ -116,11 +116,21 @@ void athame_init(FILE* outstream)
   athame_displaying_mode[1] = '\0';
   last_vim_command[0] = '\0';
   cs_confirmed = 0;
+  athame_failed = 0;
+
 
   dev_null = 0;
   from_vim = 0;
   to_vim = 0;
   vim_pid = 0;
+
+  servername = 0;
+  dir_name = 0;
+  contents_file_name = 0;
+  update_file_name = 0;
+  meta_file_name = 0;
+  messages_file_name = 0;
+  vimbed_file_name = 0;
 
   first_char = athame_get_first_char();
   if (first_char && strchr("\n\r", first_char) != 0)
@@ -130,21 +140,13 @@ void athame_init(FILE* outstream)
   //Note that this rand() is not seeded.by athame.
   //It only establishes uniqueness within a single process using readline.
   //The pid establishes uniqueness between processes and makes debugging easier.
-  snprintf(servername, 31, "athame_%d_%d", getpid(), rand() % (1000000000));
-  snprintf(dir_name, 63, "/tmp/vimbed/%s", servername);
-  snprintf(contents_file_name, 63, "%s/contents.txt", dir_name);
-  snprintf(update_file_name, 63, "%s/update.txt", dir_name);
-  snprintf(meta_file_name, 63, "%s/meta.txt", dir_name);
-  snprintf(messages_file_name, 63, "%s/messages.txt", dir_name);
-  snprintf(vimbed_file_name, 255, "%s/vimbed.vim", VIMBED_LOCATION);
-
-  athame_failed = 0;
-  if(vimbed_file_name[254] != '\0')
-  {
-    athame_failed = 1;
-    athame_fail_str = "Vimbed path too long.";
-    return;
-  }
+  asprintf(&servername, "athame_%d_%d", getpid(), rand() % (1000000000));
+  asprintf(&dir_name, "/tmp/vimbed/%s", servername);
+  asprintf(&contents_file_name, "%s/contents.txt", dir_name);
+  asprintf(&update_file_name, "%s/update.txt", dir_name);
+  asprintf(&meta_file_name, "%s/meta.txt", dir_name);
+  asprintf(&messages_file_name, "%s/messages.txt", dir_name);
+  asprintf(&vimbed_file_name, "%s/vimbed.vim", VIMBED_LOCATION);
 
   char* etcrc = "/etc/athamerc";
   char homerc[256];
@@ -241,11 +243,39 @@ void athame_cleanup()
   {
     kill(vim_pid, 9);
   }
-  unlink(contents_file_name);
-  unlink(update_file_name);
-  unlink(meta_file_name);
-  unlink(messages_file_name);
-  rmdir(dir_name);
+  if(contents_file_name)
+  {
+    unlink(contents_file_name);
+    free(contents_file_name);
+  }
+  if(update_file_name)
+  {
+    unlink(update_file_name);
+    free(update_file_name);
+  }
+  if(meta_file_name)
+  {
+    unlink(meta_file_name);
+    free(meta_file_name);
+  }
+  if(messages_file_name)
+  {
+    unlink(messages_file_name);
+    free(messages_file_name);
+  }
+  if(dir_name)
+  {
+    rmdir(dir_name);
+    free(dir_name);
+  }
+  if(vimbed_file_name)
+  {
+    free(vimbed_file_name);
+  }
+  if(servername)
+  {
+    free(servername);
+  }
 }
 
 static char athame_get_first_char()
