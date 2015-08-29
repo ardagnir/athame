@@ -834,6 +834,11 @@ char athame_loop(int instream)
     athame_displaying_mode[0] = 'n';
     athame_displaying_mode[1] = '\0';
   }
+  else if (strchr("\n\r\t", returnVal))
+  {
+    //Hide failure messae where it might mess with something
+    athame_bottom_display("", BOLD, DEFAULT);
+  }
   return returnVal;
 }
 
