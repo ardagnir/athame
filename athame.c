@@ -513,16 +513,17 @@ int last_bdisplay_bottom = 0;
 
 static void athame_bottom_display(char* string, int style, int color)
 {
-    int max_term_height = MAX(ap_get_term_height(), last_bdisplay_bottom);
+    int term_height = ap_get_term_height();
     if(!last_bdisplay_bottom)
     {
-      last_bdisplay_top = max_term_height;
-      last_bdisplay_bottom = max_term_height;
+      last_bdisplay_top = term_height;
+      last_bdisplay_bottom = term_height;
     }
 
     int temp = ap_get_cursor();
     if(!athame_dirty) {
-      ap_set_cursor(0);
+      //Make sure we're on the last line of any wrapped text
+      ap_set_cursor(ap_get_line_buffer_length()-1);
       ap_display();
     }
 
@@ -533,31 +534,43 @@ static void athame_bottom_display(char* string, int style, int color)
       fprintf(athame_outstream, "\e[B");
     }
 
-    //Take into account both mutline commands and resizing.
-    int erase_point = MIN(last_bdisplay_top, last_bdisplay_top - last_bdisplay_bottom + max_term_height);
-
-    //\e[s\n\e[u\e[B\e[A            Add a line underneath if at bottom
-    //\e[s                          Save cursor position
-    //\e[%d;1H\e[K                  Delete old athame_bottom_display
-    //\e[%d;1H                      Go to position for new athame_bottom_display
-    //\e[%d;%dm%s\e[0m              Write bottom display using given color/style
-    //\e[u                          Return to saved position
-    if (color)
+    char colorstyle[64];
+    if(color)
     {
-      fprintf(athame_outstream, "\e[s\n\e[u\e[B\e[A\e[s\e[%d;1H\e[J\e[%d;1H\e[%d;%dm%s\e[0m\e[u", erase_point, max_term_height-extra_lines, style, color, string);
+      sprintf(colorstyle, "\e[%d;%dm", style, color);
     }
     else
     {
-      fprintf(athame_outstream, "\e[s\n\e[u\e[B\e[A\e[s\e[%d;1H\e[J\e[%d;1H\e[%dm%s\e[0m\e[u", erase_point, max_term_height-extra_lines, style, string);
+      sprintf(colorstyle, "\e[%dm", style);
     }
+
+    char erase[64];
+    if (term_height != last_bdisplay_bottom)
+    {
+      //We've been resized and have no idea where the last bottom display is. Clear everything after the current line.
+      sprintf(erase, "\n\e[J");
+    }
+    else
+    {
+      //Go to the last bottom display and clear it.
+      sprintf(erase, "\e[%d;1H\e[J", last_bdisplay_top);
+    }
+
+    //\e[s\n\e[u\e[B\e[A            Add a line underneath if at bottom
+    //\e[s                          Save cursor position
+    //%s(erase)                     Delete old athame_bottom_display
+    //\e[%d;1H                      Go to position for new athame_bottom_display
+    //%s(colorstyle)%s(string)\e[0m Write bottom display using given color/style
+    //\e[u                          Return to saved position
+    fprintf(athame_outstream, "\e[s\n\e[u\e[B\e[A\e[s%s\e[%d;1H%s%s\e[0m\e[u", erase, term_height-extra_lines, colorstyle, string);
 
     for(i = 0; i < extra_lines; i++)
     {
       fprintf(athame_outstream, "\e[A");
     }
 
-    last_bdisplay_bottom = max_term_height;
-    last_bdisplay_top = max_term_height - extra_lines;
+    last_bdisplay_bottom = term_height;
+    last_bdisplay_top = term_height - extra_lines;
 
     fflush(athame_outstream);
     if(!athame_dirty) {
