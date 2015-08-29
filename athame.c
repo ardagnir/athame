@@ -522,8 +522,7 @@ static void athame_bottom_display(char* string, int style, int color)
 
     int temp = ap_get_cursor();
     if(!athame_dirty) {
-      //Make sure we're on the last line of any wrapped text
-      ap_set_cursor(ap_get_line_buffer_length()-1);
+      ap_set_cursor(ap_get_line_buffer_length());
       ap_display();
     }
 
@@ -547,13 +546,13 @@ static void athame_bottom_display(char* string, int style, int color)
     char erase[64];
     if (term_height != last_bdisplay_bottom)
     {
-      //We've been resized and have no idea where the last bottom display is. Clear everything after the current line.
-      sprintf(erase, "\n\e[J");
+      //We've been resized and have no idea where the last bottom display is. Clear everything after the current text.
+      sprintf(erase, "\e[J");
     }
     else
     {
-      //Go to the last bottom display and clear it.
-      sprintf(erase, "\e[%d;1H\e[J", last_bdisplay_top);
+      //Delete text in the way on my row and bottom display but leave everything else alone
+      sprintf(erase, "\e[K\e[%d;1H\e[J", last_bdisplay_top);
     }
 
     //\e[s\n\e[u\e[B\e[A            Add a line underneath if at bottom
@@ -840,7 +839,14 @@ char athame_loop(int instream)
 
 static void athame_bottom_mode()
 {
-  if (strcmp(athame_mode, athame_displaying_mode) != 0 && !athame_failed) {
+  if(athame_failed)
+  {
+    return;
+  }
+  static text_lines = 0;
+  int new_text_lines = (ap_get_line_buffer_length() + ap_get_prompt_length() - 1)/ap_get_term_width();
+  int force_redraw = new_text_lines != text_lines || athame_dirty;
+  if (strcmp(athame_mode, athame_displaying_mode) != 0 || force_redraw) {
     strcpy(athame_displaying_mode, athame_mode);
     if (strcmp(athame_mode, "i") == 0)
     {
@@ -867,6 +873,7 @@ static void athame_bottom_mode()
       athame_bottom_display("", BOLD, DEFAULT);
     }
   }
+  text_lines = new_text_lines;
 }
 
 static void athame_extraVimRead(int timer)
