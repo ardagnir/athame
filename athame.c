@@ -522,7 +522,7 @@ static void athame_bottom_display(char* string, int style, int color)
 
     int temp = ap_get_cursor();
     if(!athame_dirty) {
-      ap_set_cursor(ap_get_line_buffer_length());
+      ap_set_cursor_end();
       ap_display();
     }
 
@@ -627,6 +627,15 @@ static void athame_redisplay()
   }
 }
 
+static char* athame_copy_w_space(char* text)
+{
+  int len = strlen(text);
+  text[len] = ' ';
+  char* ret = strndup(text, len + 1);
+  text[len] = '\0';
+  return ret;
+}
+
 static int athame_draw_line_with_highlight(char* text, int start, int end)
 {
   int prompt_len = ap_get_prompt_length();
@@ -637,13 +646,11 @@ static int athame_draw_line_with_highlight(char* text, int start, int end)
   int extra_lines_s = (start + prompt_len) /term_width;
   //How far down is the end of the highlight (if text wraps)
   int extra_lines_e = (end + prompt_len - 1) /term_width;
-  char* highlighted = (char*) malloc(end-start+1);
-  strncpy(highlighted, text+start, end-start);
-  if(!highlighted[end - start - 1])
-  {
-    highlighted[end - start - 1] = ' ';
-  }
-  highlighted[end - start] = '\0';
+
+  char* with_space = athame_copy_w_space(text);
+  char* highlighted = ap_get_slice(with_space, start, end);
+  free(with_space);
+
   fprintf(athame_outstream, "\e[1G\e[%dC%s", prompt_len, text);
   if (extra_lines - extra_lines_s) {
     fprintf(athame_outstream, "\e[%dA", extra_lines - extra_lines_s);
@@ -666,8 +673,6 @@ static int athame_draw_line_with_highlight(char* text, int start, int end)
 static int athame_highlight(int start, int end)
 {
   char* highlight_buffer = strdup(ap_get_line_buffer());
-  int buffer_length = ap_get_line_buffer_length();
-  highlight_buffer[buffer_length] = '\0';
   fprintf(athame_outstream, "\e[1G");
   fflush(athame_outstream);
   int cursor = ap_get_cursor();
@@ -848,8 +853,8 @@ static void athame_bottom_mode()
   {
     return;
   }
-  static text_lines = 0;
-  int new_text_lines = (ap_get_line_buffer_length() + ap_get_prompt_length() - 1)/ap_get_term_width();
+  static int text_lines = 0;
+  int new_text_lines = (ap_get_line_char_length() + ap_get_prompt_length() - 1)/ap_get_term_width();
   int force_redraw = new_text_lines != text_lines || athame_dirty;
   if (strcmp(athame_mode, athame_displaying_mode) != 0 || force_redraw) {
     strcpy(athame_displaying_mode, athame_mode);

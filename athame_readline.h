@@ -20,6 +20,7 @@
 
 #include "readline.h"
 #include "history.h"
+#include <wchar.h>
 
 char* athame_buffer_store = 0;
 static char* ap_get_line_buffer()
@@ -40,6 +41,22 @@ static int ap_get_line_buffer_length()
   return rl_end;
 }
 
+static int helper_ap_char_length(char* buffer)
+{
+  int ret;
+  int len = mbstowcs(NULL, buffer, 0);
+  wchar_t* wbuf = malloc((1 + len) * sizeof(wchar_t));
+  mbstowcs(wbuf, buffer, len + 1);
+  ret = wcswidth(wbuf, len + 1);
+  free(wbuf);
+  return ret;
+}
+
+static int ap_get_line_char_length()
+{
+  return helper_ap_char_length(ap_get_line_buffer());
+}
+
 static void ap_set_line_buffer(char* newText)
 {
   rl_replace_line(newText, 0);
@@ -47,12 +64,26 @@ static void ap_set_line_buffer(char* newText)
 
 static int ap_get_cursor()
 {
-  return rl_point;
+  int ret;
+  char* temp = strndup(rl_line_buffer, rl_point);
+  ret = helper_ap_char_length(temp);
+  free(temp);
+  return ret;
 }
 
 static void ap_set_cursor(int c)
 {
-  rl_point = c;
+  rl_point = 0;
+  if (c == 0)
+  {
+    return;
+  }
+  rl_forward_char(c, 'l');
+}
+
+static void ap_set_cursor_end()
+{
+  rl_point = rl_end;
 }
 
 static void ap_display()
@@ -114,4 +145,32 @@ static void ap_get_history_end()
 static int ap_needs_to_leave()
 {
   return rl_done || rl_num_chars_to_read > 0 && rl_end >= rl_num_chars_to_read;
+}
+
+static char* ap_get_slice(char* text, int start, int end)
+{
+  int mbchars;
+  int pos_s = 0;
+  int pos = 0;
+  for(mbchars = 0; mbchars < end; mbchars++)
+  {
+    if (mbchars == start)
+    {
+      pos_s = pos;
+    }
+    int l = mblen(text + pos, MB_CUR_MAX);
+    if (l >=0 )
+    {
+      pos += l;
+    }
+    else
+    {
+      if (mbchars < start)
+      {
+        return strdup("");
+      }
+      break;
+    }
+  }
+  return strndup(text + pos_s, pos - pos_s);
 }

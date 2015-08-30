@@ -60,6 +60,11 @@ static char* ap_get_line_buffer()
 
 static int ap_get_line_buffer_length()
 {
+  return strlen(ap_get_line_buffer());
+}
+
+static int ap_get_line_char_length()
+{
   return zlell;
 }
 
@@ -100,6 +105,11 @@ static void ap_set_cursor(int x)
   }
   fixsuffix();
   menucmp = 0;
+}
+
+static void ap_set_cursor_end()
+{
+  zlecs = zlell;
 }
 
 static void ap_display()
@@ -157,4 +167,9 @@ static void ap_get_history_end()
 static int ap_needs_to_leave()
 {
   return 0;
+}
+
+static char* ap_get_slice(char* text, int start, int end)
+{
+  return strndup(text + start, (end - start));
 }
