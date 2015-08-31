@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # zsh_athame_setup.sh -- Full vim integration for your shell.
 #
 # Copyright (C) 2015 James Kolb
