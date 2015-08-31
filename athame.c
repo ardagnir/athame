@@ -213,13 +213,13 @@ void athame_init(FILE* outstream)
       //We already set failure in the function
       return;
     }
-    if (athame_wait_for_file(contents_file_name, 5))
+    if (athame_wait_for_file(contents_file_name, 12))
     {
       athame_failed = 1;
       athame_fail_str = "Vimbed failure";
       return;
     }
-    athame_poll_vim(1);
+    athame_sleep(50); // Give some time to send correct mode for gdb-like uses that need to know now
     athame_get_vim_info_inner(1);
     athame_bottom_mode();
   }
