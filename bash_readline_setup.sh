@@ -82,7 +82,7 @@ if [ $build = 1 ]; then
                 --bindir=/bin \
                 --docdir=/usr/share/doc/bash-4.3 \
                 --without-bash-malloc \
-		--enable-readline \
+                --enable-readline \
                 --with-installed-readline=/usr
   fi
   make
