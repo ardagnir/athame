@@ -549,10 +549,12 @@ static void athame_bottom_display(char* string, int style, int color)
       //We've been resized and have no idea where the last bottom display is. Clear everything after the current text.
       sprintf(erase, "\e[J");
     }
-    else
-    {
+    else if (!athame_dirty) {
       //Delete text in the way on my row and bottom display but leave everything else alone
       sprintf(erase, "\e[K\e[%d;1H\e[J", last_bdisplay_top);
+    }
+    else {
+      sprintf(erase, "\e[%d;1H\e[J", last_bdisplay_top);
     }
 
     //\e[s\n\e[u\e[B\e[A            Add a line underneath if at bottom
@@ -587,7 +589,15 @@ static int athame_clear_dirty()
   int count = athame_dirty;
   while(athame_dirty)
   {
-    fprintf(athame_outstream, "\e[2K\n");
+    if (athame_dirty == count)
+    {
+      //Avoid deleting prompt
+      fprintf(athame_outstream, "\e[%dG\e[K\n", ap_get_prompt_length() + 1);
+    }
+    else
+    {
+      fprintf(athame_outstream, "\e[2K\n");
+    }
     athame_dirty--;
   }
   while(count)
@@ -618,7 +628,9 @@ static void athame_redisplay()
   else
   {
     if(athame_clear_dirty()){
-      ap_force_display();
+      fprintf(athame_outstream, "\e[%dG", ap_get_prompt_length() + 1);
+      fflush(athame_outstream);
+      ap_display();
     }
     else
     {
@@ -651,15 +663,12 @@ static int athame_draw_line_with_highlight(char* text, int start, int end)
   char* highlighted = ap_get_slice(with_space, start, end);
   free(with_space);
 
-  fprintf(athame_outstream, "\e[1G\e[%dC%s", prompt_len, text);
+  fprintf(athame_outstream, "\e[%dG%s", prompt_len + 1, text);
   if (extra_lines - extra_lines_s) {
     fprintf(athame_outstream, "\e[%dA", extra_lines - extra_lines_s);
   }
 
-  if((prompt_len + start) % term_width)
-    fprintf(athame_outstream, "\e[1G\e[%dC\e[7m%s\e[0m", (prompt_len + start) % term_width, highlighted);
-  else
-    fprintf(athame_outstream, "\e[1G\e[7m%s\e[0m", highlighted);
+  fprintf(athame_outstream, "\e[%dG\e[7m%s\e[0m", (prompt_len + start) % term_width + 1, highlighted);
 
   free(highlighted);
 
@@ -673,11 +682,9 @@ static int athame_draw_line_with_highlight(char* text, int start, int end)
 static int athame_highlight(int start, int end)
 {
   char* highlight_buffer = strdup(ap_get_line_buffer());
-  fprintf(athame_outstream, "\e[1G");
-  fflush(athame_outstream);
   int cursor = ap_get_cursor();
   ap_set_line_buffer("");
-  ap_force_display();
+  ap_display();
   ap_set_line_buffer(highlight_buffer);
   ap_set_cursor(cursor);
   char* new_string = strtok(highlight_buffer, "\n");

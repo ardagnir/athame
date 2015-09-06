@@ -117,13 +117,6 @@ static void ap_display()
   zrefresh();
 }
 
-static void ap_force_display()
-{
-  printf("%s", lpromptbuf);
-  fflush(stdout);
-  zrefresh();
-}
-
 static int ap_get_term_width()
 {
   adjustwinsize(1);
@@ -138,7 +131,9 @@ static int ap_get_term_height()
 
 static int ap_get_prompt_length()
 {
-  return strlen(lpromptbuf);
+  int length;
+  countprompt(lpromptbuf, &length, NULL, -1);
+  return length;
 }
 
 

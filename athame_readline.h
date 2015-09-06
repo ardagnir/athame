@@ -91,11 +91,6 @@ static void ap_display()
   rl_redisplay();
 }
 
-static void ap_force_display()
-{
-  rl_forced_update_display();
-}
-
 static int ap_get_term_width()
 {
   int height, width;
