@@ -168,3 +168,10 @@ static char* ap_get_slice(char* text, int start, int end)
 {
   return strndup(text + start, (end - start));
 }
+
+static char ap_handle_signals()
+{
+  if (errflag &= ERRFLAG_INT)
+    return EOF;
+  return 0;
+}

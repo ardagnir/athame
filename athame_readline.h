@@ -21,6 +21,7 @@
 #include "readline.h"
 #include "history.h"
 #include <wchar.h>
+#include "rlprivate.h"
 
 char* athame_buffer_store = 0;
 static char* ap_get_line_buffer()
@@ -168,4 +169,18 @@ static char* ap_get_slice(char* text, int start, int end)
     }
   }
   return strndup(text + pos_s, pos - pos_s);
+}
+
+#define SIGINT 2
+static char ap_handle_signals()
+{
+  if (_rl_caught_signal == SIGINT)
+  {
+    _rl_signal_handler(_rl_caught_signal);
+    if (rl_signal_event_hook)
+    {
+      (*rl_signal_event_hook) ();
+    }
+  }
+  return 0;
 }

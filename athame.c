@@ -794,6 +794,11 @@ char athame_loop(int instream)
             }
             else
             {
+              char sig_result;
+              if (sig_result = ap_handle_signals())
+              {
+                return sig_result;
+              }
               if(needs_poll)
               {
                 athame_poll_vim(0);
