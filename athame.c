@@ -213,7 +213,7 @@ void athame_init(FILE* outstream)
       //We already set failure in the function
       return;
     }
-    if (athame_wait_for_file(contents_file_name, 12))
+    if (athame_wait_for_file(contents_file_name, 20))
     {
       athame_failed = 1;
       athame_fail_str = "Vimbed failure";
