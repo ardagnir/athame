@@ -171,7 +171,7 @@ static char* ap_get_slice(char* text, int start, int end)
 
 static char ap_handle_signals()
 {
-  if (errflag &= ERRFLAG_INT)
+  if (errflag & ERRFLAG_INT)
     return EOF;
   return 0;
 }
