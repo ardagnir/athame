@@ -12,11 +12,12 @@ Yes, and if you're fine with basic vi imitations designed by a bunch of Emacs us
 **This is alpha-quality software. It has bugs. Use at your own risk.**
 
 ##Requirements
-- Athame requires Vim (your version needs to have <link>+clientserver</link>).
+- Athame requires Vim (your version needs to have [+clientserver](#setting-up-vim-with-clientserver) support).
 - Athame works best in GNU/Linux.
 
 ##Think Before you Begin
-Athame probably won't break your shell...
+Athame *probably* won't break your shell...
+
 ...but if it does, do you have a way to fix it that doesn't involve typing commands into the now-broken shell?
 
 ##Download
@@ -25,24 +26,25 @@ Clone this repo recursively:
     git clone --recursive http://github.com/ardagnir/athame
 
 ##Setting up Athame Readline
-1. Run the setup script
+**1.** Run the setup script
 
     cd athame
     ./readline_athame_setup.sh
 
-2. If you have an old version of athame and a ~/.athamerc file that doesn't source /etc/athamerc, check /etc/athamerc for changes.
+**2.** If you have an old version of athame and a ~/.athamerc file that doesn't source /etc/athamerc, check /etc/athamerc for changes.
 
 *Notes:*
-- *If this doesn't work, you may be using a distro (like Debian or Ubuntu) that doesn't use the system readline. See <link>building bash with system readline</link>*
+- *If this doesn't work, you may be using a distro (like Debian or Ubuntu) that doesn't use the system readline. See [building bash with system readline](#setting-up-bash-to-use-athame-readline)*
 - *You can add the --nobuild flag to the setup script if you want to configure/build/install yourself*
 
 
 ##Setting up Athame Zsh
-1. Run the setup script
+**1.** Run the setup script
+
     cd athame
     ./zsh_athame_setup.sh
 
-2. If you have an old version of athame and a ~/.athamerc file that doesn't source /etc/athamerc, check /etc/athamerc for changes.
+**2.** If you have an old version of athame and a ~/.athamerc file that doesn't source /etc/athamerc, check /etc/athamerc for changes.**
 
 *Note: you can add the --nobuild flag to the setup script if you want to configure/build/install yourself*
 
@@ -56,7 +58,7 @@ If nothing shows up, you have to setup bash to use the system readline. If you'r
 
     ./bash_readline_setup.sh
 
-If something shows up, but it isn't pointing at `/usr/lib/libreadline.so.6` (that's where Athame installs to by default), you need to move Athame's readline to whatever location it's looking in.
+If something shows up in `ldd`, but it isn't pointing at `/usr/lib/libreadline.so.6` (that's where Athame installs to by default), you need to move Athame's readline to whatever location it's looking in.
 
 ##FAQ
 ####How do I use this?
@@ -70,7 +72,6 @@ Some commands (there's no specific code for these, it's just vim):
 - ?: search history (and current line) backwards (better if you have :set incsearch enabled)
 - /: search history (and current line) forwards (better if you have :set incsearch enabled)
 - cc: clear current line and go to insert mode
-- ...
 
 You can also enable history searching arrows in the athamerc. (If you enable this and you use arrows, it searches for text that begins with what you've typed. It's like vim's command mode.)
 
@@ -85,14 +86,14 @@ The default athamerc includes "startinsert" to make Athame start in insert mode.
 Athame should be very fast, but it will slow down if your Vim setup is slow or if you have invalid vimscript in either your athamerc or vimrc. Try using a clean vimrc/athamerc and see if it speeds up. If not, file an issue.
 
 ####I installed Athame for Readline, but it isn't doing anything!
-Are you using the <link>system readline?</link>
+Are you using the [system readline?](#setting-up-bash-to-use-athame-readline)
 
 ####I got the error "Couldn't load vim"
 Do you have a program called vim? (an alias is not good enough)
 
     which vim
 
-Does this version of vim have <link>+clientserver support</link>
+Does this version of vim have [+clientserver support](#setting-up-vim-with-clientserver)
 
 ####How do I disable/uninstall Athame?
 To temporarily disable athame, run the setup script with a "--noathame" flag.
@@ -113,7 +114,7 @@ Ohmyzsh and some other zsh setups put your terminal into application mode to hel
     }
     zle -N zle-line-init
 
-####Why doesn't Athame work on my hipster terminal? It has this supercool terminfo that you've probably never heard of?
+####Why doesn't Athame work on my hipster terminal? It has this supercool terminfo that you've probably never heard of.
 I hardcoded all the terminal codes. Sorry, I was lazy. Athame only works on xterm-like terminals.
 
 ####Does Athame work with Neovim?
