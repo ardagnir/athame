@@ -18,10 +18,13 @@
    along with Athame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define READLINE_LIBRARY
+#include <wchar.h>
+
 #include "readline.h"
 #include "history.h"
-#include <wchar.h>
 #include "rlprivate.h"
+#include "xmalloc.h"
 
 char* athame_buffer_store = 0;
 static char* ap_get_line_buffer()
@@ -171,7 +174,6 @@ static char* ap_get_slice(char* text, int start, int end)
   return strndup(text + pos_s, pos - pos_s);
 }
 
-#define SIGINT 2
 static char ap_handle_signals()
 {
   if (_rl_caught_signal == SIGINT)
