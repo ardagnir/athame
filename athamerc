@@ -1,5 +1,5 @@
 " WARNING: By default /etc/athamerc will get rewritten on updates. You should
-" copy this to ~/.athamerc and make changes there.
+" create a ~/.athamerc that sources this file and make changes there.
 "
 " /etc/athamerc is only read if no ~/.athamerc is found
 "
