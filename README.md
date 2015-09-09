@@ -1,7 +1,7 @@
 Athame
 ======
 
-Athame is a patch for your shell to add full Vim support by routing your keystrokes through an actual Vim process.
+Athame adds full Vim support to shells by routing your keystrokes through an actual Vim process. Athame can currently be used to patch readline (used by bash, gdb, python, etc) and/or zsh(which doesn't use readline).
 
 ![Demo](http://i.imgur.com/MZCL1Vi.gif)
 
@@ -118,7 +118,7 @@ Ohmyzsh and some other zsh setups put your terminal into application mode to hel
 I hardcoded all the terminal codes. Sorry, I was lazy. Athame only works on xterm-like terminals.
 
 ####Does Athame work with Neovim?
-Neovim doesn't support vim-style remote communication yet. The Neovim devs are documenting this in <link>issue 1750</link>. If you want to use Neovim with Athame, you should consider helping them fix it. It sounds like most of the functionality is already there and just needs to be exposed in a backwards-compatible manner.
+Neovim doesn't support vim-style remote communication yet. The Neovim devs are documenting this in [Neovim issue 1750](https://github.com/neovim/neovim/issues/1750). If you want to use Neovim with Athame, you should consider helping them out. It sounds like most of the functionality is already there and just needs to be exposed in a backwards-compatible manner.
 
 ####Does Athame work on OSX?
 You might need to jump through some hoops to get it working on a Mac. I don't know what those are because I haven't tried it yet.
@@ -147,7 +147,7 @@ Your distro's full vim version should have +clientserver support, but if you wan
 ##Bugs
 - Missing multibyte and right-prompt support for Zsh.
 - Tab indentation doesn't work in python2. (You can indent with spaces though)
-- See <link>issues</link> for more.
+- See [issues](https://github.com/ardagnir/athame/issues) for more.
 - If you see a bug without an issue, create one.
 
 ##License
