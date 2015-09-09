@@ -1,7 +1,7 @@
 Athame
 ======
 
-Athame adds full Vim support to shells by routing your keystrokes through an actual Vim process. Athame can currently be used to patch readline (used by bash, gdb, python, etc) and/or zsh(which doesn't use readline).
+Athame patches your shell to add full Vim support by routing your keystrokes through an actual Vim process. Athame can currently be used to patch readline (used by bash, gdb, python, etc) and/or zsh (which doesn't use readline).
 
 ![Demo](http://i.imgur.com/MZCL1Vi.gif)
 
