@@ -1,3 +1,55 @@
+" WARNING: By default /etc/athamerc will get rewritten on updates. You should
+" create a ~/.athamerc that sources this file and make changes there.
+"
+" /etc/athamerc is only read if no ~/.athamerc is found
+"
+" If you don't want /etc/athamerc overidden, supply the --norc flag to the setup
+" script.
+
 set ttimeoutlen=10 "Otherwise, you have to wait for the escape key.
 
-set backspace-=eol "For more traditional shell behavior
+set backspace-=eol   "For more traditional shell behavior
+set backspace+=start "Without this, you can't delete shell completions
+
+startinsert
+
+" Uncomment these maps to have the up and down arrow
+" only match lines that share text before cursor
+" (Similar to how arrows work for vim ex expressions)
+"
+"inoremap <Up> <C-\><C-O>:silent call HistorySearchBackward()<CR>
+"inoremap <Down> <C-\><C-O>:silent call HistorySearchForward()<CR>
+"nnoremap <Up> :silent call HistorySearchBackward()<CR>
+"nnoremap <Down> :silent call HistorySearchForward()<CR>
+
+"Similar to bash's history-search-backward.
+function! HistorySearchBackward()
+  let curcol = col('.')
+  if curcol > 1
+    let searchText = getline('.')[0:curcol - 2]
+    for line in range(line('.') - 1, 1, -1)
+      if getline(line)[0:curcol - 2] == searchText
+        call cursor(line, curcol)
+        break
+      endif
+    endfor
+  elseif line('.') > 1
+    call cursor(line('.') - 1, 1)
+  endif
+endfunction
+
+"Similar to bash's history-search-forward.
+function! HistorySearchForward()
+  let curcol = col('.')
+  if curcol > 1
+    let searchText = getline('.')[0:curcol - 2]
+    for line in range(line('.') + 1, line('$'))
+      if getline(line)[0:curcol - 2] == searchText
+        call cursor(line, curcol)
+        break
+      endif
+    endfor
+  else
+    call cursor(line('.') + 1, 1)
+  endif
+endfunction
