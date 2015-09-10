@@ -77,11 +77,14 @@ diff -ru a/Zle/zle_keymap.c b/Zle/zle_keymap.c
  
  /*
   * Keymap structures:
-@@ -1532,7 +1533,7 @@
+@@ -1532,7 +1533,10 @@
  static int
  getkeybuf(int w)
  {
 -    int c = getbyte((long)w, NULL);
++#ifdef MULTIBYTE_SUPPORT
++    lastchar_wide_valid = 0;
++#endif
 +    int c = lastchar = STOUC(athame_loop(SHTTY));
  
      if(c < 0)
