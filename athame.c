@@ -142,7 +142,7 @@ void athame_init(FILE* outstream)
 
   if (!getenv("DISPLAY"))
   {
-    athame_set_failure("No X display found");
+    athame_set_failure("No X display found. (export ATHAME_DONT_SHOW_ERRORS=1 to hide all athame errors)");
     return;
   }
   //Note that this rand() is not seeded.by athame.
@@ -921,8 +921,12 @@ static void athame_extraVimRead(int timer)
 
 static void athame_draw_failure()
 {
-  snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Athame Failure: %s", athame_failure);
-  athame_bottom_display(athame_buffer, BOLD, RED);
+  char* noshow_error = getenv("ATHAME_DONT_SHOW_ERRORS");
+  if (!noshow_error || noshow_error[0] == '0')
+  {
+    snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Athame Failure: %s", athame_failure);
+    athame_bottom_display(athame_buffer, BOLD, RED);
+  }
 }
 
 static void athame_set_failure(char* fail_str)
