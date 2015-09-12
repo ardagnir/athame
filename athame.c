@@ -47,7 +47,7 @@
 
 static char athame_buffer[DEFAULT_BUFFER_SIZE];
 static char last_vim_command[DEFAULT_BUFFER_SIZE];
-static const char* athame_fail_str;
+static const char* athame_failure;
 static int vim_pid;
 static int expr_pid;
 static int vim_to_readline[2];
@@ -78,7 +78,6 @@ static char athame_displaying_mode[3];
 static int end_col; //For visual mode
 static int end_row; //For visual mode
 
-static int athame_failed;
 
 static int athame_dirty;
 
@@ -87,6 +86,7 @@ static char first_char;
 /* Forward declarations used in this file. */
 static void athame_send_to_vim(char input);
 static void athame_get_vim_info();
+static void athame_set_failure(char* fail_str);
 static char athame_process_input(int instream);
 static char athame_process_char(char instream);
 static void athame_extraVimRead(int timer);
@@ -118,7 +118,7 @@ void athame_init(FILE* outstream)
   athame_displaying_mode[1] = '\0';
   last_vim_command[0] = '\0';
   cs_confirmed = 0;
-  athame_failed = 0;
+  athame_failure = 0;
 
 
   dev_null = 0;
@@ -137,6 +137,12 @@ void athame_init(FILE* outstream)
   first_char = athame_get_first_char();
   if (first_char && strchr("\n\r", first_char) != 0)
   {
+    return;
+  }
+
+  if (!getenv("DISPLAY"))
+  {
+    athame_set_failure("No X display found");
     return;
   }
   //Note that this rand() is not seeded.by athame.
@@ -164,8 +170,7 @@ void athame_init(FILE* outstream)
   }
   else
   {
-    athame_failed = 1;
-    athame_fail_str = "No athamerc found.";
+    athame_set_failure("No athamerc found.");
     return;
   }
 
@@ -217,8 +222,7 @@ void athame_init(FILE* outstream)
     }
     if (athame_wait_for_file(contents_file_name, 20))
     {
-      athame_failed = 1;
-      athame_fail_str = "Vimbed failure";
+      athame_set_failure("Vimbed failure");
       return;
     }
     athame_sleep(50); // Give some time to send correct mode for gdb-like uses that need to know now
@@ -314,8 +318,8 @@ static int athame_setup_history()
   FILE* updateFile = fopen(update_file_name, "w+");
 
   if(!updateFile){
-    athame_fail_str = "Couldn't create temporary file in /tmp/vimbed";
-    return athame_failed = 1;
+    athame_set_failure("Couldn't create temporary file in /tmp/vimbed");
+    return 1;
   }
 
   ap_get_history_start();
@@ -357,16 +361,16 @@ static int athame_wait_for_vim()
 
   if (results <= 0)
   {
-    athame_fail_str = "Vim timed out.";
-    return athame_failed = 1;
+    athame_set_failure("Vim timed out.");
+    return 1;
   }
 
   read(from_vim, athame_buffer, 5);
   athame_buffer[5] = 0;
   if(strcmp(athame_buffer, "Error") == 0)
   {
-    athame_fail_str = "Couldn't load vim";
-    return athame_failed = 1;
+    athame_set_failure("Couldn't load vim");
+    return 1;
   }
   return 0;
 }
@@ -439,8 +443,7 @@ static int athame_remote_expr(char* expr, int block)
       close(stdout_to_readline[1]);
       close(stderr_to_readline[1]);
     }
-    athame_failed = 1;
-    athame_fail_str = "Clientserver error";
+    athame_set_failure("Clientserver error");
     return -1;
   }
   else
@@ -461,8 +464,7 @@ static int athame_remote_expr(char* expr, int block)
       {
         if(FD_ISSET(stderr_to_readline[0], &streams))
         {
-          athame_failed = 1;
-          athame_fail_str = "Clientserver error";
+          athame_set_failure("Clientserver error");
           return -1;
         }
         if(FD_ISSET(stdout_to_readline[0], &streams))
@@ -738,7 +740,7 @@ char athame_loop(int instream)
 
   sent_to_vim = 0;
 
-  if(!updated && !athame_failed)
+  if(!updated && !athame_failure)
   {
     athame_update_vimline(athame_row, ap_get_cursor());
   }
@@ -762,7 +764,7 @@ char athame_loop(int instream)
     else {
       while(results == 0)
       {
-        if(athame_failed)
+        if(athame_failure)
         {
           fd_set files;
           FD_ZERO(&files);
@@ -790,7 +792,7 @@ char athame_loop(int instream)
               if(FD_ISSET(instream, &files)){
                 returnVal = athame_process_input(instream);
               }
-              else if(!athame_failed && FD_ISSET(from_vim, &files)){
+              else if(!athame_failure && FD_ISSET(from_vim, &files)){
                 athame_get_vim_info();
               }
             }
@@ -824,8 +826,7 @@ char athame_loop(int instream)
               // If we didn't send anything to vim, it shouldn't have quit.
               // We never want to kill the user's shell without giving them a chance
               // to type anything.
-              athame_fail_str = "Vim quit";
-              athame_failed = 1;
+              athame_set_failure("Vim quit");
             }
           }
         }
@@ -836,7 +837,7 @@ char athame_loop(int instream)
        return '\0';
     }
   }
-  if(!athame_failed)
+  if(!athame_failure)
   {
     if(returnVal != ' ' && returnVal != '\b'){
       if(sent_to_vim)
@@ -863,7 +864,7 @@ char athame_loop(int instream)
 
 static void athame_bottom_mode()
 {
-  if(athame_failed)
+  if(athame_failure)
   {
     return;
   }
@@ -918,6 +919,18 @@ static void athame_extraVimRead(int timer)
   athame_redisplay();
 }
 
+static void athame_draw_failure()
+{
+  snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Athame Failure: %s", athame_failure);
+  athame_bottom_display(athame_buffer, BOLD, RED);
+}
+
+static void athame_set_failure(char* fail_str)
+{
+  athame_failure = fail_str;
+  athame_draw_failure();
+}
+
 static char athame_process_input(int instream)
 {
   char result;
@@ -934,12 +947,11 @@ static char athame_process_input(int instream)
 
 static char athame_process_char(char char_read){
   //Unless in vim commandline send return/tab/<C-D>/<C-L> to readline instead of vim
-  if(athame_failed || (strchr("\n\r\t\x04\x0c", char_read) && strcmp(athame_mode, "c") != 0 ))
+  if(athame_failure || (strchr("\n\r\t\x04\x0c", char_read) && strcmp(athame_mode, "c") != 0 ))
   {
-    if(athame_failed)
+    if(athame_failure)
     {
-      snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Athame Failure: %s", athame_fail_str);
-      athame_bottom_display(athame_buffer, BOLD, RED);
+      athame_draw_failure();
       athame_sleep(5);
     }
 
@@ -990,7 +1002,7 @@ static int athame_get_vim_info_inner(int read_pipe)
     read(from_vim, athame_buffer, DEFAULT_BUFFER_SIZE-1);
   }
 
-  if(athame_failed)
+  if(athame_failure)
   {
     return 1;
   }

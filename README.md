@@ -14,7 +14,7 @@ Yes, and if you're fine with basic vi imitations designed by a bunch of Emacs us
 ##Requirements
 - Athame requires Vim (your version needs to have [+clientserver](#setting-up-vim-with-clientserver) support).
 - Athame works best in GNU/Linux.
-- Athame requires an X server. (If you have graphics on Linux, you probably have this)
+- Athame requires an X display for communicating with Vim. (Your patched shell will still work without X, it just won't use Vim.)
 
 ##Think Before you Begin
 Athame *probably* won't break your shell...
