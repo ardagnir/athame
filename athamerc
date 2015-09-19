@@ -13,6 +13,10 @@ set backspace+=start "Without this, you can't delete shell completions
 
 startinsert
 
+" These make arrows more shell like. Feel free to comment them out:
+inoremap <Up> <Up><ESC>A
+inoremap <Down> <Down><ESC>A
+
 " Uncomment these maps to have the up and down arrow
 " only match lines that share text before cursor
 " (Similar to how arrows work for vim ex expressions)

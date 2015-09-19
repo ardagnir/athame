@@ -74,6 +74,8 @@ Some commands (there's no specific code for these, it's just vim):
 - /: search history (and current line) forwards (better if you have :set incsearch enabled)
 - cc: clear current line and go to insert mode
 
+The default athamerc modifies up/down arrows in insert mode to jump to the end of the line, like in a normal shell, but you can change this.
+
 You can also enable history searching arrows in the athamerc. (If you enable this and you use arrows, it searches for text that begins with what you've typed. It's like vim's command mode.)
 
 
@@ -104,6 +106,9 @@ To get rid of Athame completly, you should probably just replace it with the non
 Or if you're cool with not having a shell, you can uninstall it by cding into the readline or zsh directory and typing `sudo make uninstall`.
 
 Depending on your approach, you may want to manually remove `/usr/lib/athame*` and `/etc/athamerc` as well.
+
+####Why do the Up/Down make the cursor jump to the end of the line?
+This happens in insert mode and is one of several settings enabled in the default athamerc to make Athame more like a normal shell. Feel free to comment it out.
 
 ####Why don't arrow keys work when I add Athame to my convoluted Zsh setup?
 Because arrow keys are evil! Just kidding. :P
