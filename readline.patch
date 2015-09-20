@@ -123,12 +123,18 @@ diff -ru a/readline.c b/readline.c
    /* Restore the original of this history line, iff the line that we
       are editing was originally in the history, AND the line has changed. */
    entry = current_history ();
-@@ -561,7 +566,7 @@
+@@ -561,7 +566,13 @@
  	}
  
        RL_SETSTATE(RL_STATE_READCMD);
 -      c = rl_read_key ();
-+      c = athame_loop(fileno(rl_instream));
++      if (athame_enabled())
++      {
++        c = athame_loop(fileno(rl_instream));
++      }
++      else {
++        c = rl_read_key();
++      }
        RL_UNSETSTATE(RL_STATE_READCMD);
  
        /* look at input.c:rl_getc() for the circumstances under which this will

@@ -103,6 +103,7 @@ static char athame_get_first_char();
 static int athame_highlight(int start, int end);
 static void athame_bottom_mode();
 static void athame_poll_vim(int block);
+static void athame_draw_failure();
 
 void athame_init(FILE* outstream)
 {
@@ -134,6 +135,11 @@ void athame_init(FILE* outstream)
   messages_file_name = 0;
   vimbed_file_name = 0;
 
+  if (!athame_is_set("ATHAME_ENABLED", 1))
+  {
+    athame_failure = "Athame was disabled on init.";
+    return;
+  }
   first_char = athame_get_first_char();
   if (first_char && strchr("\n\r", first_char) != 0)
   {
@@ -142,7 +148,7 @@ void athame_init(FILE* outstream)
 
   if (!getenv("DISPLAY"))
   {
-    athame_set_failure("No X display found. (export ATHAME_DONT_SHOW_ERRORS=1 to hide all athame errors)");
+    athame_set_failure("No X display found.");
     return;
   }
   //Note that this rand() is not seeded.by athame.
@@ -721,6 +727,36 @@ static int athame_highlight(int start, int end)
   fflush(athame_outstream);
 }
 
+int athame_is_set(char* env, int def)
+{
+  char* env_val = getenv(env);
+  if (!env_val)
+  {
+    setenv(env, def?"1":"0", 0);
+    return def;
+  }
+  else {
+    return env_val[0] == '1';
+  }
+}
+
+int athame_enabled()
+{
+  if (athame_is_set("ATHAME_ENABLED", 1))
+  {
+    if(athame_failure)
+    {
+      athame_draw_failure();
+      return 0;
+    }
+    unsetenv("ATHAME_ERROR");
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
 
 char athame_loop(int instream)
 {
@@ -862,6 +898,22 @@ char athame_loop(int instream)
   return returnVal;
 }
 
+static char* athame_get_mode_text(char* mode)
+{
+    switch(mode[0])
+    {
+      case 'i': return "INSERT"; break;
+      case 'n': return "NORMAL"; break;
+      case 'v': return "VISUAL"; break;
+      case 'V': return "VISUAL LINE"; break;
+      case 's': return "SELECT"; break;
+      case 'S': return "SELECT LINE"; break;
+      case 'R': return "REPLACE"; break;
+      case 'C': return "COMMAND"; break;
+      default: return "";
+    }
+}
+
 static void athame_bottom_mode()
 {
   if(athame_failure)
@@ -873,29 +925,19 @@ static void athame_bottom_mode()
   int force_redraw = new_text_lines != text_lines || athame_dirty;
   if (strcmp(athame_mode, athame_displaying_mode) != 0 || force_redraw) {
     strcpy(athame_displaying_mode, athame_mode);
-    if (strcmp(athame_mode, "i") == 0)
+    char* mode_string = athame_get_mode_text(athame_mode);
+    setenv("ATHAME_VIM_MODE", mode_string, 1);
+    if (athame_is_set("ATHAME_SHOW_MODE", 1))
     {
-      athame_bottom_display("--INSERT--", BOLD, DEFAULT);
-    }
-    else if (strcmp(athame_mode, "v") == 0)
-    {
-      athame_bottom_display("--VISUAL--", BOLD, DEFAULT);
-    }
-    else if (strcmp(athame_mode, "V") == 0)
-    {
-      athame_bottom_display("--VISUAL LINE--", BOLD, DEFAULT);
-    }
-    else if (strcmp(athame_mode, "s") == 0)
-    {
-      athame_bottom_display("--SELECT--", BOLD, DEFAULT);
-    }
-    else if (strcmp(athame_mode, "R") == 0)
-    {
-      athame_bottom_display("--REPLACE--", BOLD, DEFAULT);
-    }
-    else if (strcmp(athame_mode, "c") !=0)
-    {
-      athame_bottom_display("", BOLD, DEFAULT);
+      if (athame_mode[0] == 'n')
+      {
+        athame_bottom_display("", BOLD, DEFAULT);
+      }
+      else if(athame_mode[0] != 'c')
+      {
+        sprintf(athame_buffer, "-- %s --", mode_string);
+        athame_bottom_display(athame_buffer, BOLD, DEFAULT);
+      }
     }
   }
   text_lines = new_text_lines;
@@ -921,8 +963,8 @@ static void athame_extraVimRead(int timer)
 
 static void athame_draw_failure()
 {
-  char* noshow_error = getenv("ATHAME_DONT_SHOW_ERRORS");
-  if (!noshow_error || noshow_error[0] == '0')
+  setenv("ATHAME_ERROR", athame_failure, 1);
+  if (athame_is_set("ATHAME_SHOW_ERROR", 1))
   {
     snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Athame Failure: %s", athame_failure);
     athame_bottom_display(athame_buffer, BOLD, RED);
@@ -1031,7 +1073,11 @@ static int athame_get_vim_info_inner(int read_pipe)
       {
         strncpy(last_vim_command, command, DEFAULT_BUFFER_SIZE-1);
         last_vim_command[DEFAULT_BUFFER_SIZE-1] = '\0';
-        athame_bottom_display(command, NORMAL, DEFAULT);
+        setenv("ATHAME_VIM_COMMAND", command, 1);
+        if (athame_is_set("ATHAME_SHOW_COMMAND", 1))
+        {
+          athame_bottom_display(command, NORMAL, DEFAULT);
+        }
         //Don't record a change because the highlight for incsearch might not have changed yet.
       }
     }
