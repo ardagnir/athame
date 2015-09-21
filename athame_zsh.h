@@ -112,6 +112,11 @@ static void ap_set_cursor_end()
   zlecs = zlell;
 }
 
+static void ap_redraw_prompt()
+{
+  resetprompt(NULL);
+}
+
 static void ap_display()
 {
   zrefresh();

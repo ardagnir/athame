@@ -104,6 +104,7 @@ static int athame_highlight(int start, int end);
 static void athame_bottom_mode();
 static void athame_poll_vim(int block);
 static void athame_draw_failure();
+int athame_is_set(char* env, int def);
 
 void athame_init(FILE* outstream)
 {
@@ -924,9 +925,13 @@ static void athame_bottom_mode()
   int new_text_lines = (ap_get_line_char_length() + ap_get_prompt_length() - 1)/ap_get_term_width();
   int force_redraw = new_text_lines != text_lines || athame_dirty;
   if (strcmp(athame_mode, athame_displaying_mode) != 0 || force_redraw) {
-    strcpy(athame_displaying_mode, athame_mode);
     char* mode_string = athame_get_mode_text(athame_mode);
     setenv("ATHAME_VIM_MODE", mode_string, 1);
+    if (strcmp(athame_mode, athame_displaying_mode) != 0)
+    {
+      strcpy(athame_displaying_mode, athame_mode);
+      ap_redraw_prompt();
+    }
     if (athame_is_set("ATHAME_SHOW_MODE", 1))
     {
       if (athame_mode[0] == 'n')

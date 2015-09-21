@@ -90,6 +90,11 @@ static void ap_set_cursor_end()
   rl_point = rl_end;
 }
 
+static void ap_redraw_prompt()
+{
+  //Substitutions are already performed before readline gets the prompt.
+}
+
 static void ap_display()
 {
   rl_redisplay();
