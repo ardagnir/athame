@@ -885,7 +885,10 @@ char athame_loop(int instream)
         }
         athame_extraVimRead(100);
       }
-      athame_bottom_display("", BOLD, DEFAULT);
+      if (athame_is_set("ATHAME_SHOW_MODE", 1))
+      {
+        athame_bottom_display("", BOLD, DEFAULT);
+      }
     }
     updated = 0;
     athame_displaying_mode[0] = 'n';
