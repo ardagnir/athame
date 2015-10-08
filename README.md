@@ -64,11 +64,11 @@ If something shows up in `ldd`, but it isn't pointing at `/usr/lib/libreadline.s
 ##FAQ
 ####How do I use this?
 It's just like Vim. Imagine your history is stored inside a vim buffer (because it is!) with a blank line at the bottom. Your cursor starts on that blank line each time readline is called.
-Unles you're in command mode, tabs and carriage returns are handled by readline/zsh.
+Unless you're in command mode, tabs and carriage returns are handled by readline/zsh.
 
 Some commands (there's no specific code for these, it's just vim):
 
-- j: go back a line in histor y
+- j: go back a line in history
 - k: go forward a line in history
 - ?: search history (and current line) backwards (better if you have :set incsearch enabled)
 - /: search history (and current line) forwards (better if you have :set incsearch enabled)
