@@ -11,6 +11,8 @@ set ttimeoutlen=10 "Otherwise, you have to wait for the escape key.
 set backspace-=eol   "For more traditional shell behavior
 set backspace+=start "Without this, you can't delete shell completions
 
+set textwidth=0
+
 startinsert
 
 " These make arrows more shell like. Feel free to comment them out:
