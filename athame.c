@@ -1129,6 +1129,10 @@ static int athame_get_vim_info_inner(int read_pipe)
     }
     else
     {
+      if(athame_mode[0] == 'c' && athame_is_set("ATHAME_SHOW_COMMAND", 1))
+      {
+        athame_bottom_display("", NORMAL, DEFAULT);
+      }
       strncpy(athame_mode, mode, 3);
       last_vim_command[0] = '\0';
     }
