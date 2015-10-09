@@ -560,7 +560,7 @@ static void athame_bottom_display(char* string, int style, int color)
       //We've been resized and have no idea where the last bottom display is. Clear everything after the current text.
       sprintf(erase, "\e[J");
     }
-    else if (!athame_dirty) {
+    else if (!athame_dirty && ap_get_line_char_length() + ap_get_prompt_length() >= ap_get_term_width()) {
       //Delete text in the way on my row and bottom display but leave everything else alone
       sprintf(erase, "\e[K\e[%d;1H\e[J", last_bdisplay_top);
     }
@@ -913,7 +913,7 @@ static char* athame_get_mode_text(char* mode)
       case 's': return "SELECT"; break;
       case 'S': return "SELECT LINE"; break;
       case 'R': return "REPLACE"; break;
-      case 'C': return "COMMAND"; break;
+      case 'c': return "COMMAND"; break;
       default: return "";
     }
 }
@@ -941,7 +941,7 @@ static void athame_bottom_mode()
       {
         athame_bottom_display("", BOLD, DEFAULT);
       }
-      else if(athame_mode[0] != 'c')
+      else if(athame_mode[0] != 'c' && mode_string[0])
       {
         sprintf(athame_buffer, "-- %s --", mode_string);
         athame_bottom_display(athame_buffer, BOLD, DEFAULT);
