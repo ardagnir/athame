@@ -47,6 +47,7 @@
 
 static char athame_buffer[DEFAULT_BUFFER_SIZE];
 static char last_vim_command[DEFAULT_BUFFER_SIZE];
+static int last_cmd_pos;
 static const char* athame_failure;
 static int vim_pid;
 static int expr_pid;
@@ -119,6 +120,7 @@ void athame_init(FILE* outstream)
   athame_displaying_mode[0] = 'n';
   athame_displaying_mode[1] = '\0';
   last_vim_command[0] = '\0';
+  last_cmd_pos = 0;
   cs_confirmed = 0;
   athame_failure = 0;
 
@@ -1047,6 +1049,28 @@ static void athame_get_vim_info()
   }
 }
 
+static int athame_get_col_row(char* string, int* col, int* row)
+{
+    if(string && strtok(string, ","))
+    {
+      char* colStr = strtok(NULL, ",");
+      if(!colStr){
+        return 0;
+      }
+      *col = strtol(colStr, NULL, 10);
+      if(row)
+      {
+        char* rowStr = strtok(NULL, ",");
+        if(!rowStr){
+          return 0;
+        }
+        *row = strtol(rowStr, NULL, 10);
+      }
+      return 1;
+    }
+    return 0;
+}
+
 static int athame_get_vim_info_inner(int read_pipe)
 {
   int changed = 0;
@@ -1073,64 +1097,58 @@ static int athame_get_vim_info_inner(int read_pipe)
   char* mode = strtok(athame_buffer, "\n");
   if(mode)
   {
-    strncpy(athame_mode, mode, 3);
-    if (strcmp(athame_mode, "c") == 0)
+    if (mode[0] == 'c')
     {
+      strncpy(athame_mode, "c", 3);
       char* command = strtok(NULL, "\n");
-      if (command && strcmp(command, last_vim_command) != 0)
+      int cmd_pos = last_cmd_pos;
+      if (mode[1] == ',')
       {
+        cmd_pos = strtol(mode+2, NULL, 10);
+      }
+      if (command && (strcmp(command, last_vim_command) != 0 || cmd_pos != last_cmd_pos))
+      {
+        last_cmd_pos = cmd_pos;
         strncpy(last_vim_command, command, DEFAULT_BUFFER_SIZE-1);
         last_vim_command[DEFAULT_BUFFER_SIZE-1] = '\0';
         setenv("ATHAME_VIM_COMMAND", command, 1);
         if (athame_is_set("ATHAME_SHOW_COMMAND", 1))
         {
           athame_bottom_display(command, NORMAL, DEFAULT);
+          if (cmd_pos > 0)
+          {
+            char cursor_char = command[MIN(cmd_pos, strlen(command))];
+            if (!cursor_char){
+              cursor_char = ' ';
+            }
+            fprintf(athame_outstream, "\e[s\e[%d;%dH\e[7m%c\e[0m\e[u", ap_get_term_height(), cmd_pos+1, cursor_char);
+          }
         }
         //Don't record a change because the highlight for incsearch might not have changed yet.
       }
     }
     else
     {
+      strncpy(athame_mode, mode, 3);
       last_vim_command[0] = '\0';
     }
     char* location = strtok(NULL, "\n");
     if(location)
     {
       char* location2 = strtok(NULL, "\n");
-      if(strtok(location, ","))
+      int col;
+      int row;
+      if(athame_get_col_row(location, &col, &row))
       {
-        char* colStr = strtok(NULL, ",");
-        if(!colStr){
-          return 0;
-        }
-        char* rowStr = strtok(NULL, ",");
-        if(!rowStr){
-          return 0;
-        }
-        int col = strtol(colStr, NULL, 10);
-        int row = strtol(rowStr, NULL, 10);
-
         if(col < 0 || row < 0){
           col = 0;
           location2 = NULL;
         }
 
-        if(location2 && strtok(location2, ","))
+        int new_end_col;
+        int new_end_row;
+        if(athame_get_col_row(location2, &new_end_col, &new_end_row))
         {
-          int new_end_col;
-          int new_end_row;
-          colStr = strtok(NULL, ",");
-          if(!colStr)
-          {
-            return 0;
-          }
-          new_end_col = strtol(colStr, NULL, 10);
-          rowStr = strtok(NULL, ",");
-          if(!rowStr)
-          {
-            return 0;
-          }
-          new_end_row = strtol(rowStr, NULL, 10);
           if(new_end_col != end_col || new_end_row != end_row)
           {
             end_col = new_end_col;
