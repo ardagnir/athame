@@ -953,6 +953,11 @@ static void athame_bottom_mode()
     {
       strcpy(athame_displaying_mode, athame_mode);
       ap_redraw_prompt();
+      // Redraw can hide the vim command, so we have to redraw it.
+      if (athame_mode[0] == 'c' && athame_is_set("ATHAME_SHOW_COMMAND", 1))
+      {
+        athame_bottom_display(last_vim_command, NORMAL, DEFAULT, last_cmd_pos);
+      }
     }
     if (athame_is_set("ATHAME_SHOW_MODE", 1))
     {
