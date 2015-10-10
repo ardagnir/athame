@@ -97,7 +97,7 @@ static void athame_sleep(int msec);
 static int athame_get_vim_info_inner(int read_pipe);
 static void athame_update_vimline(int row, int col);
 static int athame_remote_expr(char* expr, int bock);
-static void athame_bottom_display(char* string, int style, int color);
+static void athame_bottom_display(char* string, int style, int color, int cursor);
 static int athame_wait_for_file(char* filename, int sanity);
 static int athame_wait_for_vim();
 static char athame_get_first_char();
@@ -524,9 +524,10 @@ static void athame_poll_vim(int block)
 int last_bdisplay_top = 0;
 int last_bdisplay_bottom = 0;
 
-static void athame_bottom_display(char* string, int style, int color)
+static void athame_bottom_display(char* string, int style, int color, int cursor)
 {
     int term_height = ap_get_term_height();
+    int term_width = ap_get_term_width();
     if(!last_bdisplay_bottom)
     {
       last_bdisplay_top = term_height;
@@ -539,7 +540,7 @@ static void athame_bottom_display(char* string, int style, int color)
       ap_display();
     }
 
-    int extra_lines = ((int)strlen(string) - 1) / ap_get_term_width();
+    int extra_lines = ((int)strlen(string)) / term_width;
     int i;
     for(i = 0; i < extra_lines; i++)
     {
@@ -562,7 +563,7 @@ static void athame_bottom_display(char* string, int style, int color)
       //We've been resized and have no idea where the last bottom display is. Clear everything after the current text.
       sprintf(erase, "\e[J");
     }
-    else if (!athame_dirty && ap_get_line_char_length() + ap_get_prompt_length() >= ap_get_term_width()) {
+    else if (!athame_dirty && ap_get_line_char_length() + ap_get_prompt_length() >= term_width) {
       //Delete text in the way on my row and bottom display but leave everything else alone
       sprintf(erase, "\e[K\e[%d;1H\e[J", last_bdisplay_top);
     }
@@ -570,13 +571,29 @@ static void athame_bottom_display(char* string, int style, int color)
       sprintf(erase, "\e[%d;1H\e[J", last_bdisplay_top);
     }
 
+    char cursor_code[64];
+    if (cursor)
+    {
+      char cursor_char = string[MIN(cursor, strlen(string))];
+      if (!cursor_char){
+        cursor_char = ' ';
+      }
+      sprintf(cursor_code, "\e[%d;%dH\e[7m%c", term_height-extra_lines + cursor/term_width, cursor%term_width + 1, cursor_char);
+    }
+    else
+    {
+      cursor_code[0] = '\0';
+    }
+
     //\e[s\n\e[u\e[B\e[A            Add a line underneath if at bottom
     //\e[s                          Save cursor position
     //%s(erase)                     Delete old athame_bottom_display
     //\e[%d;1H                      Go to position for new athame_bottom_display
-    //%s(colorstyle)%s(string)\e[0m Write bottom display using given color/style
+    //%s(colorstyle)%s(string) Write bottom display using given color/style
+    //%s                            Draw cursor for command mode
+    //\e[0m                         Reset style
     //\e[u                          Return to saved position
-    fprintf(athame_outstream, "\e[s\n\e[u\e[B\e[A\e[s%s\e[%d;1H%s%s\e[0m\e[u", erase, term_height-extra_lines, colorstyle, string);
+    fprintf(athame_outstream, "\e[s\n\e[u\e[B\e[A\e[s%s\e[%d;1H%s%s%s\e[0m\e[u", erase, term_height-extra_lines, colorstyle, string, cursor_code);
 
     for(i = 0; i < extra_lines; i++)
     {
@@ -889,7 +906,7 @@ char athame_loop(int instream)
       }
       if (athame_is_set("ATHAME_SHOW_MODE", 1))
       {
-        athame_bottom_display("", BOLD, DEFAULT);
+        athame_bottom_display("", BOLD, DEFAULT, 0);
       }
     }
     updated = 0;
@@ -899,7 +916,7 @@ char athame_loop(int instream)
   else if (strchr("\n\r\t", returnVal))
   {
     //Hide failure messae where it might mess with something
-    athame_bottom_display("", BOLD, DEFAULT);
+    athame_bottom_display("", BOLD, DEFAULT, 0);
   }
   return returnVal;
 }
@@ -941,12 +958,12 @@ static void athame_bottom_mode()
     {
       if (athame_mode[0] == 'n')
       {
-        athame_bottom_display("", BOLD, DEFAULT);
+        athame_bottom_display("", BOLD, DEFAULT, 0);
       }
       else if(athame_mode[0] != 'c' && mode_string[0])
       {
         sprintf(athame_buffer, "-- %s --", mode_string);
-        athame_bottom_display(athame_buffer, BOLD, DEFAULT);
+        athame_bottom_display(athame_buffer, BOLD, DEFAULT, 0);
       }
     }
   }
@@ -977,7 +994,7 @@ static void athame_draw_failure()
   if (athame_is_set("ATHAME_SHOW_ERROR", 1))
   {
     snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Athame Failure: %s", athame_failure);
-    athame_bottom_display(athame_buffer, BOLD, RED);
+    athame_bottom_display(athame_buffer, BOLD, RED, 0);
   }
 }
 
@@ -1114,15 +1131,7 @@ static int athame_get_vim_info_inner(int read_pipe)
         setenv("ATHAME_VIM_COMMAND", command, 1);
         if (athame_is_set("ATHAME_SHOW_COMMAND", 1))
         {
-          athame_bottom_display(command, NORMAL, DEFAULT);
-          if (cmd_pos > 0)
-          {
-            char cursor_char = command[MIN(cmd_pos, strlen(command))];
-            if (!cursor_char){
-              cursor_char = ' ';
-            }
-            fprintf(athame_outstream, "\e[s\e[%d;%dH\e[7m%c\e[0m\e[u", ap_get_term_height(), cmd_pos+1, cursor_char);
-          }
+          athame_bottom_display(command, NORMAL, DEFAULT, cmd_pos);
         }
         //Don't record a change because the highlight for incsearch might not have changed yet.
       }
@@ -1131,7 +1140,7 @@ static int athame_get_vim_info_inner(int read_pipe)
     {
       if(athame_mode[0] == 'c' && athame_is_set("ATHAME_SHOW_COMMAND", 1))
       {
-        athame_bottom_display("", NORMAL, DEFAULT);
+        athame_bottom_display("", NORMAL, DEFAULT, 0);
       }
       strncpy(athame_mode, mode, 3);
       last_vim_command[0] = '\0';
