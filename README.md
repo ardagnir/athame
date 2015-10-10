@@ -111,9 +111,9 @@ Depending on your approach, you may want to manually remove `/usr/lib/athame*` a
 This happens in insert mode and is one of several settings enabled in the default athamerc to make Athame more like a normal shell. Feel free to comment it out.
 
 ####How do I disable/change the way Athame shows vim's mode?
-By default ATHAME shows the vim mode at the bottom of the screen. This can be disabled using `export ATHAME_SHOW_MODE=0`
+By default Athame shows the Vim mode at the bottom of the screen. This can be disabled using `export ATHAME_SHOW_MODE=0`
 
-Athame stores the current mode in the `ATHAME_VIM_MODE` environment variable. You can use this to display the vim mode yourself. See [https://github.com/ardagnir/athame/issues/21] for an example using powerline.
+Athame stores the current mode in the `ATHAME_VIM_MODE` environment variable. You can use this to display the Vim mode yourself. See https://github.com/ardagnir/athame/issues/21 for an example using powerline.
 
 Similarly, Vim commands are displayed at the bottom of the screen by default. These can be disabled using `export ATHAME_SHOW_COMMAND=0` and accessed using `ATHAME_VIM_COMMAND`
 
