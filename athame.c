@@ -140,7 +140,7 @@ void athame_init(FILE* outstream)
 
   if (!athame_is_set("ATHAME_ENABLED", 1))
   {
-    athame_failure = "Athame was disabled on init.";
+    athame_failure = strdup("Athame was disabled on init.");
     return;
   }
   first_char = athame_get_first_char();
@@ -203,7 +203,14 @@ void athame_init(FILE* outstream)
     close(vim_to_readline[0]);
     close(readline_to_vim[1]);
     snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "+call Vimbed_UpdateText(%d, %d, %d, %d, 1)", athame_row+1, 1, athame_row+1, 1);
-    if (execlp("vim", "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL)!=0)
+    int vim_error = 0;
+    if (ATHAME_VIM_BIN[0]) {
+      vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
+    }
+    else {
+      vim_error = execlp("vim", "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
+    }
+    if (vim_error != 0)
     {
       printf("Error: %d", errno);
       close(vim_to_readline[1]);
@@ -231,7 +238,7 @@ void athame_init(FILE* outstream)
     }
     if (athame_wait_for_file(contents_file_name, 20))
     {
-      athame_set_failure("Vimbed failure");
+      athame_set_failure("Vimbed failure.");
       return;
     }
     athame_sleep(50); // Give some time to send correct mode for gdb-like uses that need to know now
@@ -291,6 +298,10 @@ void athame_cleanup()
   {
     free(servername);
   }
+  if(athame_failure)
+  {
+    free(athame_failure);
+  }
 }
 
 static char athame_get_first_char()
@@ -327,7 +338,7 @@ static int athame_setup_history()
   FILE* updateFile = fopen(update_file_name, "w+");
 
   if(!updateFile){
-    athame_set_failure("Couldn't create temporary file in /tmp/vimbed");
+    athame_set_failure("Couldn't create temporary file in /tmp/vimbed.");
     return 1;
   }
 
@@ -374,11 +385,36 @@ static int athame_wait_for_vim()
     return 1;
   }
 
-  read(from_vim, athame_buffer, 5);
-  athame_buffer[5] = 0;
-  if(strcmp(athame_buffer, "Error") == 0)
+  read(from_vim, athame_buffer, 200);
+  athame_buffer[200] = '\0';
+  if(strncmp(athame_buffer, "Error", 5) == 0)
   {
-    athame_set_failure("Couldn't load vim");
+    if (ATHAME_VIM_BIN[0])
+    {
+      char* error;
+      asprintf(&error, "Couldn't load vim path: %s", ATHAME_VIM_BIN);
+      athame_set_failure(error);
+      free(error);
+    }
+    else
+    {
+      athame_set_failure("Couldn't load vim.");
+    }
+    return 1;
+  }
+  else if(strstr(athame_buffer, "--servername"))
+  {
+    if (ATHAME_VIM_BIN[0])
+    {
+      char* error;
+      asprintf(&error, "%s was not compiled with clientserver support.", ATHAME_VIM_BIN);
+      athame_set_failure(error);
+      free(error);
+    }
+    else
+    {
+      athame_set_failure("Tried running vim without clientserver support.");
+    }
     return 1;
   }
   return 0;
@@ -438,7 +474,14 @@ static int athame_remote_expr(char* expr, int block)
       dup2(fileno(dev_null), STDERR_FILENO);
     }
 
-    execlp("vim", "vim", "--servername", servername, "--remote-expr", expr, NULL);
+    if (ATHAME_VIM_BIN[0])
+    {
+      execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "--remote-expr", expr, NULL);
+    }
+    else
+    {
+      execlp("vim", "vim", "--servername", servername, "--remote-expr", expr, NULL);
+    }
     printf("Expr Error:%d", errno);
     exit (EXIT_FAILURE);
   }
@@ -452,7 +495,7 @@ static int athame_remote_expr(char* expr, int block)
       close(stdout_to_readline[1]);
       close(stderr_to_readline[1]);
     }
-    athame_set_failure("Clientserver error");
+    athame_set_failure("Clientserver error.");
     return -1;
   }
   else
@@ -1005,7 +1048,7 @@ static void athame_draw_failure()
 
 static void athame_set_failure(char* fail_str)
 {
-  athame_failure = fail_str;
+  athame_failure = strdup(fail_str);
   athame_draw_failure();
 }
 
