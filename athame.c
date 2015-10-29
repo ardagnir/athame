@@ -300,7 +300,7 @@ void athame_cleanup()
   }
   if(athame_failure)
   {
-    free(athame_failure);
+    free((char*)athame_failure);
   }
 }
 
@@ -628,15 +628,15 @@ static void athame_bottom_display(char* string, int style, int color, int cursor
       cursor_code[0] = '\0';
     }
 
-    //\e[s\n\e[u\e[B\e[A            Add a line underneath if at bottom
-    //\e[s                          Save cursor position
-    //%s(erase)                     Delete old athame_bottom_display
-    //\e[%d;1H                      Go to position for new athame_bottom_display
+    //\e7\n\e8\e[B\e[A         Add a line underneath if at bottom
+    //\e7                      Save cursor position
+    //%s(erase)                Delete old athame_bottom_display
+    //\e[%d;1H                 Go to position for new athame_bottom_display
     //%s(colorstyle)%s(string) Write bottom display using given color/style
-    //%s                            Draw cursor for command mode
-    //\e[0m                         Reset style
-    //\e[u                          Return to saved position
-    fprintf(athame_outstream, "\e[s\n\e[u\e[B\e[A\e[s%s\e[%d;1H%s%s%s\e[0m\e[u", erase, term_height-extra_lines, colorstyle, string, cursor_code);
+    //%s                       Draw cursor for command mode
+    //\e[0m                    Reset style
+    //\e8                      Return to saved position
+    fprintf(athame_outstream, "\e7\n\e8\e[B\e[A\e7%s\e[%d;1H%s%s%s\e[0m\e8", erase, term_height-extra_lines, colorstyle, string, cursor_code);
 
     for(i = 0; i < extra_lines; i++)
     {
