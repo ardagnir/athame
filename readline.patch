@@ -1,3 +1,18 @@
+diff -ru a/display.c b/display.c
+--- a/display.c 2015-10-28 00:00:00.000000000 - 0400
+--- b/display.c 2015-10-28 00:00:00.000000000 - 0400
+@@ -221,6 +221,11 @@
+ static int prompt_last_screen_line;
+ 
+ static int prompt_physical_chars;
++
++int
++rla_prompt_phys_length() {
++  return prompt_physical_chars;
++}
+ 
+ /* set to a non-zero value by rl_redisplay if we are marking modified history
+    lines and the current line is so marked. */
 diff -ru a/Makefile.in b/Makefile.in
 --- a/Makefile.in	2015-07-15 00:03:32.894897704 -0400
 +++ b/Makefile.in	2015-07-14 23:36:13.208157503 -0400

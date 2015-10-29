@@ -118,7 +118,7 @@ static int ap_get_term_height()
 
 static int ap_get_prompt_length()
 {
-  return rl_expand_prompt(rl_prompt);
+  return rla_prompt_phys_length();
 }
 
 HISTORY_STATE* hs;
