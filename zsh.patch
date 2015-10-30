@@ -25,7 +25,7 @@ diff -ru a/Makemod.in.in b/Makemod.in.in
  
  sdir_src      = $(sdir_top)/Src
  dir_src       = $(dir_top)/Src
-+athame        = -DVIMBED_LOCATION='"$(libdir)/athame_zsh"'
++athame        = -DVIMBED_LOCATION='"$(libdir)/athame_zsh"' -DATHAME_VIM_BIN='"${ATHAME_VIM_BIN}"'
  
  # ========== COMPILATION RULES ==========
  

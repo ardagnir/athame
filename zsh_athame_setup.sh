@@ -46,7 +46,7 @@ done
 
 #Get vim binary
 if [ -z $vimbin ]; then
-  vimmsg="Please provide a vim binary by running this script with this script with --vimbin=/path/to/vim at the end. (replace with the actual path to vim)"
+  vimmsg="Please provide a vim binary by running this script with --vimbin=/path/to/vim at the end. (replace with the actual path to vim)"
   testvim=$(which vim)
   if [ -z $testvim ]; then
     echo "Could not find a vim binary using 'which'"
