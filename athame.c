@@ -987,7 +987,7 @@ static void athame_bottom_mode()
     return;
   }
   static int text_lines = 0;
-  int new_text_lines = (ap_get_line_char_length() + ap_get_prompt_length() - 1)/ap_get_term_width();
+  int new_text_lines = (ap_get_line_char_length() + ap_get_prompt_length())/ap_get_term_width();
   int force_redraw = new_text_lines != text_lines || athame_dirty;
   if (strcmp(athame_mode, athame_displaying_mode) != 0 || force_redraw) {
     char* mode_string = athame_get_mode_text(athame_mode);
