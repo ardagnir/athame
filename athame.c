@@ -292,7 +292,16 @@ void athame_cleanup()
   }
   if(athame_failure)
   {
+    athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
     free((char*)athame_failure);
+  }
+}
+
+void athame_clear_error()
+{
+  if(athame_failure)
+  {
+    athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
   }
 }
 
@@ -831,7 +840,7 @@ char athame_loop(int instream)
 
   sent_to_vim = 0;
 
-  if(!updated && !athame_failure)
+  if(!updated)
   {
     athame_update_vimline(athame_row, ap_get_cursor());
   }
@@ -853,72 +862,58 @@ char athame_loop(int instream)
       first_char = 0;
     }
     else {
-      while(results == 0)
+      while(results == 0 && !athame_failure)
       {
-        if(athame_failure)
+        fd_set files;
+        FD_ZERO(&files);
+        FD_SET(instream, &files);
+        FD_SET(from_vim, &files);
+        timeout.tv_sec = 0;
+        timeout.tv_usec = 500 * 1000;
+
+        results = select(MAX(from_vim, instream)+1, &files, NULL, NULL, (strcmp(athame_mode, "c") == 0 || needs_poll)? &timeout : NULL);
+        if (waitpid(vim_pid, NULL, WNOHANG) == 0) //Is vim still running?
         {
-          fd_set files;
-          FD_ZERO(&files);
-          FD_SET(instream, &files);
-          results = select(instream+1, &files, NULL, NULL, NULL);
           if (results > 0)
           {
-            returnVal = athame_process_input(instream);
-          }
-        }
-        else
-        {
-          fd_set files;
-          FD_ZERO(&files);
-          FD_SET(instream, &files);
-          FD_SET(from_vim, &files);
-          timeout.tv_sec = 0;
-          timeout.tv_usec = 500 * 1000;
-
-          results = select(MAX(from_vim, instream)+1, &files, NULL, NULL, (strcmp(athame_mode, "c") == 0 || needs_poll)? &timeout : NULL);
-          if (waitpid(vim_pid, NULL, WNOHANG) == 0) //Is vim still running?
-          {
-            if (results > 0)
-            {
-              if(FD_ISSET(instream, &files)){
-                returnVal = athame_process_input(instream);
-              }
-              else if(!athame_failure && FD_ISSET(from_vim, &files)){
-                athame_get_vim_info();
-              }
+            if(FD_ISSET(instream, &files)){
+              returnVal = athame_process_input(instream);
             }
-            else
-            {
-              char sig_result;
-              if (sig_result = ap_handle_signals())
-              {
-                return sig_result;
-              }
-              if(needs_poll)
-              {
-                athame_poll_vim(0);
-              }
-              else
-              {
-                athame_get_vim_info_inner(0);
-              }
+            else if(FD_ISSET(from_vim, &files)){
+              athame_get_vim_info();
             }
           }
           else
           {
-            //Vim quit
-            if(sent_to_vim)
+            char sig_result;
+            if (sig_result = ap_handle_signals())
             {
-              ap_set_line_buffer("");
-              return '\x04'; //<C-D>
+              return sig_result;
+            }
+            if(needs_poll)
+            {
+              athame_poll_vim(0);
             }
             else
             {
-              // If we didn't send anything to vim, it shouldn't have quit.
-              // We never want to kill the user's shell without giving them a chance
-              // to type anything.
-              athame_set_failure("Vim quit");
+              athame_get_vim_info_inner(0);
             }
+          }
+        }
+        else
+        {
+          //Vim quit
+          if(sent_to_vim)
+          {
+            ap_set_line_buffer("");
+            return '\x04'; //<C-D>
+          }
+          else
+          {
+            // If we didn't send anything to vim, it shouldn't have quit.
+            // We never want to kill the user's shell without giving them a chance
+            // to type anything.
+            athame_set_failure("Vim quit");
           }
         }
       }
@@ -947,11 +942,6 @@ char athame_loop(int instream)
     updated = 0;
     athame_displaying_mode[0] = 'n';
     athame_displaying_mode[1] = '\0';
-  }
-  else if (strchr("\n\r\t", returnVal))
-  {
-    //Hide failure messae where it might mess with something
-    athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
   }
   return returnVal;
 }
@@ -1062,12 +1052,6 @@ static char athame_process_char(char char_read){
   //Unless in vim commandline send return/tab/<C-D>/<C-L> to readline instead of vim
   if(athame_failure || (strchr("\n\r\t\x04\x0c", char_read) && strcmp(athame_mode, "c") != 0 ))
   {
-    if(athame_failure)
-    {
-      athame_draw_failure();
-      athame_sleep(5);
-    }
-
     last_tab = (char_read == '\t');
     if (char_read == '\t') {
       return '\t';
