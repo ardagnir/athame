@@ -39,12 +39,6 @@
 #define MAX(A, B) (((A) > (B)) ? (A) : (B))
 #define MIN(A, B) (((A) < (B)) ? (A) : (B))
 
-#define NORMAL 0
-#define BOLD 1
-
-#define DEFAULT 0
-#define RED 31
-
 static char athame_buffer[DEFAULT_BUFFER_SIZE];
 static char last_vim_command[DEFAULT_BUFFER_SIZE];
 static int last_cmd_pos;
@@ -97,7 +91,6 @@ static void athame_sleep(int msec);
 static int athame_get_vim_info_inner(int read_pipe);
 static void athame_update_vimline(int row, int col);
 static int athame_remote_expr(char* expr, int bock);
-static void athame_bottom_display(char* string, int style, int color, int cursor);
 static int athame_wait_for_file(char* filename, int sanity);
 static int athame_wait_for_vim();
 static char athame_get_first_char();
@@ -105,7 +98,6 @@ static int athame_highlight(int start, int end);
 static void athame_bottom_mode();
 static void athame_poll_vim(int block);
 static void athame_draw_failure();
-int athame_is_set(char* env, int def);
 
 void athame_init(FILE* outstream)
 {
@@ -567,7 +559,7 @@ static void athame_poll_vim(int block)
 int last_bdisplay_top = 0;
 int last_bdisplay_bottom = 0;
 
-static void athame_bottom_display(char* string, int style, int color, int cursor)
+void athame_bottom_display(char* string, int style, int color, int cursor)
 {
     int term_height = ap_get_term_height();
     int term_width = ap_get_term_width();
@@ -949,7 +941,7 @@ char athame_loop(int instream)
       }
       if (athame_is_set("ATHAME_SHOW_MODE", 1))
       {
-        athame_bottom_display("", BOLD, DEFAULT, 0);
+        athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
       }
     }
     updated = 0;
@@ -959,7 +951,7 @@ char athame_loop(int instream)
   else if (strchr("\n\r\t", returnVal))
   {
     //Hide failure messae where it might mess with something
-    athame_bottom_display("", BOLD, DEFAULT, 0);
+    athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
   }
   return returnVal;
 }
@@ -999,19 +991,19 @@ static void athame_bottom_mode()
       // Redraw can hide the vim command, so we have to redraw it.
       if (athame_mode[0] == 'c' && athame_is_set("ATHAME_SHOW_COMMAND", 1))
       {
-        athame_bottom_display(last_vim_command, NORMAL, DEFAULT, last_cmd_pos);
+        athame_bottom_display(last_vim_command, ATHAME_NORMAL, ATHAME_DEFAULT, last_cmd_pos);
       }
     }
     if (athame_is_set("ATHAME_SHOW_MODE", 1))
     {
       if (athame_mode[0] == 'n')
       {
-        athame_bottom_display("", BOLD, DEFAULT, 0);
+        athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
       }
       else if(athame_mode[0] != 'c' && mode_string[0])
       {
         sprintf(athame_buffer, "-- %s --", mode_string);
-        athame_bottom_display(athame_buffer, BOLD, DEFAULT, 0);
+        athame_bottom_display(athame_buffer, ATHAME_BOLD, ATHAME_DEFAULT, 0);
       }
     }
   }
@@ -1042,7 +1034,7 @@ static void athame_draw_failure()
   if (athame_is_set("ATHAME_SHOW_ERROR", 1))
   {
     snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Athame Failure: %s", athame_failure);
-    athame_bottom_display(athame_buffer, BOLD, RED, 0);
+    athame_bottom_display(athame_buffer, ATHAME_BOLD, ATHAME_RED, 0);
   }
 }
 
@@ -1179,7 +1171,7 @@ static int athame_get_vim_info_inner(int read_pipe)
         setenv("ATHAME_VIM_COMMAND", command, 1);
         if (athame_is_set("ATHAME_SHOW_COMMAND", 1))
         {
-          athame_bottom_display(command, NORMAL, DEFAULT, cmd_pos);
+          athame_bottom_display(command, ATHAME_NORMAL, ATHAME_DEFAULT, cmd_pos);
         }
         //Don't record a change because the highlight for incsearch might not have changed yet.
       }
@@ -1188,7 +1180,7 @@ static int athame_get_vim_info_inner(int read_pipe)
     {
       if(athame_mode[0] == 'c' && athame_is_set("ATHAME_SHOW_COMMAND", 1))
       {
-        athame_bottom_display("", NORMAL, DEFAULT, 0);
+        athame_bottom_display("", ATHAME_NORMAL, ATHAME_DEFAULT, 0);
       }
       strncpy(athame_mode, mode, 3);
       last_vim_command[0] = '\0';
