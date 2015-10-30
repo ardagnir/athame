@@ -242,3 +242,14 @@ diff -ru a/shlib/Makefile.in b/shlib/Makefile.in
  bind.so: bind.c
  callback.so: callback.c
  comapt.so: compat.c
+diff -ru a/readline.h b/readline.h
+--- a/readline.h	2015-10-29 00:00:00.000000000 -0400
++++ b/readline.h	2015-10-29 00:00:00.000000000 -0400
+@@ -288,6 +288,7 @@
+ 
+ extern int rl_set_prompt PARAMS((const char *));
+ extern int rl_expand_prompt PARAMS((char *));
++extern int rla_prompt_phys_length PARAMS((void));
+ 
+ extern int rl_initialize PARAMS((void));
+ 
