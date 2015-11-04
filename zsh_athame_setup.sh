@@ -85,16 +85,15 @@ if [ $dirty = 0 ]; then
 fi
 
 #Patch Zsh with Athame
-cd zsh-5.0.8_tmp/Src
+cd zsh-5.0.8_tmp
 if [ $athame = 1 ]; then
   if [ $dirty = 0 ]; then
-    patch -p1 < ../../zsh.patch
-    cp -r ../../vimbed .
+    patch -p1 < ../zsh.patch
+    cp -r ../vimbed Src/
   fi
-  cp ../../athame.* Zle/
-  cp ../../athame_zsh.h Zle/athame_intermediary.h
+  cp ../athame.* Src/Zle/
+  cp ../athame_zsh.h Src/Zle/athame_intermediary.h
 fi
-cd ..
 
 #Build and install zsh
 if [ $build = 1 ]; then

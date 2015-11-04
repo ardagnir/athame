@@ -121,7 +121,7 @@ if [ $build = 1 ]; then
   if [ $dirty = 0 ]; then
     ./configure --prefix=/usr
   fi
-  make SHLIB_LIBS=-lncurses ATHAME_VIM_BIN=$vimbin
+  make SHLIB_LIBS="-lncurses -lutil" ATHAME_VIM_BIN=$vimbin
   sudo make install
 fi
 
