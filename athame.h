@@ -36,7 +36,6 @@ extern char athame_loop(int instream);
 extern int athame_enabled();
 extern void athame_clear_error();
 extern void athame_cleanup();
-extern void athame_bottom_display(char* string, int style, int color, int cursor);
 extern int athame_is_set(char* env, int def);
 
 #ifdef __cplusplus

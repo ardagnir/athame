@@ -93,6 +93,7 @@ static int athame_wait_for_file(char* filename, int sanity);
 static int athame_wait_for_vim();
 static char athame_get_first_char();
 static int athame_highlight(int start, int end);
+static void athame_bottom_display(char* string, int style, int color, int cursor);
 static void athame_bottom_mode();
 static void athame_poll_vim(int block);
 static void athame_draw_failure();
@@ -270,6 +271,11 @@ void athame_cleanup()
     athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
     free((char*)athame_failure);
   }
+  else if (athame_is_set("ATHAME_SHOW_MODE", 1))
+  {
+    athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
+  }
+
 }
 
 void athame_clear_error()

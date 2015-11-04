@@ -183,11 +183,8 @@ static char ap_handle_signals()
 {
   if (_rl_caught_signal == SIGINT)
   {
-    if (athame_is_set("ATHAME_SHOW_MODE", 1))
-    {
-      athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
-    }
-    _rl_signal_handler(_rl_caught_signal);
+    _rl_signal_handler(SIGINT);
+    athame_cleanup();
     if (rl_signal_event_hook)
     {
       (*rl_signal_event_hook) ();
