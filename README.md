@@ -14,6 +14,7 @@ Yes, and if you're fine with basic vi imitations designed by a bunch of Emacs us
 ##Requirements
 - Athame requires Vim (your version needs to have [+clientserver](#setting-up-vim-with-clientserver) support).
 - Athame works best in GNU/Linux.
+- Athame also works on OSX.
 - Athame requires an X display for communicating with Vim. (Your patched shell will still work without X, it just won't use Vim.)
 
 ##Think Before you Begin
@@ -37,6 +38,7 @@ Clone this repo recursively:
 *Notes:*
 - *If this doesn't work, you may be using a distro (like Debian or Ubuntu) that doesn't use the system readline. See [building bash with system readline](#setting-up-bash-to-use-athame-readline)*
 - *You can add the --nobuild flag to the setup script if you want to configure/build/install yourself*
+- *You can change what vim binary is used by passing --vimbin=/path/to/vim to the setup script*
 
 
 ##Setting up Athame Zsh
@@ -47,7 +49,9 @@ Clone this repo recursively:
 
 **2.** If you have an old version of athame and a ~/.athamerc file that doesn't source /etc/athamerc, check /etc/athamerc for changes.**
 
-*Note: you can add the --nobuild flag to the setup script if you want to configure/build/install yourself*
+*Note:*
+- *You can add the --nobuild flag to the setup script if you want to configure/build/install yourself*
+- *You can change what vim binary is used by passing --vimbin=/path/to/vim to the setup script*
 
 ##Setting up Bash to use Athame Readline
 Some distros (like Debian and Ubuntu) don't setup bash to use the system readline.
@@ -133,10 +137,7 @@ I hardcoded all the terminal codes. Sorry, I was lazy. Athame only works on xter
 ####Does Athame work with Neovim?
 Neovim doesn't support vim-style remote communication yet. The Neovim devs are documenting this in [Neovim issue 1750](https://github.com/neovim/neovim/issues/1750). If you want to use Neovim with Athame, you should consider helping them out. It sounds like most of the functionality is already there and just needs to be exposed in a backwards-compatible manner.
 
-####Does Athame work on OSX?
-You might need to jump through some hoops to get it working on a Mac. I don't know what those are because I haven't tried it yet.
-
-####What about Windows? I have Cygwin!
+####Does Athame work on windows? I have Cygwin!
 Haha, no.
 
 ####Does Athame support multibyte characters?
