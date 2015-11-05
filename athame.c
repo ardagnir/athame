@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/param.h>
 #include <sys/select.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -32,28 +33,25 @@
 #include <time.h>
 #include <unistd.h>
 
+#ifdef BSD
+//Includes OSX
+#include <util.h>
+#else
+#include <pty.h>
+#endif
+
 #include "athame.h"
 #include "athame_intermediary.h"
 
 #define DEFAULT_BUFFER_SIZE 1024
-#define MAX(A, B) (((A) > (B)) ? (A) : (B))
-#define MIN(A, B) (((A) < (B)) ? (A) : (B))
-
-#define NORMAL 0
-#define BOLD 1
-
-#define DEFAULT 0
-#define RED 31
 
 static char athame_buffer[DEFAULT_BUFFER_SIZE];
 static char last_vim_command[DEFAULT_BUFFER_SIZE];
+static int last_cmd_pos;
 static const char* athame_failure;
 static int vim_pid;
 static int expr_pid;
-static int vim_to_readline[2];
-static int readline_to_vim[2];
-static int from_vim;
-static int to_vim;
+static int vim_term;
 static int cs_confirmed;
 static FILE* dev_null;
 static int athame_row;
@@ -96,15 +94,14 @@ static void athame_sleep(int msec);
 static int athame_get_vim_info_inner(int read_pipe);
 static void athame_update_vimline(int row, int col);
 static int athame_remote_expr(char* expr, int bock);
-static void athame_bottom_display(char* string, int style, int color);
 static int athame_wait_for_file(char* filename, int sanity);
 static int athame_wait_for_vim();
 static char athame_get_first_char();
-static int athame_highlight(int start, int end);
+static void athame_highlight(int start, int end);
+static void athame_bottom_display(char* string, int style, int color, int cursor);
 static void athame_bottom_mode();
 static void athame_poll_vim(int block);
 static void athame_draw_failure();
-int athame_is_set(char* env, int def);
 
 void athame_init(FILE* outstream)
 {
@@ -119,13 +116,12 @@ void athame_init(FILE* outstream)
   athame_displaying_mode[0] = 'n';
   athame_displaying_mode[1] = '\0';
   last_vim_command[0] = '\0';
+  last_cmd_pos = 0;
   cs_confirmed = 0;
   athame_failure = 0;
 
 
   dev_null = 0;
-  from_vim = 0;
-  to_vim = 0;
   vim_pid = 0;
 
   servername = 0;
@@ -138,7 +134,7 @@ void athame_init(FILE* outstream)
 
   if (!athame_is_set("ATHAME_ENABLED", 1))
   {
-    athame_failure = "Athame was disabled on init.";
+    athame_failure = strdup("Athame was disabled on init.");
     return;
   }
   first_char = athame_get_first_char();
@@ -190,22 +186,20 @@ void athame_init(FILE* outstream)
   }
 
   dev_null = fopen("/dev/null", "w");
-  pipe(vim_to_readline);
-  pipe(readline_to_vim);
-  int pid = fork();
+  int pid = forkpty(&vim_term, NULL, NULL, NULL);
   if (pid == 0)
   {
-    dup2(readline_to_vim[0], STDIN_FILENO);
-    dup2(vim_to_readline[1], STDOUT_FILENO);
-    dup2(vim_to_readline[1], STDERR_FILENO);
-    close(vim_to_readline[0]);
-    close(readline_to_vim[1]);
     snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "+call Vimbed_UpdateText(%d, %d, %d, %d, 1)", athame_row+1, 1, athame_row+1, 1);
-    if (execlp("vim", "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL)!=0)
+    int vim_error = 0;
+    if (ATHAME_VIM_BIN[0]) {
+      vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
+    }
+    else {
+      vim_error = execlp("vim", "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
+    }
+    if (vim_error != 0)
     {
       printf("Error: %d", errno);
-      close(vim_to_readline[1]);
-      close(readline_to_vim[0]);
       exit(EXIT_FAILURE);
     }
   }
@@ -216,11 +210,7 @@ void athame_init(FILE* outstream)
   }
   else
   {
-    close(vim_to_readline[1]);
-    close(readline_to_vim[0]);
     vim_pid = pid;
-    from_vim = vim_to_readline[0];
-    to_vim = readline_to_vim[1];
 
     if(athame_wait_for_vim())
     {
@@ -229,7 +219,7 @@ void athame_init(FILE* outstream)
     }
     if (athame_wait_for_file(contents_file_name, 20))
     {
-      athame_set_failure("Vimbed failure");
+      athame_set_failure("Vimbed failure.");
       return;
     }
     athame_sleep(50); // Give some time to send correct mode for gdb-like uses that need to know now
@@ -240,14 +230,6 @@ void athame_init(FILE* outstream)
 
 void athame_cleanup()
 {
-  if(to_vim)
-  {
-    close(to_vim);
-  }
-  if(from_vim)
-  {
-    close(from_vim);
-  }
   if(dev_null)
   {
     fclose(dev_null);
@@ -289,6 +271,24 @@ void athame_cleanup()
   {
     free(servername);
   }
+  if(athame_failure)
+  {
+    athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
+    free((char*)athame_failure);
+  }
+  else if (athame_is_set("ATHAME_SHOW_MODE", 1))
+  {
+    athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
+  }
+
+}
+
+void athame_clear_error()
+{
+  if(athame_failure)
+  {
+    athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
+  }
 }
 
 static char athame_get_first_char()
@@ -325,7 +325,7 @@ static int athame_setup_history()
   FILE* updateFile = fopen(update_file_name, "w+");
 
   if(!updateFile){
-    athame_set_failure("Couldn't create temporary file in /tmp/vimbed");
+    athame_set_failure("Couldn't create temporary file in /tmp/vimbed.");
     return 1;
   }
 
@@ -360,11 +360,11 @@ static int athame_wait_for_vim()
   timeout.tv_nsec = 0;
   fd_set files;
   FD_ZERO(&files);
-  FD_SET(from_vim, &files);
+  FD_SET(vim_term, &files);
   sigset_t block_signals;
   sigfillset(&block_signals);
   //Wait for vim to start up
-  int results = pselect(from_vim + 1, &files, NULL, NULL, &timeout, &block_signals);
+  int results = pselect(vim_term + 1, &files, NULL, NULL, &timeout, &block_signals);
 
   if (results <= 0)
   {
@@ -372,11 +372,36 @@ static int athame_wait_for_vim()
     return 1;
   }
 
-  read(from_vim, athame_buffer, 5);
-  athame_buffer[5] = 0;
-  if(strcmp(athame_buffer, "Error") == 0)
+  int amount = read(vim_term, athame_buffer, 200);
+  athame_buffer[amount] = '\0';
+  if(strncmp(athame_buffer, "Error", 5) == 0)
   {
-    athame_set_failure("Couldn't load vim");
+    if (ATHAME_VIM_BIN[0])
+    {
+      char* error;
+      asprintf(&error, "Couldn't load vim path: %s", ATHAME_VIM_BIN);
+      athame_set_failure(error);
+      free(error);
+    }
+    else
+    {
+      athame_set_failure("Couldn't load vim.");
+    }
+    return 1;
+  }
+  else if(strstr(athame_buffer, "--servername"))
+  {
+    if (ATHAME_VIM_BIN[0])
+    {
+      char* error;
+      asprintf(&error, "%s was not compiled with clientserver support.", ATHAME_VIM_BIN);
+      athame_set_failure(error);
+      free(error);
+    }
+    else
+    {
+      athame_set_failure("Tried running vim without clientserver support.");
+    }
     return 1;
   }
   return 0;
@@ -436,7 +461,14 @@ static int athame_remote_expr(char* expr, int block)
       dup2(fileno(dev_null), STDERR_FILENO);
     }
 
-    execlp("vim", "vim", "--servername", servername, "--remote-expr", expr, NULL);
+    if (ATHAME_VIM_BIN[0])
+    {
+      execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "--remote-expr", expr, NULL);
+    }
+    else
+    {
+      execlp("vim", "vim", "--servername", servername, "--remote-expr", expr, NULL);
+    }
     printf("Expr Error:%d", errno);
     exit (EXIT_FAILURE);
   }
@@ -450,7 +482,7 @@ static int athame_remote_expr(char* expr, int block)
       close(stdout_to_readline[1]);
       close(stderr_to_readline[1]);
     }
-    athame_set_failure("Clientserver error");
+    athame_set_failure("Clientserver error.");
     return -1;
   }
   else
@@ -522,9 +554,10 @@ static void athame_poll_vim(int block)
 int last_bdisplay_top = 0;
 int last_bdisplay_bottom = 0;
 
-static void athame_bottom_display(char* string, int style, int color)
+void athame_bottom_display(char* string, int style, int color, int cursor)
 {
     int term_height = ap_get_term_height();
+    int term_width = ap_get_term_width();
     if(!last_bdisplay_bottom)
     {
       last_bdisplay_top = term_height;
@@ -537,7 +570,7 @@ static void athame_bottom_display(char* string, int style, int color)
       ap_display();
     }
 
-    int extra_lines = ((int)strlen(string) - 1) / ap_get_term_width();
+    int extra_lines = ((int)strlen(string)) / term_width;
     int i;
     for(i = 0; i < extra_lines; i++)
     {
@@ -560,7 +593,7 @@ static void athame_bottom_display(char* string, int style, int color)
       //We've been resized and have no idea where the last bottom display is. Clear everything after the current text.
       sprintf(erase, "\e[J");
     }
-    else if (!athame_dirty) {
+    else if (!athame_dirty && ap_get_line_char_length() + ap_get_prompt_length() >= term_width) {
       //Delete text in the way on my row and bottom display but leave everything else alone
       sprintf(erase, "\e[K\e[%d;1H\e[J", last_bdisplay_top);
     }
@@ -568,13 +601,29 @@ static void athame_bottom_display(char* string, int style, int color)
       sprintf(erase, "\e[%d;1H\e[J", last_bdisplay_top);
     }
 
-    //\e[s\n\e[u\e[B\e[A            Add a line underneath if at bottom
-    //\e[s                          Save cursor position
-    //%s(erase)                     Delete old athame_bottom_display
-    //\e[%d;1H                      Go to position for new athame_bottom_display
-    //%s(colorstyle)%s(string)\e[0m Write bottom display using given color/style
-    //\e[u                          Return to saved position
-    fprintf(athame_outstream, "\e[s\n\e[u\e[B\e[A\e[s%s\e[%d;1H%s%s\e[0m\e[u", erase, term_height-extra_lines, colorstyle, string);
+    char cursor_code[64];
+    if (cursor)
+    {
+      char cursor_char = string[MIN(cursor, strlen(string))];
+      if (!cursor_char){
+        cursor_char = ' ';
+      }
+      sprintf(cursor_code, "\e[%d;%dH\e[7m%c", term_height-extra_lines + cursor/term_width, cursor%term_width + 1, cursor_char);
+    }
+    else
+    {
+      cursor_code[0] = '\0';
+    }
+
+    //\e7\n\e8\e[B\e[A         Add a line underneath if at bottom
+    //\e7                      Save cursor position
+    //%s(erase)                Delete old athame_bottom_display
+    //\e[%d;1H                 Go to position for new athame_bottom_display
+    //%s(colorstyle)%s(string) Write bottom display using given color/style
+    //%s                       Draw cursor for command mode
+    //\e[0m                    Reset style
+    //\e8                      Return to saved position
+    fprintf(athame_outstream, "\e7\n\e8\e[B\e[A\e7%s\e[%d;1H%s%s%s\e[0m\e8", erase, term_height-extra_lines, colorstyle, string, cursor_code);
 
     for(i = 0; i < extra_lines; i++)
     {
@@ -690,7 +739,7 @@ static int athame_draw_line_with_highlight(char* text, int start, int end)
   return extra_lines + 1;
 }
 
-static int athame_highlight(int start, int end)
+static void athame_highlight(int start, int end)
 {
   char* highlight_buffer = strdup(ap_get_line_buffer());
   int cursor = ap_get_cursor();
@@ -777,7 +826,7 @@ char athame_loop(int instream)
 
   sent_to_vim = 0;
 
-  if(!updated && !athame_failure)
+  if(!updated)
   {
     athame_update_vimline(athame_row, ap_get_cursor());
   }
@@ -799,72 +848,58 @@ char athame_loop(int instream)
       first_char = 0;
     }
     else {
-      while(results == 0)
+      while(results == 0 && !athame_failure)
       {
-        if(athame_failure)
+        fd_set files;
+        FD_ZERO(&files);
+        FD_SET(instream, &files);
+        FD_SET(vim_term, &files);
+        timeout.tv_sec = 0;
+        timeout.tv_usec = 500 * 1000;
+
+        results = select(MAX(vim_term, instream)+1, &files, NULL, NULL, (strcmp(athame_mode, "c") == 0 || needs_poll)? &timeout : NULL);
+        if (waitpid(vim_pid, NULL, WNOHANG) == 0) //Is vim still running?
         {
-          fd_set files;
-          FD_ZERO(&files);
-          FD_SET(instream, &files);
-          results = select(instream+1, &files, NULL, NULL, NULL);
           if (results > 0)
           {
-            returnVal = athame_process_input(instream);
-          }
-        }
-        else
-        {
-          fd_set files;
-          FD_ZERO(&files);
-          FD_SET(instream, &files);
-          FD_SET(from_vim, &files);
-          timeout.tv_sec = 0;
-          timeout.tv_usec = 500 * 1000;
-
-          results = select(MAX(from_vim, instream)+1, &files, NULL, NULL, (strcmp(athame_mode, "c") == 0 || needs_poll)? &timeout : NULL);
-          if (waitpid(vim_pid, NULL, WNOHANG) == 0) //Is vim still running?
-          {
-            if (results > 0)
-            {
-              if(FD_ISSET(instream, &files)){
-                returnVal = athame_process_input(instream);
-              }
-              else if(!athame_failure && FD_ISSET(from_vim, &files)){
-                athame_get_vim_info();
-              }
+            if(FD_ISSET(instream, &files)){
+              returnVal = athame_process_input(instream);
             }
-            else
-            {
-              char sig_result;
-              if (sig_result = ap_handle_signals())
-              {
-                return sig_result;
-              }
-              if(needs_poll)
-              {
-                athame_poll_vim(0);
-              }
-              else
-              {
-                athame_get_vim_info_inner(0);
-              }
+            else if(FD_ISSET(vim_term, &files)){
+              athame_get_vim_info();
             }
           }
           else
           {
-            //Vim quit
-            if(sent_to_vim)
+            char sig_result;
+            if (sig_result = ap_handle_signals())
             {
-              ap_set_line_buffer("");
-              return '\x04'; //<C-D>
+              return sig_result;
+            }
+            if(needs_poll)
+            {
+              athame_poll_vim(0);
             }
             else
             {
-              // If we didn't send anything to vim, it shouldn't have quit.
-              // We never want to kill the user's shell without giving them a chance
-              // to type anything.
-              athame_set_failure("Vim quit");
+              athame_get_vim_info_inner(0);
             }
+          }
+        }
+        else
+        {
+          //Vim quit
+          if(sent_to_vim)
+          {
+            ap_set_line_buffer("");
+            return '\x04'; //<C-D>
+          }
+          else
+          {
+            // If we didn't send anything to vim, it shouldn't have quit.
+            // We never want to kill the user's shell without giving them a chance
+            // to type anything.
+            athame_set_failure("Vim quit");
           }
         }
       }
@@ -887,17 +922,12 @@ char athame_loop(int instream)
       }
       if (athame_is_set("ATHAME_SHOW_MODE", 1))
       {
-        athame_bottom_display("", BOLD, DEFAULT);
+        athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
       }
     }
     updated = 0;
     athame_displaying_mode[0] = 'n';
     athame_displaying_mode[1] = '\0';
-  }
-  else if (strchr("\n\r\t", returnVal))
-  {
-    //Hide failure messae where it might mess with something
-    athame_bottom_display("", BOLD, DEFAULT);
   }
   return returnVal;
 }
@@ -913,7 +943,7 @@ static char* athame_get_mode_text(char* mode)
       case 's': return "SELECT"; break;
       case 'S': return "SELECT LINE"; break;
       case 'R': return "REPLACE"; break;
-      case 'C': return "COMMAND"; break;
+      case 'c': return "COMMAND"; break;
       default: return "";
     }
 }
@@ -925,7 +955,7 @@ static void athame_bottom_mode()
     return;
   }
   static int text_lines = 0;
-  int new_text_lines = (ap_get_line_char_length() + ap_get_prompt_length() - 1)/ap_get_term_width();
+  int new_text_lines = (ap_get_line_char_length() + ap_get_prompt_length())/ap_get_term_width();
   int force_redraw = new_text_lines != text_lines || athame_dirty;
   if (strcmp(athame_mode, athame_displaying_mode) != 0 || force_redraw) {
     char* mode_string = athame_get_mode_text(athame_mode);
@@ -934,17 +964,22 @@ static void athame_bottom_mode()
     {
       strcpy(athame_displaying_mode, athame_mode);
       ap_redraw_prompt();
+      // Redraw can hide the vim command, so we have to redraw it.
+      if (athame_mode[0] == 'c' && athame_is_set("ATHAME_SHOW_COMMAND", 1))
+      {
+        athame_bottom_display(last_vim_command, ATHAME_NORMAL, ATHAME_DEFAULT, last_cmd_pos);
+      }
     }
     if (athame_is_set("ATHAME_SHOW_MODE", 1))
     {
       if (athame_mode[0] == 'n')
       {
-        athame_bottom_display("", BOLD, DEFAULT);
+        athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
       }
-      else if(athame_mode[0] != 'c')
+      else if(athame_mode[0] != 'c' && mode_string[0])
       {
         sprintf(athame_buffer, "-- %s --", mode_string);
-        athame_bottom_display(athame_buffer, BOLD, DEFAULT);
+        athame_bottom_display(athame_buffer, ATHAME_BOLD, ATHAME_DEFAULT, 0);
       }
     }
   }
@@ -955,13 +990,13 @@ static void athame_extraVimRead(int timer)
 {
   fd_set files;
   FD_ZERO(&files);
-  FD_SET(from_vim, &files);
+  FD_SET(vim_term, &files);
   int results;
   struct timeval timeout;
   timeout.tv_sec = 0;
   timeout.tv_usec = timer * 250;
   athame_sleep(timer * 3 / 4);
-  results = select(from_vim + 1, &files, NULL, NULL, &timeout);
+  results = select(vim_term + 1, &files, NULL, NULL, &timeout);
   if (results > 0)
     athame_get_vim_info();
   athame_mode[0] = 'n';
@@ -975,13 +1010,13 @@ static void athame_draw_failure()
   if (athame_is_set("ATHAME_SHOW_ERROR", 1))
   {
     snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Athame Failure: %s", athame_failure);
-    athame_bottom_display(athame_buffer, BOLD, RED);
+    athame_bottom_display(athame_buffer, ATHAME_BOLD, ATHAME_RED, 0);
   }
 }
 
 static void athame_set_failure(char* fail_str)
 {
-  athame_failure = fail_str;
+  athame_failure = strdup(fail_str);
   athame_draw_failure();
 }
 
@@ -1003,12 +1038,6 @@ static char athame_process_char(char char_read){
   //Unless in vim commandline send return/tab/<C-D>/<C-L> to readline instead of vim
   if(athame_failure || (strchr("\n\r\t\x04\x0c", char_read) && strcmp(athame_mode, "c") != 0 ))
   {
-    if(athame_failure)
-    {
-      athame_draw_failure();
-      athame_sleep(5);
-    }
-
     last_tab = (char_read == '\t');
     if (char_read == '\t') {
       return '\t';
@@ -1036,7 +1065,7 @@ static char athame_process_char(char char_read){
 
 static void athame_send_to_vim(char input)
 {
-  write(to_vim, &input, 1);
+  write(vim_term, &input, 1);
 }
 
 static void athame_get_vim_info()
@@ -1047,13 +1076,35 @@ static void athame_get_vim_info()
   }
 }
 
+static int athame_get_col_row(char* string, int* col, int* row)
+{
+    if(string && strtok(string, ","))
+    {
+      char* colStr = strtok(NULL, ",");
+      if(!colStr){
+        return 0;
+      }
+      *col = strtol(colStr, NULL, 10);
+      if(row)
+      {
+        char* rowStr = strtok(NULL, ",");
+        if(!rowStr){
+          return 0;
+        }
+        *row = strtol(rowStr, NULL, 10);
+      }
+      return 1;
+    }
+    return 0;
+}
+
 static int athame_get_vim_info_inner(int read_pipe)
 {
   int changed = 0;
   ssize_t bytes_read;
   if(read_pipe)
   {
-    read(from_vim, athame_buffer, DEFAULT_BUFFER_SIZE-1);
+    read(vim_term, athame_buffer, DEFAULT_BUFFER_SIZE-1);
   }
 
   if(athame_failure)
@@ -1073,64 +1124,54 @@ static int athame_get_vim_info_inner(int read_pipe)
   char* mode = strtok(athame_buffer, "\n");
   if(mode)
   {
-    strncpy(athame_mode, mode, 3);
-    if (strcmp(athame_mode, "c") == 0)
+    if (mode[0] == 'c')
     {
+      strncpy(athame_mode, "c", 3);
       char* command = strtok(NULL, "\n");
-      if (command && strcmp(command, last_vim_command) != 0)
+      int cmd_pos = last_cmd_pos;
+      if (mode[1] == ',')
       {
+        cmd_pos = strtol(mode+2, NULL, 10);
+      }
+      if (command && (strcmp(command, last_vim_command) != 0 || cmd_pos != last_cmd_pos))
+      {
+        last_cmd_pos = cmd_pos;
         strncpy(last_vim_command, command, DEFAULT_BUFFER_SIZE-1);
         last_vim_command[DEFAULT_BUFFER_SIZE-1] = '\0';
         setenv("ATHAME_VIM_COMMAND", command, 1);
         if (athame_is_set("ATHAME_SHOW_COMMAND", 1))
         {
-          athame_bottom_display(command, NORMAL, DEFAULT);
+          athame_bottom_display(command, ATHAME_NORMAL, ATHAME_DEFAULT, cmd_pos);
         }
         //Don't record a change because the highlight for incsearch might not have changed yet.
       }
     }
     else
     {
+      if(athame_mode[0] == 'c' && athame_is_set("ATHAME_SHOW_COMMAND", 1))
+      {
+        athame_bottom_display("", ATHAME_NORMAL, ATHAME_DEFAULT, 0);
+      }
+      strncpy(athame_mode, mode, 3);
       last_vim_command[0] = '\0';
     }
     char* location = strtok(NULL, "\n");
     if(location)
     {
       char* location2 = strtok(NULL, "\n");
-      if(strtok(location, ","))
+      int col;
+      int row;
+      if(athame_get_col_row(location, &col, &row))
       {
-        char* colStr = strtok(NULL, ",");
-        if(!colStr){
-          return 0;
-        }
-        char* rowStr = strtok(NULL, ",");
-        if(!rowStr){
-          return 0;
-        }
-        int col = strtol(colStr, NULL, 10);
-        int row = strtol(rowStr, NULL, 10);
-
         if(col < 0 || row < 0){
           col = 0;
           location2 = NULL;
         }
 
-        if(location2 && strtok(location2, ","))
+        int new_end_col;
+        int new_end_row;
+        if(athame_get_col_row(location2, &new_end_col, &new_end_row))
         {
-          int new_end_col;
-          int new_end_row;
-          colStr = strtok(NULL, ",");
-          if(!colStr)
-          {
-            return 0;
-          }
-          new_end_col = strtol(colStr, NULL, 10);
-          rowStr = strtok(NULL, ",");
-          if(!rowStr)
-          {
-            return 0;
-          }
-          new_end_row = strtol(rowStr, NULL, 10);
           if(new_end_col != end_col || new_end_row != end_row)
           {
             end_col = new_end_col;

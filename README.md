@@ -14,7 +14,10 @@ Yes, and if you're fine with basic vi imitations designed by a bunch of Emacs us
 ##Requirements
 - Athame requires Vim (your version needs to have [+clientserver](#setting-up-vim-with-clientserver) support).
 - Athame works best in GNU/Linux.
+- Athame also works on OSX.
 - Athame requires an X display for communicating with Vim. (Your patched shell will still work without X, it just won't use Vim.)
+ - You probably already have this if you use GNU/Linux
+ - You need to install XQuartz if you use OSX
 
 ##Think Before you Begin
 Athame *probably* won't break your shell...
@@ -37,6 +40,7 @@ Clone this repo recursively:
 *Notes:*
 - *If this doesn't work, you may be using a distro (like Debian or Ubuntu) that doesn't use the system readline. See [building bash with system readline](#setting-up-bash-to-use-athame-readline)*
 - *You can add the --nobuild flag to the setup script if you want to configure/build/install yourself*
+- *You can change what vim binary is used by passing --vimbin=/path/to/vim to the setup script*
 
 
 ##Setting up Athame Zsh
@@ -47,7 +51,9 @@ Clone this repo recursively:
 
 **2.** If you have an old version of athame and a ~/.athamerc file that doesn't source /etc/athamerc, check /etc/athamerc for changes.**
 
-*Note: you can add the --nobuild flag to the setup script if you want to configure/build/install yourself*
+*Note:*
+- *You can add the --nobuild flag to the setup script if you want to configure/build/install yourself*
+- *You can change what vim binary is used by passing --vimbin=/path/to/vim to the setup script*
 
 ##Setting up Bash to use Athame Readline
 Some distros (like Debian and Ubuntu) don't setup bash to use the system readline.
@@ -99,7 +105,7 @@ Do you have a program called vim? (an alias is not good enough)
 Does this version of vim have [+clientserver support](#setting-up-vim-with-clientserver)
 
 ####How do I disable/uninstall Athame?
-To temporarily disable athame, run the setup script with a "--noathame" flag.
+To temporarily disable athame, `export ATHAME_ENABLED=0` or run the setup script with a `noathame` flag.
 
 To get rid of Athame completly, you should probably just replace it with the non-patched version of readline/zsh from your distro.
 
@@ -109,6 +115,13 @@ Depending on your approach, you may want to manually remove `/usr/lib/athame*` a
 
 ####Why do the Up/Down make the cursor jump to the end of the line?
 This happens in insert mode and is one of several settings enabled in the default athamerc to make Athame more like a normal shell. Feel free to comment it out.
+
+####How do I disable/change the way Athame shows vim's mode?
+By default Athame shows the Vim mode at the bottom of the screen. This can be disabled using `export ATHAME_SHOW_MODE=0`
+
+Athame stores the current mode in the `ATHAME_VIM_MODE` environment variable. You can use this to display the Vim mode yourself. See https://github.com/ardagnir/athame/issues/21 for an example using powerline.
+
+Similarly, Vim commands are displayed at the bottom of the screen by default. These can be disabled using `export ATHAME_SHOW_COMMAND=0` and accessed using `ATHAME_VIM_COMMAND`
 
 ####Why don't arrow keys work when I add Athame to my convoluted Zsh setup?
 Because arrow keys are evil! Just kidding. :P
@@ -126,10 +139,7 @@ I hardcoded all the terminal codes. Sorry, I was lazy. Athame only works on xter
 ####Does Athame work with Neovim?
 Neovim doesn't support vim-style remote communication yet. The Neovim devs are documenting this in [Neovim issue 1750](https://github.com/neovim/neovim/issues/1750). If you want to use Neovim with Athame, you should consider helping them out. It sounds like most of the functionality is already there and just needs to be exposed in a backwards-compatible manner.
 
-####Does Athame work on OSX?
-You might need to jump through some hoops to get it working on a Mac. I don't know what those are because I haven't tried it yet.
-
-####What about Windows? I have Cygwin!
+####Does Athame work on windows? I have Cygwin!
 Haha, no.
 
 ####Does Athame support multibyte characters?
@@ -140,13 +150,13 @@ You can test your vim's clientserver support by running:
 
     vim --version | grep clientserver
 
-If you see +clientserver, that's good enough to run athame. There will still be a small bit of functionality missing from some plugins(anything that calls input()) if your vim is compiled with gui support.
+If you see +clientserver, you can run athame. (If you're using actual Vim. MacVim, for example, doesn't report this correctly and won't work for Athame.)
 
 Your distro's full vim version should have +clientserver support, but if you want to build vim yourself, this is the minimum setup for full athame functionality:
 
-    hg clone https://vim.google.com/hg/ vim
+    git clone https://github.com/vim/vim
     cd vim
-    ./configure --with-features=huge --disable-gui
+    ./configure --with-features=huge
     make
     sudo make install
 

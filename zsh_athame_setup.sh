@@ -23,6 +23,7 @@ build=1
 athame=1
 dirty=0
 rc=1
+vimbin=""
 for arg in "$@"
 do
   case $arg in
@@ -31,6 +32,7 @@ do
     "--noathame" ) athame=0;;
     "--dirty" ) dirty=1;;
     "--norc" ) rc=0;;
+    --vimbin=*) vimbin="${arg#*=}";;
     "--help" ) echo -e " --redownload: redownload zsh\n" \
                         "--nobuild: stop before actually building src\n" \
                         "--noathame: setup normal zsh without athame\n" \
@@ -41,6 +43,26 @@ do
                         "--help: display this message"; exit;;
   esac
 done
+
+#Get vim binary
+if [ -z $vimbin ]; then
+  vimmsg="Please provide a vim binary by running this script with --vimbin=/path/to/vim at the end. (replace with the actual path to vim)"
+  testvim=$(which vim)
+  if [ -z $testvim ]; then
+    echo "Could not find a vim binary using 'which'"
+    echo $vimmsg
+    exit
+  fi
+  echo "No vim binary provided. Trying $testvim"
+  if [ "$($testvim --version | grep +clientserver)" ]; then
+    vimbin=$testvim
+    echo "$vimbin probably has clientserver support. Using $vimbin as vim binary."
+  else
+    echo "$testvim does not appear to have clientserver support."
+    echo $vimmsg
+    exit
+  fi
+fi
 
 #Download zsh
 if [ $redownload = 1 ]; then
@@ -63,16 +85,15 @@ if [ $dirty = 0 ]; then
 fi
 
 #Patch Zsh with Athame
-cd zsh-5.0.8_tmp/Src
+cd zsh-5.0.8_tmp
 if [ $athame = 1 ]; then
   if [ $dirty = 0 ]; then
-    patch -p1 < ../../zsh.patch
-    cp -r ../../vimbed .
+    patch -p1 < ../zsh.patch
+    cp -r ../vimbed Src/
   fi
-  cp ../../athame.* Zle/
-  cp ../../athame_zsh.h Zle/athame_intermediary.h
+  cp ../athame.* Src/Zle/
+  cp ../athame_zsh.h Src/Zle/athame_intermediary.h
 fi
-cd ..
 
 #Build and install zsh
 if [ $build = 1 ]; then
@@ -97,7 +118,7 @@ if [ $build = 1 ]; then
         --enable-cap \
         --enable-zsh-secure-free
   fi
-  make
+  make ATHAME_VIM_BIN=$vimbin
   sudo make install
 fi
 

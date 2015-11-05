@@ -118,7 +118,7 @@ static int ap_get_term_height()
 
 static int ap_get_prompt_length()
 {
-  return rl_expand_prompt(rl_prompt);
+  return rla_prompt_phys_length();
 }
 
 HISTORY_STATE* hs;
@@ -183,7 +183,8 @@ static char ap_handle_signals()
 {
   if (_rl_caught_signal == SIGINT)
   {
-    _rl_signal_handler(_rl_caught_signal);
+    _rl_signal_handler(SIGINT);
+    athame_cleanup();
     if (rl_signal_event_hook)
     {
       (*rl_signal_event_hook) ();

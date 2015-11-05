@@ -21,6 +21,12 @@
 #ifndef _ATHAME_H_
 #define _ATHAME_H_
 
+#define ATHAME_NORMAL 0
+#define ATHAME_BOLD 1
+
+#define ATHAME_DEFAULT 0
+#define ATHAME_RED 31
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -28,7 +34,9 @@ extern "C" {
 extern void athame_init(FILE* outstream);
 extern char athame_loop(int instream);
 extern int athame_enabled();
+extern void athame_clear_error();
 extern void athame_cleanup();
+extern int athame_is_set(char* env, int def);
 
 #ifdef __cplusplus
 }

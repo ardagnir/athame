@@ -1,6 +1,19 @@
-diff -ru a/Makefile.in b/Makefile.in
---- a/Makefile.in	2014-12-13 18:55:54.000000000 -0500
-+++ b/Makefile.in	2015-07-15 22:06:56.455125410 -0400
+diff -ru a/Config/defs.mk.in
+--- a/Config/defs.mk.in	2014-12-13 18:55:54.000000000 -0500
++++ b/Config/defs.mk.in	2015-07-15 22:06:56.455125410 -0400
+@@ -67,7 +67,7 @@
+ DLLDFLAGS       = @DLLDFLAGS@
+ LIBLDFLAGS      = @LIBLDFLAGS@
+ EXELDFLAGS      = @EXELDFLAGS@
+-LIBS            = @LIBS@
++LIBS            = @LIBS@ -lutil
+ DL_EXT          = @DL_EXT@
+ DLLD            = @DLLD@
+ EXPOPT          = @EXPOPT@
+
+diff -ru a/Src/Makefile.in b/Src/Makefile.in
+--- a/Src/Makefile.in	2014-12-13 18:55:54.000000000 -0500
++++ b/Src/Makefile.in	2015-07-15 22:06:56.455125410 -0400
 @@ -142,8 +142,14 @@
  uninstall: uninstall.bin uninstall.modules
  .PHONY: install uninstall
@@ -18,14 +31,14 @@ diff -ru a/Makefile.in b/Makefile.in
  .PHONY: install.bin uninstall.bin
 
  # install binary, creating install directory if necessary
-diff -ru a/Makemod.in.in b/Makemod.in.in
---- a/Makemod.in.in	2014-12-13 18:55:54.000000000 -0500
-+++ b/Makemod.in.in	2015-07-15 21:52:18.235086024 -0400
+diff -ru a/Src/Makemod.in.in b/Src/Makemod.in.in
+--- a/Src/Makemod.in.in	2014-12-13 18:55:54.000000000 -0500
++++ b/Src/Makemod.in.in	2015-07-15 21:52:18.235086024 -0400
 @@ -42,13 +42,14 @@
  
  sdir_src      = $(sdir_top)/Src
  dir_src       = $(dir_top)/Src
-+athame        = -DVIMBED_LOCATION='"$(libdir)/athame_zsh"'
++athame        = -DVIMBED_LOCATION='"$(libdir)/athame_zsh"' -DATHAME_VIM_BIN='"${ATHAME_VIM_BIN}"'
  
  # ========== COMPILATION RULES ==========
  
@@ -38,9 +51,9 @@ diff -ru a/Makemod.in.in b/Makemod.in.in
  LINK        = $(CC) $(LDFLAGS) $(EXELDFLAGS) $(EXTRA_LDFLAGS) -o $@
  DLLINK      = $(DLLD) $(LDFLAGS) $(LIBLDFLAGS) $(DLLDFLAGS) -o $@
  
-diff -ru a/Zle/zle_main.c b/Zle/zle_main.c
---- a/Zle/zle_main.c	2015-05-22 18:16:13.000000000 -0400
-+++ b/Zle/zle_main.c	2015-07-15 21:09:04.778303048 -0400
+diff -ru a/Src/Zle/zle_main.c b/Src/Zle/zle_main.c
+--- a/Src/Zle/zle_main.c	2015-05-22 18:16:13.000000000 -0400
++++ b/Src/Zle/zle_main.c	2015-07-15 21:09:04.778303048 -0400
 @@ -28,6 +28,7 @@
   */
  
@@ -66,9 +79,9 @@ diff -ru a/Zle/zle_main.c b/Zle/zle_main.c
  }
  
  /* Read a line.  It is returned metafied. */
-diff -ru a/Zle/zle_keymap.c b/Zle/zle_keymap.c
---- a/Zle/zle_keymap.c	2015-05-22 18:16:13.000000000 -0400
-+++ b/Zle/zle_keymap.c	2015-08-23 00:04:00.000000000 -0400
+diff -ru a/Src/Zle/zle_keymap.c b/Src/Zle/zle_keymap.c
+--- a/Src/Zle/zle_keymap.c	2015-05-22 18:16:13.000000000 -0400
++++ b/Src/Zle/zle_keymap.c	2015-08-23 00:04:00.000000000 -0400
 @@ -28,6 +28,7 @@
   */
  
@@ -96,9 +109,9 @@ diff -ru a/Zle/zle_keymap.c b/Zle/zle_keymap.c
  
      if(c < 0)
  	return EOF;
-diff -ru a/Zle/zle.mdd b/Zle/zle.mdd
---- a/Zle/zle.mdd	2014-12-13 18:55:54.000000000 -0500
-+++ b/Zle/zle.mdd	2015-07-15 21:12:11.711644764 -0400
+diff -ru a/Src/Zle/zle.mdd b/Src/Zle/zle.mdd
+--- a/Src/Zle/zle.mdd	2014-12-13 18:55:54.000000000 -0500
++++ b/Src/Zle/zle.mdd	2015-07-15 21:12:11.711644764 -0400
 @@ -8,7 +8,7 @@
  objects="zle_bindings.o zle_hist.o zle_keymap.o zle_main.o \
  zle_misc.o zle_move.o zle_params.o zle_refresh.o \
