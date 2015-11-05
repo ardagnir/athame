@@ -97,7 +97,7 @@ static int athame_remote_expr(char* expr, int bock);
 static int athame_wait_for_file(char* filename, int sanity);
 static int athame_wait_for_vim();
 static char athame_get_first_char();
-static int athame_highlight(int start, int end);
+static void athame_highlight(int start, int end);
 static void athame_bottom_display(char* string, int style, int color, int cursor);
 static void athame_bottom_mode();
 static void athame_poll_vim(int block);
@@ -739,7 +739,7 @@ static int athame_draw_line_with_highlight(char* text, int start, int end)
   return extra_lines + 1;
 }
 
-static int athame_highlight(int start, int end)
+static void athame_highlight(int start, int end)
 {
   char* highlight_buffer = strdup(ap_get_line_buffer());
   int cursor = ap_get_cursor();
