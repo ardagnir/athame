@@ -16,6 +16,8 @@ Yes, and if you're fine with basic vi imitations designed by a bunch of Emacs us
 - Athame works best in GNU/Linux.
 - Athame also works on OSX.
 - Athame requires an X display for communicating with Vim. (Your patched shell will still work without X, it just won't use Vim.)
+ - You probably already have this if you use GNU/Linux
+ - You need to install XQuartz if you use OSX
 
 ##Think Before you Begin
 Athame *probably* won't break your shell...
@@ -72,7 +74,7 @@ Unles you're in command mode, tabs and carriage returns are handled by readline/
 
 Some commands (there's no specific code for these, it's just vim):
 
-- j: go back a line in histor y
+- j: go back a line in history
 - k: go forward a line in history
 - ?: search history (and current line) backwards (better if you have :set incsearch enabled)
 - /: search history (and current line) forwards (better if you have :set incsearch enabled)
@@ -148,13 +150,13 @@ You can test your vim's clientserver support by running:
 
     vim --version | grep clientserver
 
-If you see +clientserver, that's good enough to run athame. There will still be a small bit of functionality missing from some plugins(anything that calls input()) if your vim is compiled with gui support.
+If you see +clientserver, you can run athame. (If you're using actual Vim. MacVim, for example, doesn't report this correctly and won't work for Athame.)
 
 Your distro's full vim version should have +clientserver support, but if you want to build vim yourself, this is the minimum setup for full athame functionality:
 
-    hg clone https://vim.google.com/hg/ vim
+    git clone https://github.com/vim/vim
     cd vim
-    ./configure --with-features=huge --disable-gui
+    ./configure --with-features=huge
     make
     sudo make install
 
