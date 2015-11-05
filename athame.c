@@ -21,11 +21,11 @@
 #define _GNU_SOURCE
 
 #include <errno.h>
-#include <pty.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/param.h>
 #include <sys/select.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -33,12 +33,17 @@
 #include <time.h>
 #include <unistd.h>
 
+#ifdef BSD
+//Includes OSX
+#include <util.h>
+#else
+#include <pty.h>
+#endif
+
 #include "athame.h"
 #include "athame_intermediary.h"
 
 #define DEFAULT_BUFFER_SIZE 1024
-#define MAX(A, B) (((A) > (B)) ? (A) : (B))
-#define MIN(A, B) (((A) < (B)) ? (A) : (B))
 
 static char athame_buffer[DEFAULT_BUFFER_SIZE];
 static char last_vim_command[DEFAULT_BUFFER_SIZE];
