@@ -90,6 +90,11 @@ static void ap_set_cursor_end()
   rl_point = rl_end;
 }
 
+static int ap_temp_novim()
+{
+  return 0;
+}
+
 static void ap_redraw_prompt()
 {
   //Substitutions are already performed before readline gets the prompt.

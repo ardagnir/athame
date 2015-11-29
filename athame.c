@@ -800,7 +800,7 @@ int athame_enabled()
       return 0;
     }
     unsetenv("ATHAME_ERROR");
-    return 1;
+    return !ap_temp_novim();
   }
   else
   {

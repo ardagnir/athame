@@ -103,13 +103,17 @@ static void ap_set_cursor(int x)
   {
     zlecs = x;
   }
-  fixsuffix();
-  menucmp = 0;
 }
 
 static void ap_set_cursor_end()
 {
   zlecs = zlell;
+}
+
+/* Temporarily disable vim (used by zsh for completion).*/
+static int ap_temp_novim()
+{
+  return menucmp != 0 || suffixlen > 0 || showinglist != 0;
 }
 
 static void ap_redraw_prompt()
