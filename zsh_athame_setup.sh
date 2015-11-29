@@ -23,6 +23,7 @@ build=1
 athame=1
 dirty=0
 rc=1
+submodule=1
 vimbin=""
 for arg in "$@"
 do
@@ -32,6 +33,7 @@ do
     "--noathame" ) athame=0;;
     "--dirty" ) dirty=1;;
     "--norc" ) rc=0;;
+    "--nosubmodule" ) submodule=0;;
     --vimbin=*) vimbin="${arg#*=}";;
     "--help" ) echo -e " --redownload: redownload zsh\n" \
                         "--nobuild: stop before actually building src\n" \
@@ -40,6 +42,7 @@ do
                         "         just make and install changes\n" \
                         "         (only use after a successful build)\n" \
                         "--norc: don't copy the rc file to /etc/athamerc\n" \
+                        "--nosubmodule: don't update submodules\n" \
                         "--help: display this message"; exit;;
   esac
 done
@@ -62,6 +65,10 @@ if [ -z $vimbin ]; then
     echo $vimmsg
     exit
   fi
+fi
+
+if [ $submodule = 1 ]; then
+  git submodule update --init
 fi
 
 #Download zsh
