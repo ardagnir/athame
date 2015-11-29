@@ -1039,9 +1039,6 @@ static char athame_process_char(char char_read){
   if(athame_failure || (strchr("\n\r\t\x04\x0c", char_read) && strcmp(athame_mode, "c") != 0 ))
   {
     last_tab = (char_read == '\t');
-    if (char_read == '\t') {
-      return '\t';
-    }
     return char_read;
   }
   else
