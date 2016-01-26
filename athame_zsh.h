@@ -49,13 +49,29 @@
 
 //Note: Most of this code is from zle_params.c
 
+static char* unmetafy_athame(char* text)
+{
+  int length;
+  char* unmeta = unmetafy(text, &length);
+  for (int i = 0; i < length; i++)
+  {
+    if (unmeta[i] == NULL)
+    {
+      // Display nulls as spaces. This isn't perfect, but this is mostly
+      // just to avoid memory errors.
+      unmeta[i] = ' ';
+    }
+  }
+  return unmeta;
+}
+
 static char* ap_get_line_buffer()
 {
   if (zlemetaline != 0)
   {
-    return dupstring(zlemetaline);
+    return unmetafy_athame(dupstring(zlemetaline));
   }
-  return zlelineasstring(zleline, zlell, 0, NULL, NULL, 1);
+  return unmetafy_athame(zlelineasstring(zleline, zlell, 0, NULL, NULL, 1));
 }
 
 static int ap_get_line_buffer_length()
@@ -161,7 +177,7 @@ static char* ap_get_history_next()
   }
   char* ret = GETZLETEXT(he);
   he = down_histent(he);
-  return ret;
+  return unmetafy_athame(dupstring(ret));
 }
 
 static void ap_get_history_end()
@@ -175,7 +191,30 @@ static int ap_needs_to_leave()
 
 static char* ap_get_slice(char* text, int start, int end)
 {
-  return strndup(text + start, (end - start));
+  int mbchars;
+  int pos_s = 0;
+  int pos = 0;
+  for(mbchars = 0; mbchars < end; mbchars++)
+  {
+    if (mbchars == start)
+    {
+      pos_s = pos;
+    }
+    int l = mblen(text + pos, MB_CUR_MAX);
+    if (l >=0 )
+    {
+      pos += l;
+    }
+    else
+    {
+      if (mbchars < start)
+      {
+        return strdup("");
+      }
+      break;
+    }
+  }
+  return strndup(text + pos_s, pos - pos_s);
 }
 
 static char ap_handle_signals()
