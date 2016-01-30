@@ -139,9 +139,9 @@ Neovim doesn't support vim-style remote communication yet. The Neovim devs are d
 Haha, no.
 
 ####This is awesome! Can I help?
-The best way to help is to look at the issue section and submit pathes to fix bugs.
+The best way to help is to look at the issue section and submit patches to fix bugs.
 
-If you have a shell that I'm missing, you can also try making a patch to communicate between it and athame (see athame_readline.h and athame_zsh.h for the functions you need to implement).
+If you have a shell that I'm missing, you can also try making a patch to communicate between it and Athame (see athame_readline.h and athame_zsh.h for the functions you need to implement).
 
 ####What about donations?
 I'm not accepting any currently, but thanks.
