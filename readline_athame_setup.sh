@@ -21,6 +21,7 @@
 patches=8
 redownload=0
 build=1
+runtest=1
 athame=1
 dirty=0
 rc=1
@@ -31,6 +32,7 @@ do
   case $arg in
     "--redownload" ) redownload=1;;
     "--nobuild" ) build=0;;
+    "--notest" ) runtest=0;;
     "--noathame" ) athame=0;;
     "--dirty" ) dirty=1;;
     "--norc" ) rc=0;;
@@ -38,6 +40,7 @@ do
     --vimbin=*) vimbin="${arg#*=}";;
     "--help" ) echo -e " --redownload: redownload readline and patches\n" \
                         "--nobuild: stop before actually building src\n" \
+                        "--notest: don't run tests\n" \
                         "--noathame: setup normal readline without athame\n" \
                         "--vimbin=path/to/vim: set a path to the vim binary\n"\
                         "                      you want athame to use\n" \
@@ -129,12 +132,21 @@ if [ $build = 1 ]; then
     ./configure --prefix=/usr
   fi
   make SHLIB_LIBS="-lncurses -lutil" ATHAME_VIM_BIN=$vimbin
-  sudo make install
+  if [ $runtest = 1 ]; then
+    mkdir -p $(pwd)/../test/build/usr/lib
+    make install DESTDIR=$(pwd)/../test/build
+    cd ../test
+    LD_LIBRARY_PATH=$(pwd)/build/usr/lib/
+    ./runtests.sh "bash -i" || exit 1
+    cd -
+    echo "Installing Readline with Athame..."
+    sudo make install
+  else
+    echo "Installing Readline with Athame..."
+    sudo make install
+  fi
 fi
 
 if [ $rc = 1 ]; then
   sudo cp ../athamerc /etc/athamerc
 fi
-
-#Leave readline dir
-cd ..

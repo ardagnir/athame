@@ -20,6 +20,7 @@
 
 redownload=0
 build=1
+runtest=1
 athame=1
 dirty=0
 rc=1
@@ -31,12 +32,14 @@ do
     "--redownload" ) redownload=1;;
     "--nobuild" ) build=0;;
     "--noathame" ) athame=0;;
+    "--notest" ) runtest=0;;
     "--dirty" ) dirty=1;;
     "--norc" ) rc=0;;
     "--nosubmodule" ) submodule=0;;
     --vimbin=*) vimbin="${arg#*=}";;
     "--help" ) echo -e " --redownload: redownload zsh\n" \
                         "--nobuild: stop before actually building src\n" \
+                        "--notest: don't run tests\n" \
                         "--noathame: setup normal zsh without athame\n" \
                         "--dirty: don't run the whole build process,\n" \
                         "         just make and install changes\n" \
@@ -125,13 +128,24 @@ if [ $build = 1 ]; then
         --enable-cap \
         --enable-zsh-secure-free
   fi
-  make ATHAME_VIM_BIN=$vimbin
-  sudo make install
+  if [ $runtest = 1 ]; then
+    # TODO: find a way to do this without using make clean
+    make clean
+    mkdir -p $(pwd)/../test/build/usr/lib
+    make ATHAME_VIM_BIN=$vimbin ATHAME_TESTDIR=$(pwd)/../test/build
+    make install DESTDIR=$(pwd)/../test/build
+    cd ../test
+    ./runtests.sh "script -c ../build/usr/bin/zsh" || exit 1
+    cd -
+    make clean
+    make ATHAME_VIM_BIN=$vimbin
+    sudo make install
+  else
+    make ATHAME_VIM_BIN=$vimbin
+    sudo make install
+  fi
 fi
 
 if [ $rc = 1 ]; then
   sudo cp ../athamerc /etc/athamerc
 fi
-
-#Leave the zsh dir
-cd ..
