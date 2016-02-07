@@ -164,19 +164,22 @@ void athame_init(FILE* outstream)
   char* etcrc = "/etc/athamerc";
   char homerc[256];
   char* athamerc;
-  snprintf(homerc, 255, "%s/.athamerc", getenv("HOME"));
-  if (!access(homerc, R_OK))
+  if (!getenv("ATHAME_TEST_RC"))
   {
-    athamerc = homerc;
-  }
-  else if (!access(etcrc, R_OK))
-  {
-    athamerc = etcrc;
-  }
-  else
-  {
-    athame_set_failure("No athamerc found.");
-    return;
+    snprintf(homerc, 255, "%s/.athamerc", getenv("HOME"));
+    if (!access(homerc, R_OK))
+    {
+      athamerc = homerc;
+    }
+    else if (!access(etcrc, R_OK))
+    {
+      athamerc = etcrc;
+    }
+    else
+    {
+      athame_set_failure("No athamerc found.");
+      return;
+    }
   }
 
   mkdir("/tmp/vimbed", S_IRWXU);
@@ -193,11 +196,20 @@ void athame_init(FILE* outstream)
   {
     snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "+call Vimbed_UpdateText(%d, %d, %d, %d, 1)", athame_row+1, 1, athame_row+1, 1);
     int vim_error = 0;
+    char* testrc;
     if (ATHAME_VIM_BIN[0]) {
-      vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
+      if (testrc = getenv("ATHAME_TEST_RC")) {
+        vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-u", "NONE", "-S", vimbed_file_name, "-S", testrc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
+      } else {
+        vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
+      }
     }
     else {
-      vim_error = execlp("vim", "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
+      if (testrc = getenv("ATHAME_TEST_RC")) {
+        vim_error = execlp("vim", "vim", "--servername", servername, "-u", "NONE", "-S", vimbed_file_name, "-S", testrc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
+      } else {
+        vim_error = execlp("vim", "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
+      }
     }
     if (vim_error != 0)
     {

@@ -16,8 +16,10 @@ set textwidth=0
 startinsert
 
 " These make arrows more shell like. Feel free to comment them out:
-inoremap <Up> <Up><ESC>A
-inoremap <Down> <Down><ESC>A
+if &compatible==0
+	inoremap <Up> <Up><ESC>A
+	inoremap <Down> <Down><ESC>A
+endif
 
 " Uncomment these maps to have the up and down arrow
 " only match lines that share text before cursor

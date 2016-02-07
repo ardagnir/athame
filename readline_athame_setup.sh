@@ -117,11 +117,12 @@ fi
 
 if [ $athame = 1 ]; then
   #Patch Readline with athame
-  echo "Patching with athame patch"
   if [ $dirty = 0 ]; then
+    echo "Patching with Athame patch"
     patch -p1 < ../readline.patch
     cp -r ../vimbed .
   fi
+  echo "Copying Athame files"
   cp ../athame.* .
   cp ../athame_readline.h athame_intermediary.h
 fi
@@ -136,8 +137,7 @@ if [ $build = 1 ]; then
     mkdir -p $(pwd)/../test/build/usr/lib
     make install DESTDIR=$(pwd)/../test/build
     cd ../test
-    LD_LIBRARY_PATH=$(pwd)/build/usr/lib/
-    ./runtests.sh "bash -i" || exit 1
+    LD_LIBRARY_PATH=$(pwd)/build/usr/lib/ ./runtests.sh "bash -i" || exit 1
     cd -
     echo "Installing Readline with Athame..."
     sudo make install

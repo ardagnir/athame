@@ -18,8 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Athame.  If not, see <http://www.gnu.org/licenses/>.
 
-#TODO: ATHAME_TEST_RC isn't used yet
-ATHAME_TEST_RC=$(pwd)/../../athamerc
+export ATHAME_TEST_RC=$(pwd)/../athamerc
 echo "Testing Athame $3..."
 mkdir -p testrun
 rm -rf testrun/*
@@ -33,21 +32,26 @@ for t in inst*.sh; do
   # Instead we use charread to simulate typing at 50 char/sec.
   # This actually ends up being closer to 25 char/sec on my crappy laptop because
   # of overhead in charread, but that is still faster than world-recod human typists.
-  ../charread.sh .02 inst$i.sh | $1 >/dev/null 2>&1
-  diff ../$2/expected$i out$i >/dev/null 2>&1
+  script -c "../charread.sh .02 inst$i.sh | $1" failure > /dev/null
+  diff ../$2/expected$i out$i >>failure 2>&1
   if [ $? -eq 0 ]; then
     echo "Success!"
   else
       echo "Failed"
-      failures="$failures inst$i.sh"
+      cat failure >>failures
+      failures="$failures $i"
   fi
   echo ""
 done
-cd ..
 if [[ -n $failures ]]; then
   echo "Test failed"
   echo "Failed tests:$failures"
-  echo 'use `cd test/testrun; ../charread.sh .01 $test_name | '$1'` to view the failure'
+  read -p "View failures (y:yes, s:slow, other:no)? " -rn 1
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
+    cat failures
+  elif [[ $REPLY =~ ^[Ss]$ ]]; then
+    cat failures | ../charread.sh 0.01
+  fi
   exit 1
 fi
 exit 0
