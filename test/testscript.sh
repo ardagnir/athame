@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Athame.  If not, see <http://www.gnu.org/licenses/>.
 
+unset HISTFILE
 export ATHAME_TEST_RC=$(pwd)/../athamerc
 echo "Testing Athame $3..."
 mkdir -p testrun
