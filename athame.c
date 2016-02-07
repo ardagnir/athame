@@ -159,7 +159,14 @@ void athame_init(FILE* outstream)
   asprintf(&update_file_name, "%s/update.txt", dir_name);
   asprintf(&meta_file_name, "%s/meta.txt", dir_name);
   asprintf(&messages_file_name, "%s/messages.txt", dir_name);
-  asprintf(&vimbed_file_name, "%s/vimbed.vim", VIMBED_LOCATION);
+  if (getenv("ATHAME_VIMBED_LOCATION"))
+  {
+    asprintf(&vimbed_file_name, "%s/vimbed.vim", getenv("ATHAME_VIMBED_LOCATION"));
+  }
+  else
+  {
+    asprintf(&vimbed_file_name, "%s/vimbed.vim", VIMBED_LOCATION);
+  }
 
   char* etcrc = "/etc/athamerc";
   char homerc[256];

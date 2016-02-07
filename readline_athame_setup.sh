@@ -137,7 +137,9 @@ if [ $build = 1 ]; then
     mkdir -p $(pwd)/../test/build/usr/lib
     make install DESTDIR=$(pwd)/../test/build
     cd ../test
-    LD_LIBRARY_PATH=$(pwd)/build/usr/lib/ ./runtests.sh "bash -i" || exit 1
+    export LD_LIBRARY_PATH=$(pwd)/build/usr/lib
+    export ATHAME_VIMBED_LOCATION=$LD_LIBRARY_PATH/athame_readline
+    ./runtests.sh "bash -i" || exit 1
     cd -
     echo "Installing Readline with Athame..."
     sudo make install
