@@ -129,7 +129,7 @@ fi
 #Build and install Readline
 if [ $build = 1 ]; then
   if [ ! -f Makefile ] || [ $dirty = 0 ]; then
-    ./configure --prefix=/usr
+    ./configure --prefix=/usr || exit 1
   fi
   make SHLIB_LIBS="-lncurses -lutil" ATHAME_VIM_BIN=$vimbin
   if [ $runtest = 1 ]; then

@@ -83,7 +83,8 @@ if [ $build = 1 ]; then
                 --docdir=/usr/share/doc/bash-4.3 \
                 --without-bash-malloc \
                 --enable-readline \
-                --with-installed-readline=/usr
+                --with-installed-readline=/usr \
+                || exit 1
   fi
   make
   sudo make install

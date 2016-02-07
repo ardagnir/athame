@@ -125,7 +125,8 @@ if [ $build = 1 ]; then
         --with-tcsetpgrp \
         --enable-pcre \
         --enable-cap \
-        --enable-zsh-secure-free
+        --enable-zsh-secure-free \
+        || exit 1
   fi
   if [ $runtest = 1 ]; then
     # TODO: find a way to do this without using make clean
