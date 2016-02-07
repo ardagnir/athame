@@ -88,7 +88,7 @@ static void athame_get_vim_info();
 static void athame_set_failure(char* fail_str);
 static char athame_process_input(int instream);
 static char athame_process_char(char instream);
-static void athame_extraVimRead(int timer);
+static void athame_extra_vim_read(int timer);
 static int athame_setup_history();
 static char* athame_get_lines_from_vim(int start_row, int end_row);
 static void athame_sleep(int msec);
@@ -949,7 +949,7 @@ char athame_loop(int instream)
         {
           athame_send_to_vim('\x1d'); //<C-]> Finish abbrevs/kill mappings
         }
-        athame_extraVimRead(100);
+        athame_extra_vim_read(100);
       }
       if (athame_is_set("ATHAME_SHOW_MODE", 1))
       {
@@ -1017,7 +1017,7 @@ static void athame_bottom_mode()
   text_lines = new_text_lines;
 }
 
-static void athame_extraVimRead(int timer)
+static void athame_extra_vim_read(int timer)
 {
   fd_set files;
   FD_ZERO(&files);
