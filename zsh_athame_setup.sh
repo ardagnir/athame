@@ -41,9 +41,8 @@ do
                         "--nobuild: stop before actually building src\n" \
                         "--notest: don't run tests\n" \
                         "--noathame: setup normal zsh without athame\n" \
-                        "--dirty: don't run the whole build process,\n" \
+                        "--dirty: don't run the whole patching/configure process,\n" \
                         "         just make and install changes\n" \
-                        "         (only use after a successful build)\n" \
                         "--norc: don't copy the rc file to /etc/athamerc\n" \
                         "--nosubmodule: don't update submodules\n" \
                         "--help: display this message"; exit;;
@@ -107,7 +106,7 @@ fi
 
 #Build and install zsh
 if [ $build = 1 ]; then
-  if [ $dirty = 0 ]; then
+  if [ ! -f Makefile ] || [ $dirty = 0 ]; then
     ./configure --prefix=/usr \
         --docdir=/usr/share/doc/zsh \
         --htmldir=/usr/share/doc/zsh/html \

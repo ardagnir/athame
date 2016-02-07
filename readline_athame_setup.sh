@@ -44,9 +44,8 @@ do
                         "--noathame: setup normal readline without athame\n" \
                         "--vimbin=path/to/vim: set a path to the vim binary\n"\
                         "                      you want athame to use\n" \
-                        "--dirty: don't run the whole build process,\n" \
+                        "--dirty: don't run the whole patching/configure process,\n" \
                         "         just make and install changes\n" \
-                        "         (only use after a successful build)\n" \
                         "--norc: don't copy the rc file to /etc/athamerc\n" \
                         "--nosubmodule: don't update submodules\n" \
                         "--help: display this message"; exit;;
@@ -129,7 +128,7 @@ fi
 
 #Build and install Readline
 if [ $build = 1 ]; then
-  if [ $dirty = 0 ]; then
+  if [ ! -f Makefile ] || [ $dirty = 0 ]; then
     ./configure --prefix=/usr
   fi
   make SHLIB_LIBS="-lncurses -lutil" ATHAME_VIM_BIN=$vimbin

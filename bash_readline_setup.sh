@@ -77,7 +77,7 @@ fi
 
 #Build and install bash
 if [ $build = 1 ]; then
-  if [ $dirty = 0 ]; then
+  if [ ! -f Makefile ] || [ $dirty = 0 ]; then
     ./configure --prefix=/usr \
                 --bindir=/bin \
                 --docdir=/usr/share/doc/bash-4.3 \
