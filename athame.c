@@ -1296,3 +1296,10 @@ static char* athame_get_lines_from_vim(int start_row, int end_row)
 
   return athame_buffer;
 }
+
+void athame_after_bypass() {
+  if (athame_failure && athame_is_set("ATHAME_SHOW_ERROR", 1))
+  {
+    athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
+  }
+}
