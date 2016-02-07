@@ -27,6 +27,7 @@ dirty=0
 rc=1
 submodule=1
 vimbin=""
+destdir=""
 for arg in "$@"
 do
   case $arg in
@@ -44,6 +45,7 @@ do
                         "--noathame: setup normal readline without athame\n" \
                         "--vimbin=path/to/vim: set a path to the vim binary\n"\
                         "                      you want athame to use\n" \
+                        "--destdir: set DESTDIR for install\n"\
                         "--dirty: don't run the whole patching/configure process,\n" \
                         "         just make and install changes\n" \
                         "--norc: don't copy the rc file to /etc/athamerc\n" \
@@ -141,10 +143,18 @@ if [ $build = 1 ]; then
     ./runtests.sh "bash -i" || exit 1
     cd -
     echo "Installing Readline with Athame..."
-    sudo make install
+    if [ -w "$destdir" ]; then
+      make install DESTDIR=$destdir
+    else
+      sudo make install DESTDIR=$destdir
+    fi
   else
     echo "Installing Readline with Athame..."
-    sudo make install
+    if [ -w "$destdir" ]; then
+      make install DESTDIR=$destdir
+    else
+      sudo make install DESTDIR=$destdir
+    fi
   fi
 fi
 

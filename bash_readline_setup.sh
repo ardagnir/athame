@@ -22,14 +22,17 @@ patches=42
 redownload=0
 build=1
 dirty=0
+destdir=""
 for arg in "$@"
 do
   case $arg in
     "--redownload" ) redownload=1;;
     "--nobuild" ) build=0;;
     "--dirty" ) dirty=1;;
+    --destdir=*) destdir="${arg#*=}";;
     "--help" ) echo -e " --redownload: redownload bash and patches\n" \
                         "--nobuild: stop before actually building src\n" \
+                        "--destdir: set DESTDIR for install\n"\
                         "--dirty: don't run the whole build process,\n" \
                         "         just make and install changes\n" \
                         "         (only use after a successful build)\n" \
@@ -87,7 +90,11 @@ if [ $build = 1 ]; then
                 || exit 1
   fi
   make
-  sudo make install
+  if [ -w "$destdir" ]; then
+    make install DESTDIR=$destdir
+  else
+    sudo make install DESTDIR=$destdir
+  fi
 fi
 
 #Leave bash dir

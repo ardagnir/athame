@@ -26,6 +26,7 @@ dirty=0
 rc=1
 submodule=1
 vimbin=""
+destdir=""
 for arg in "$@"
 do
   case $arg in
@@ -37,10 +38,14 @@ do
     "--norc" ) rc=0;;
     "--nosubmodule" ) submodule=0;;
     --vimbin=*) vimbin="${arg#*=}";;
+    --destdir=*) destdir="${arg#*=}";;
     "--help" ) echo -e " --redownload: redownload zsh\n" \
                         "--nobuild: stop before actually building src\n" \
                         "--notest: don't run tests\n" \
                         "--noathame: setup normal zsh without athame\n" \
+                        "--vimbin=path/to/vim: set a path to the vim binary\n"\
+                        "                      you want athame to use\n" \
+                        "--destdir: set DESTDIR for install\n"\
                         "--dirty: don't run the whole patching/configure process,\n" \
                         "         just make and install changes\n" \
                         "--norc: don't copy the rc file to /etc/athamerc\n" \
@@ -139,10 +144,18 @@ if [ $build = 1 ]; then
     cd -
     make clean
     make ATHAME_VIM_BIN=$vimbin
-    sudo make install
+    if [ -w $destdir ]; then
+      make install DESTDIR=$destdir
+    else
+      sudo make install DESTDIR=$destdir
+    fi
   else
     make ATHAME_VIM_BIN=$vimbin
-    sudo make install
+    if [ -w "$destdir" ]; then
+      make install DESTDIR=$destdir
+    else
+      sudo make install DESTDIR=$destdir
+    fi
   fi
 fi
 
