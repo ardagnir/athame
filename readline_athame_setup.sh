@@ -28,6 +28,7 @@ rc=1
 submodule=1
 vimbin=""
 destdir=""
+buildbash=0
 for arg in "$@"
 do
   case $arg in
@@ -72,6 +73,29 @@ if [ -z $vimbin ]; then
     echo $vimmsg
     exit
   fi
+fi
+
+if [ $build = 1 ]; then
+  ldd $(which bash) | grep libreadline >/dev/null
+  if [ $? -eq 1 ]; then
+    echo ""
+    echo "Your version of bash doesn't use an external readline."
+    echo "You need to rebuild bash to use an external readline for Athame to work."
+    if [ $runtest = 1 ]; then
+      echo "(If you say no, the tests will likely fail. You can abort and use --notest to skip the tests.)"
+    fi
+    read -p "$(tput bold)Setup bash as well?$(tput sgr0) (y:yes, n:no, other:abort)" -rn 1
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+      buildbash=1
+    elif ! [[ $REPLY =~ ^[Nn]$ ]]; then
+      echo ""
+      exit
+    fi
+  fi
+fi
+
+if [ $buildbash = 1 ]; then
+  ./bash_readline_setup.sh --dirty --destdir=$(pwd)/test/build
 fi
 
 if [ $submodule = 1 ]; then
@@ -140,24 +164,33 @@ if [ $build = 1 ]; then
     cd ../test
     export LD_LIBRARY_PATH=$(pwd)/build/usr/lib
     export ATHAME_VIMBED_LOCATION=$LD_LIBRARY_PATH/athame_readline
-    ./runtests.sh "bash -i" || exit 1
+    if [ $buildbash = 1 ]; then
+      ./runtests.sh "$(pwd)/build/bin/bash -i" || exit 1
+    else
+      ./runtests.sh "bash -i" || exit 1
+    fi
     cd -
     echo "Installing Readline with Athame..."
     if [ -w "$destdir" ]; then
-      make install DESTDIR=$destdir
+      make install DESTDIR=$destdir || exit 1
     else
-      sudo make install DESTDIR=$destdir
+      sudo make install DESTDIR=$destdir || exit 1
     fi
   else
     echo "Installing Readline with Athame..."
     if [ -w "$destdir" ]; then
-      make install DESTDIR=$destdir
+      make install DESTDIR=$destdir || exit 1
     else
-      sudo make install DESTDIR=$destdir
+      sudo make install DESTDIR=$destdir || exit 1
     fi
   fi
 fi
 
 if [ $rc = 1 ]; then
   sudo cp ../athamerc /etc/athamerc
+fi
+
+if [ $buildbash = 1 ]; then
+  cd ..
+  ./bash_readline_setup.sh --dirty
 fi

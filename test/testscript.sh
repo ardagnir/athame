@@ -30,10 +30,10 @@ for t in inst*.sh; do
   i=${t:4: -3}
   echo "Test $i:"
   # If we just pipe the text directly, Vim gets behind and athame times it out.
-  # Instead we use charread to simulate typing at 50 char/sec.
-  # This actually ends up being closer to 25 char/sec on my crappy laptop because
+  # Instead we use charread to simulate typing at 33 char/sec.
+  # This actually ends up being closer to 25-30 char/sec on my crappy laptop because
   # of overhead in charread, but that is still faster than world-recod human typists.
-  script -c "../charread.sh .02 inst$i.sh | $1" failure > /dev/null
+  script -c "../charread.sh .03 inst$i.sh | $1" failure > /dev/null
   diff ../$2/expected$i out$i >>failure 2>&1
   if [ $? -eq 0 ]; then
     echo "Success!"
@@ -52,6 +52,8 @@ if [[ -n $failures ]]; then
     cat failures
   elif [[ $REPLY =~ ^[Ss]$ ]]; then
     cat failures | ../charread.sh 0.01
+  else
+    echo ""
   fi
   exit 1
 fi
