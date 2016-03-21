@@ -28,7 +28,8 @@ rc=1
 submodule=1
 vimbin=""
 destdir=""
-buildbash=0
+prefix_flag="prefix=/usr"
+libdir_flag=""
 for arg in "$@"
 do
   case $arg in
@@ -40,12 +41,17 @@ do
     "--norc" ) rc=0;;
     "--nosubmodule" ) submodule=0;;
     --vimbin=*) vimbin="${arg#*=}";;
+    --destdir=*) destdir="${arg#*=}";;
+    --prefix=*) prefix_flag='--prefix='"${arg#*=}";;
+    --libdir=*) libdir="${arg#*=}";libdir_flag="--libdir=$libdir";;
     "--help" ) echo -e " --redownload: redownload readline and patches\n" \
                         "--nobuild: stop before actually building src\n" \
                         "--notest: don't run tests\n" \
                         "--noathame: setup normal readline without athame\n" \
                         "--vimbin=path/to/vim: set a path to the vim binary\n"\
                         "                      you want athame to use\n" \
+                        "--prefix: set prefix for configure\n"\
+                        "--libdir: set libdir for configure\n"\
                         "--destdir: set DESTDIR for install\n"\
                         "--dirty: don't run the whole patching/configure process,\n" \
                         "         just make and install changes\n" \
@@ -75,29 +81,6 @@ if [ -z $vimbin ]; then
   fi
 fi
 
-if [ $build = 1 ]; then
-  ldd $(which bash) | grep libreadline >/dev/null
-  if [ $? -eq 1 ]; then
-    echo ""
-    echo "Your version of bash doesn't use an external readline."
-    echo "You need to rebuild bash to use an external readline for Athame to work."
-    if [ $runtest = 1 ]; then
-      echo "(If you say no, the tests will likely fail. You can abort and use --notest to skip the tests.)"
-    fi
-    read -p "$(tput bold)Setup bash as well?$(tput sgr0) (y:yes, n:no, other:abort)" -rn 1
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-      buildbash=1
-    elif ! [[ $REPLY =~ ^[Nn]$ ]]; then
-      echo ""
-      exit
-    fi
-  fi
-fi
-
-if [ $buildbash = 1 ]; then
-  ./bash_readline_setup.sh --dirty --destdir=$(pwd)/test/build
-fi
-
 if [ $submodule = 1 ]; then
   git submodule update --init
 fi
@@ -121,6 +104,10 @@ for (( patch=1; patch <= patches; patch++ )); do
   fi
 done
 cd ..
+
+if [ ! -d readline-6.3_tmp ]; then
+  dirty=0
+fi
 
 #Unpack readline dir
 if [ $dirty = 0 ]; then
@@ -154,23 +141,33 @@ fi
 
 #Build and install Readline
 if [ $build = 1 ]; then
-  if [ ! -f Makefile ] || [ $dirty = 0 ]; then
-    ./configure --prefix=/usr || exit 1
+  if [ ! -f Makefile ]; then
+    ./configure "$prefix_flag" "$libdir_flag" || exit 1
   fi
   make SHLIB_LIBS="-lncurses -lutil" ATHAME_VIM_BIN=$vimbin
   if [ $runtest = 1 ]; then
-    mkdir -p $(pwd)/../test/build/usr/lib
+    rm -rf $(pwd)/../test/build
+    mkdir -p $(pwd)/../test/build
     make install DESTDIR=$(pwd)/../test/build
     cd ../test
-    export LD_LIBRARY_PATH=$(pwd)/build/usr/lib
-    export ATHAME_VIMBED_LOCATION=$LD_LIBRARY_PATH/athame_readline
-    if [ $buildbash = 1 ]; then
+    export LD_LIBRARY_PATH=$(pwd)/build
+    export ATHAME_VIMBED_LOCATION=$(find $(pwd)/build -name athame_readline | head -n 1)
+    ldd $(which bash) | grep libreadline >/dev/null
+    if [ $? -eq 1 ]; then
+      echo "Bash isn't set to use system readline. Setting up local bash for testing."
+      cd ..
+      ./bash_readline_setup.sh --destdir=$(pwd)/test/build --with-installed-readline=$(pwd)/test/build
+      cd test
       ./runtests.sh "$(pwd)/build/bin/bash -i" || exit 1
     else
       ./runtests.sh "bash -i" || exit 1
     fi
-    cd -
+    cd ../readline-6.3_tmp
+
     echo "Installing Readline with Athame..."
+    if [ -n "$destdir" ]; then
+      mkdir -p $destdir
+    fi
     if [ -w "$destdir" ]; then
       make install DESTDIR=$destdir || exit 1
     else
@@ -178,6 +175,9 @@ if [ $build = 1 ]; then
     fi
   else
     echo "Installing Readline with Athame..."
+    if [ -n "$destdir" ]; then
+      mkdir -p $destdir
+    fi
     if [ -w "$destdir" ]; then
       make install DESTDIR=$destdir || exit 1
     else
@@ -188,9 +188,4 @@ fi
 
 if [ $rc = 1 ]; then
   sudo cp ../athamerc /etc/athamerc
-fi
-
-if [ $buildbash = 1 ]; then
-  cd ..
-  ./bash_readline_setup.sh --dirty
 fi

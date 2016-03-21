@@ -23,6 +23,8 @@ redownload=0
 build=1
 dirty=0
 destdir=""
+prefix_flag="--prefix=/"
+installed_flag="--with-installed-readline"
 for arg in "$@"
 do
   case $arg in
@@ -30,8 +32,12 @@ do
     "--nobuild" ) build=0;;
     "--dirty" ) dirty=1;;
     --destdir=*) destdir="${arg#*=}";;
+    --prefix=*) prefix_flag='--prefix='"${arg#*=}";;
+    --with-installed-readline=*) installed_flag='--with-installed-readline='"${arg#*=}";;
     "--help" ) echo -e " --redownload: redownload bash and patches\n" \
                         "--nobuild: stop before actually building src\n" \
+                        "--prefix: set prefix for configure\n"\
+                        "--with-installed-readline: set where to look for readline\n"\
                         "--destdir: set DESTDIR for install\n"\
                         "--dirty: don't run the whole build process,\n" \
                         "         just make and install changes\n" \
@@ -60,6 +66,10 @@ for (( patch=1; patch <= patches; patch++ )); do
 done
 cd ..
 
+if [ ! -d bash-4.3_tmp ]; then
+  dirty=0
+fi
+
 #Unpack bash dir
 if [ $dirty = 0 ]; then
   rm -rf bash-4.3_tmp
@@ -80,16 +90,20 @@ fi
 
 #Build and install bash
 if [ $build = 1 ]; then
-  if [ ! -f Makefile ] || [ $dirty = 0 ]; then
-    ./configure --prefix=/usr \
+  if [ ! -f Makefile ]; then
+    ac_cv_rl_version=6.3 ./configure \
+                $prefix \
                 --bindir=/bin \
                 --docdir=/usr/share/doc/bash-4.3 \
                 --without-bash-malloc \
                 --enable-readline \
-                --with-installed-readline=/usr \
+                $installed_flag \
                 || exit 1
   fi
-  make
+  make LOCAL_LIBS=-lutil
+  if [ -n "$destdir" ]; then
+    mkdir -p $destdir
+  fi
   if [ -w "$destdir" ]; then
     make install DESTDIR=$destdir
   else

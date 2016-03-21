@@ -91,6 +91,10 @@ if [ ! -f zsh-5.0.8.tar.bz2 ]; then
   fi
 fi
 
+if [ ! -d zsh-5.0.8_tmp ]; then
+  dirty=0
+fi
+
 #Unpack zsh dir
 if [ $dirty = 0 ]; then
   rm -rf zsh-5.0.8_tmp
@@ -111,7 +115,7 @@ fi
 
 #Build and install zsh
 if [ $build = 1 ]; then
-  if [ ! -f Makefile ] || [ $dirty = 0 ]; then
+  if [ ! -f Makefile ]; then
     ./configure --prefix=/usr \
         --docdir=/usr/share/doc/zsh \
         --htmldir=/usr/share/doc/zsh/html \
@@ -144,17 +148,25 @@ if [ $build = 1 ]; then
     cd -
     make clean
     make ATHAME_VIM_BIN=$vimbin
-    if [ -w $destdir ]; then
-      make install DESTDIR=$destdir
+    echo "Installing Zsh with Athame..."
+    if [ -n "$destdir" ]; then
+      mkdir -p $destdir
+    fi
+    if [ -w "$destdir" ]; then
+      make install DESTDIR=$destdir || exit 1
     else
-      sudo make install DESTDIR=$destdir
+      sudo make install DESTDIR=$destdir || exit 1
     fi
   else
     make ATHAME_VIM_BIN=$vimbin
+    echo "Installing Zsh with Athame..."
+    if [ -n "$destdir" ]; then
+      mkdir -p $destdir
+    fi
     if [ -w "$destdir" ]; then
-      make install DESTDIR=$destdir
+      make install DESTDIR=$destdir || exit 1
     else
-      sudo make install DESTDIR=$destdir
+      sudo make install DESTDIR=$destdir || exit 1
     fi
   fi
 fi
