@@ -103,6 +103,7 @@ static void athame_bottom_display(char* string, int style, int color, int cursor
 static void athame_bottom_mode();
 static void athame_poll_vim(int block);
 static void athame_draw_failure();
+static int athame_has_clean_quit();
 
 void athame_init(FILE* outstream)
 {
@@ -867,7 +868,7 @@ char athame_loop(int instream)
   }
 
 
-  while(!returnVal)
+  while(!returnVal && !athame_failure)
   {
     athame_bottom_mode();
     athame_redisplay();
@@ -917,10 +918,12 @@ char athame_loop(int instream)
             }
           }
         }
-        else
+        else // Vim quit
         {
-          //Vim quit
-          if(sent_to_vim)
+          if (!athame_has_clean_quit()) {
+            athame_set_failure("Vim quit unexpectedly");
+          }
+          else if (sent_to_vim)
           {
             ap_set_line_buffer("");
             return '\x04'; //<C-D>
@@ -961,6 +964,18 @@ char athame_loop(int instream)
     athame_displaying_mode[1] = '\0';
   }
   return returnVal;
+}
+
+static int athame_has_clean_quit()
+{
+  FILE* metaFile = fopen(meta_file_name, "r");
+  if (!metaFile)
+  {
+    return 0;
+  }
+  int bytes_read = fread(athame_buffer, 1, 4, metaFile);
+  fclose(metaFile);
+  return strncmp(athame_buffer, "quit", bytes_read) == 0;
 }
 
 static char* athame_get_mode_text(char* mode)
@@ -1179,6 +1194,10 @@ static int athame_get_vim_info_inner(int read_pipe)
       if(athame_mode[0] == 'c' && athame_is_set("ATHAME_SHOW_COMMAND", 1))
       {
         athame_bottom_display("", ATHAME_NORMAL, ATHAME_DEFAULT, 0);
+      }
+      if(strcmp(mode, "quit") == 0) {
+        // Don't do work if we're quitting.
+        return 0;
       }
       strncpy(athame_mode, mode, 3);
       last_vim_command[0] = '\0';

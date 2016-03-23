@@ -16,9 +16,10 @@ set textwidth=0
 startinsert
 
 " These make arrows more shell like. Feel free to comment them out:
-if &compatible==0
-	inoremap <Up> <Up><ESC>A
-	inoremap <Down> <Down><ESC>A
+if &compatible==0 && has("patch928")
+  " This type of map only works in noncompat and these maps can segfault in earlier vim versions.
+  inoremap <Up> <Up><ESC>A
+  inoremap <Down> <Down><ESC>A
 endif
 
 " Uncomment these maps to have the up and down arrow
