@@ -25,6 +25,7 @@ mkdir -p testrun
 rm -rf testrun/*
 cp $2/inst* testrun
 failures=""
+slow=0
 cd testrun
 for t in inst*.sh; do
   i=${t:4: -3}
@@ -38,23 +39,37 @@ for t in inst*.sh; do
   if [ $? -eq 0 ]; then
     echo "Success!"
   else
-      echo "Failed"
-      cat failure >>failures
-      failures="$failures $i"
+      echo "Failed at high speed. Retrying at slower speed"
+      slow=1
+      script -c "../charread.sh .15 inst$i.sh | $1" failure > /dev/null
+      diff ../$2/expected$i out$i >>failure 2>&1
+      if [ $? -eq 0 ]; then
+        echo "Success!"
+      else
+        cat failure >>failures
+        failures="$failures $i"
+      fi
   fi
   echo ""
 done
 if [[ -n $failures ]]; then
-  echo "Test failed"
+  echo "Test Failed"
   echo "Failed tests:$failures"
-  read -p "View failures (y:yes, s:slow, other:no)? " -rn 1
+  read -p "View failures (y:yes, other:no)? " -rn 1
   if [[ $REPLY =~ ^[Yy]$ ]]; then
     cat failures
-  elif [[ $REPLY =~ ^[Ss]$ ]]; then
-    cat failures | ../charread.sh 0.01
   else
     echo ""
   fi
   exit 1
+fi
+if [[ $slow == 1 ]]; then
+  echo "Test Result: Athame is running slow on this computer."
+  read -p "Continue anyway? (y:yes, other:no)? " -rn 1
+  if ! [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo ""
+    exit 1
+  fi
+  echo ""
 fi
 exit 0
