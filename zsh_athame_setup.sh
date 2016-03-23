@@ -107,8 +107,9 @@ cd zsh-5.0.8_tmp
 if [ $athame = 1 ]; then
   if [ $dirty = 0 ]; then
     patch -p1 < ../zsh.patch
-    cp -r ../vimbed Src/
   fi
+  rm -rf Src/vimbed
+  cp -r ../vimbed Src/
   cp ../athame.* Src/Zle/
   cp ../athame_zsh.h Src/Zle/athame_intermediary.h
 fi
