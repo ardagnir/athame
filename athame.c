@@ -705,7 +705,6 @@ static void athame_redisplay()
       ap_set_cursor(temp);
     }
     athame_highlight(ap_get_cursor(), end_col);
-
   }
   else
   {
@@ -792,7 +791,7 @@ static void athame_highlight(int start, int end)
     new_string = next_string;
   }
   free(highlight_buffer);
-  if(athame_dirty)
+  if (athame_dirty)
   {
     fprintf(athame_outstream, "\e[%dA", athame_dirty);
   }
@@ -926,6 +925,10 @@ char athame_loop(int instream)
           else if (sent_to_vim)
           {
             ap_set_line_buffer("");
+            if(athame_dirty) {
+              fprintf(athame_outstream, "\e[%dG\e[K", ap_get_prompt_length() + 1);
+            }
+            ap_display();
             return '\x04'; //<C-D>
           }
           else
