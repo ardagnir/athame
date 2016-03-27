@@ -34,18 +34,20 @@ for t in inst*.sh; do
   # Instead we use charread to simulate typing at 33 char/sec.
   # This actually ends up being closer to 25-30 char/sec on my crappy laptop because
   # of overhead in charread, but that is still faster than world-recod human typists.
-  script -c "../charread.sh .03 inst$i.sh | $1" failure > /dev/null
+  # The 'q\b' is to exit out of the zsh newuser script. Yes, this is terrible, but so is zsh.
+  script -c "(echo -en 'q\b' && ../charread.sh .03 inst$i.sh) | $1" failure > /dev/null
   diff ../$2/expected$i out$i >>failure 2>&1
   if [ $? -eq 0 ]; then
     echo "Success!"
   else
       echo "Failed at high speed. Retrying at slower speed"
       slow=1
-      script -c "../charread.sh .15 inst$i.sh | $1" failure > /dev/null
+      script -c "(echo -en 'q\b' && ../charread.sh .15 inst$i.sh) | $1" failure > /dev/null
       diff ../$2/expected$i out$i >>failure 2>&1
       if [ $? -eq 0 ]; then
         echo "Success!"
       else
+        echo "Failed at slow speed."
         cat failure >>failures
         failures="$failures $i"
       fi

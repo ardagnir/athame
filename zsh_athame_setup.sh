@@ -139,6 +139,8 @@ if [ $build = 1 ]; then
         || exit 1
   fi
   if [ $runtest = 1 ]; then
+    rm -rf $(pwd)/../test/build
+    mkdir -p $(pwd)/../test/build
     # TODO: find a way to do this without using make clean
     make clean
     mkdir -p $(pwd)/../test/build/usr/lib
