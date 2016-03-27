@@ -18,7 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Athame.  If not, see <http://www.gnu.org/licenses/>.
 
-unset HISTFILE
 export ATHAME_TEST_RC=$(pwd)/../athamerc
 echo "Testing Athame $3..."
 mkdir -p testrun
@@ -30,19 +29,19 @@ cd testrun
 for t in inst*.sh; do
   i=${t:4: -3}
   echo "Test $i:"
+  cat ../prefix.sh inst$i.sh | grep -v '^\#' > input_text
   # If we just pipe the text directly, Vim gets behind and athame times it out.
   # Instead we use charread to simulate typing at 33 char/sec.
   # This actually ends up being closer to 25-30 char/sec on my crappy laptop because
   # of overhead in charread, but that is still faster than world-recod human typists.
-  # The 'q\b' is to exit out of the zsh newuser script. Yes, this is terrible, but so is zsh.
-  script -c "(echo -en 'q\b' && ../charread.sh .03 inst$i.sh) | $1" failure > /dev/null
+  script -c "../charread.sh .03 input_text | $1" failure > /dev/null
   diff ../$2/expected$i out$i >>failure 2>&1
   if [ $? -eq 0 ]; then
     echo "Success!"
   else
       echo "Failed at high speed. Retrying at slower speed"
       slow=1
-      script -c "(echo -en 'q\b' && ../charread.sh .15 inst$i.sh) | $1" failure > /dev/null
+      script -c "../charread.sh .15 input_text | $1" failure > /dev/null
       diff ../$2/expected$i out$i >>failure 2>&1
       if [ $? -eq 0 ]; then
         echo "Success!"
