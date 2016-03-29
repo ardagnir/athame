@@ -6,14 +6,16 @@
 " If you don't want /etc/athamerc overidden, supply the --norc flag to the setup
 " script.
 
+set nocompatible "You can remove this, but you probably want it.
+
 set ttimeoutlen=10 "Otherwise, you have to wait for the escape key.
 
 set backspace-=eol   "For more traditional shell behavior
 set backspace+=start "Without this, you can't delete shell completions
 
-set textwidth=0
+set textwidth=0 "Don't try to wrap text
 
-startinsert
+startinsert "Start in insert mode. Most shell vi-modes do this.
 
 " These make arrows more shell like. Feel free to comment them out:
 if &compatible==0 && has("patch928")
