@@ -868,7 +868,6 @@ char athame_loop(int instream)
   while(!returnVal && !athame_failure)
   {
     athame_bottom_mode();
-    athame_redisplay();
 
     struct timeval timeout;
     int results = 0;
@@ -911,7 +910,9 @@ char athame_loop(int instream)
             }
             else
             {
-              athame_get_vim_info_inner(0);
+              if(athame_get_vim_info_inner(0)) {
+                athame_redisplay();
+              }
             }
           }
         }
@@ -1096,7 +1097,11 @@ static void athame_send_to_vim(char input)
 
 static void athame_get_vim_info()
 {
-  if (!athame_get_vim_info_inner(1))
+  if (athame_get_vim_info_inner(1))
+  {
+    athame_redisplay();
+  }
+  else
   {
     athame_poll_vim(0);
   }
