@@ -144,13 +144,13 @@ if [ $build = 1 ]; then
     # TODO: find a way to do this without using make clean
     make clean
     mkdir -p $(pwd)/../test/build/usr/lib
-    make ATHAME_VIM_BIN=$vimbin ATHAME_TESTDIR=$(pwd)/../test/build
-    make install DESTDIR=$(pwd)/../test/build
+    make ATHAME_VIM_BIN=$vimbin ATHAME_TESTDIR=$(pwd)/../test/build || exit 1
+    make install DESTDIR=$(pwd)/../test/build || exit 1
     cd ../test
     ./runtests.sh "script -c ../build/usr/bin/zsh" || exit 1
     cd -
     make clean
-    make ATHAME_VIM_BIN=$vimbin
+    make ATHAME_VIM_BIN=$vimbin || exit 1
     echo "Installing Zsh with Athame..."
     if [ -n "$destdir" ]; then
       mkdir -p $destdir
@@ -161,7 +161,7 @@ if [ $build = 1 ]; then
       sudo make install DESTDIR=$destdir || exit 1
     fi
   else
-    make ATHAME_VIM_BIN=$vimbin
+    make ATHAME_VIM_BIN=$vimbin || exit 1
     echo "Installing Zsh with Athame..."
     if [ -n "$destdir" ]; then
       mkdir -p $destdir

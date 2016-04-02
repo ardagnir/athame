@@ -145,11 +145,11 @@ if [ $build = 1 ]; then
   if [ ! -f Makefile ]; then
     ./configure "$prefix_flag" "$libdir_flag" || exit 1
   fi
-  make SHLIB_LIBS="-lncurses -lutil" ATHAME_VIM_BIN=$vimbin
+  make SHLIB_LIBS="-lncurses -lutil" ATHAME_VIM_BIN=$vimbin || exit 1
   if [ $runtest = 1 ]; then
     rm -rf $(pwd)/../test/build
     mkdir -p $(pwd)/../test/build
-    make install DESTDIR=$(pwd)/../test/build
+    make install DESTDIR=$(pwd)/../test/build || exit 1
     cd ../test
     export LD_LIBRARY_PATH=$(pwd)/build
     export ATHAME_VIMBED_LOCATION=$(find $(pwd)/build -name athame_readline | head -n 1)
