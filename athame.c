@@ -88,7 +88,6 @@ static void athame_get_vim_info();
 static void athame_set_failure(char* fail_str);
 static char athame_process_input(int instream);
 static char athame_process_char(char instream);
-static void athame_extra_vim_read(int timer);
 static int athame_setup_history();
 static char* athame_get_lines_from_vim(int start_row, int end_row);
 static void athame_sleep(int msec);
@@ -116,8 +115,7 @@ void athame_init(FILE* outstream)
   updated = 1;
   athame_mode[0] = 'n';
   athame_mode[1] = '\0';
-  athame_displaying_mode[0] = 'n';
-  athame_displaying_mode[1] = '\0';
+  athame_displaying_mode[0] = '\0';
   last_vim_command[0] = '\0';
   last_cmd_pos = 0;
   cs_confirmed = 0;
@@ -955,16 +953,16 @@ char athame_loop(int instream)
         {
           athame_send_to_vim('\x1d'); //<C-]> Finish abbrevs/kill mappings
         }
-        athame_extra_vim_read(100);
+        athame_sleep(100);
+        athame_get_vim_info_inner(0);
       }
       if (athame_is_set("ATHAME_SHOW_MODE", 1))
       {
         athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
+        athame_displaying_mode[0] = '\0';
       }
     }
     updated = 0;
-    athame_displaying_mode[0] = 'n';
-    athame_displaying_mode[1] = '\0';
   }
   return returnVal;
 }
@@ -1033,24 +1031,6 @@ static void athame_bottom_mode()
     }
   }
   text_lines = new_text_lines;
-}
-
-static void athame_extra_vim_read(int timer)
-{
-  fd_set files;
-  FD_ZERO(&files);
-  FD_SET(vim_term, &files);
-  int results;
-  struct timeval timeout;
-  timeout.tv_sec = 0;
-  timeout.tv_usec = timer * 250;
-  athame_sleep(timer * 3 / 4);
-  results = select(vim_term + 1, &files, NULL, NULL, &timeout);
-  if (results > 0)
-    athame_get_vim_info();
-  athame_mode[0] = 'n';
-  athame_mode[1] = '\0';
-  athame_redisplay();
 }
 
 static void athame_draw_failure()
