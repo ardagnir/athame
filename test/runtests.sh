@@ -41,11 +41,11 @@ function runtest () {
       echo "Success!"
     else
         echo "Failed at high speed. Retrying at slower speed"
-        slow=1
         script -c "../charread.sh .15 input_text | $1" failure > /dev/null
         diff ../$2/expected$i out$i >>failure 2>&1
         if [ $? -eq 0 ]; then
           echo "Success!"
+          slow=1
         else
           echo "Failed at slow speed."
           cat failure >>failures
@@ -54,29 +54,40 @@ function runtest () {
     fi
     echo ""
   done
+  cd ..
   if [[ -n $failures ]]; then
     echo "Test Failed"
     echo "Failed tests:$failures"
-    read -p "View failures (y:yes, other:no)? " -rn 1
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-      cat failures
-    else
+    while true; do
+      echo -e "\n\e[1mWhat now?\e[0m\n\e[1mv:\e[0m view failures\n\e[1mC:\e[0m \e[0;31m*DANGEROUS*\e[0;0m continue anyway\n\e[1mx:\e[0m exit"
+      read -rn 1
       echo ""
-    fi
-    exit 1
+      if [[ $REPLY =~ ^[Vv]$ ]]; then
+        cat testrun/failures
+      elif [[ $REPLY =~ ^[C]$ ]]; then
+        return 1
+      elif [[ $REPLY =~ ^[Xx]$ ]]; then
+        exit 1
+      else
+        echo -e "Invalid option"
+      fi
+    done
   fi
-  cd ..
 }
 
 if [ -z $DISPLAY ]; then
   echo "X not detected."
   echo "Testing basic shell functions without Vim..."
-  runtest "$1" shell "Shell"
-  echo "Athame successfully falls back to normal shell behavior without X."
-  echo "But Athame needs X for Vim functionality so the Vim tests weren't run."
-  echo "If you want to install anyway, run this script again with --notest --dirty"
+  runtest "$1" shell "Shell" &&
+    echo "Athame successfully falls back to normal shell behavior without X. But "
+  echo "Athame needs X for Vim functionality so the Vim tests weren't run."
   if [ "$(uname)" == "Darwin" ]; then
     echo "You should install XQuartz to get X on OSX."
+  fi
+  read -p "Install anyway? (y:yes, other:no)? " -rn 1
+  echo ""
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
+    exit 0
   fi
   exit 1
 fi
@@ -90,7 +101,7 @@ DISPLAY=$temp
 
 if [[ $slow == 1 ]]; then
   echo "Test Result: Athame is running slow on this computer."
-  read -p "Pass anyway? (y:yes, other:no)? " -rn 1
+  read -p "Install anyway? (y:yes, other:no)? " -rn 1
   if ! [[ $REPLY =~ ^[Yy]$ ]]; then
     echo ""
     exit 1
