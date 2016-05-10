@@ -243,7 +243,7 @@ void athame_init(FILE* outstream)
       return;
     }
     athame_sleep(50); // Give some time to send correct mode for gdb-like uses that need to know now
-    athame_get_vim_info_inner(1);
+    athame_get_vim_info(1, 0);
     athame_bottom_mode();
   }
 }
@@ -894,7 +894,7 @@ char athame_loop(int instream)
               returnVal = athame_process_input(instream);
             }
             else if(FD_ISSET(vim_term, &files)){
-              athame_get_vim_info();
+              athame_get_vim_info(1, 1);
             }
           }
           else
@@ -910,9 +910,7 @@ char athame_loop(int instream)
             }
             else
             {
-              if(athame_get_vim_info_inner(0)) {
-                athame_redisplay();
-              }
+              athame_get_vim_info(0, 0);
             }
           }
         }
@@ -955,7 +953,7 @@ char athame_loop(int instream)
           athame_send_to_vim('\x1d'); //<C-]> Finish abbrevs/kill mappings
         }
         athame_sleep(100);
-        athame_get_vim_info_inner(0);
+        athame_get_vim_info(0, 0);
       }
       if (athame_is_set("ATHAME_SHOW_MODE", 1))
       {
@@ -1095,13 +1093,13 @@ static void athame_send_to_vim(char input)
   write(vim_term, &input, 1);
 }
 
-static void athame_get_vim_info()
+static void athame_get_vim_info(int read, int allow_poll)
 {
-  if (athame_get_vim_info_inner(1))
+  if (athame_get_vim_info_inner(read))
   {
     athame_redisplay();
   }
-  else
+  else if (allow_poll)
   {
     athame_poll_vim(0);
   }
