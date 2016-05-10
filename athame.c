@@ -952,7 +952,7 @@ char athame_loop(int instream)
         {
           athame_send_to_vim('\x1d'); //<C-]> Finish abbrevs/kill mappings
         }
-        athame_sleep(100);
+        athame_sleep(200);
         athame_get_vim_info(0, 0);
       }
       if (athame_is_set("ATHAME_SHOW_MODE", 1))
