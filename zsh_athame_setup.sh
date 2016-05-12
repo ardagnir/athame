@@ -141,15 +141,20 @@ if [ $build = 1 ]; then
   if [ $runtest = 1 ]; then
     rm -rf $(pwd)/../test/build
     mkdir -p $(pwd)/../test/build
-    # TODO: find a way to do this without using make clean
-    make clean
+
+    # make sure the files affected by ATHAME_TESTDIR are updated to use test settings
+    rm -f Src/zshpaths.h && touch Src/Zle/athame.c
+
     mkdir -p $(pwd)/../test/build/usr/lib
     make ATHAME_VIM_BIN=$vimbin ATHAME_TESTDIR=$(pwd)/../test/build || exit 1
     make install DESTDIR=$(pwd)/../test/build || exit 1
+
+    # make sure the files affected by ATHAME_TESTDIR are updated to not use test settings
+    rm -f Src/zshpaths.h && touch Src/Zle/athame.c
+
     cd ../test
     ./runtests.sh "script -c ../build/usr/bin/zsh" || exit 1
     cd -
-    make clean
     make ATHAME_VIM_BIN=$vimbin || exit 1
     echo "Installing Zsh with Athame..."
     if [ -n "$destdir" ]; then
