@@ -165,26 +165,15 @@ if [ $build = 1 ]; then
       ./runtests.sh "bash -i" || exit 1
     fi
     cd ../readline-6.3_tmp
-
-    echo "Installing Readline with Athame..."
-    if [ -n "$destdir" ]; then
-      mkdir -p $destdir
-    fi
-    if [ -w "$destdir" ]; then
-      make install DESTDIR=$destdir || exit 1
-    else
-      sudo make install DESTDIR=$destdir || exit 1
-    fi
+  fi
+  echo "Installing Readline with Athame..."
+  if [ -n "$destdir" ]; then
+    mkdir -p $destdir
+  fi
+  if [ -w "$destdir" ]; then
+    make install DESTDIR=$destdir || exit 1
   else
-    echo "Installing Readline with Athame..."
-    if [ -n "$destdir" ]; then
-      mkdir -p $destdir
-    fi
-    if [ -w "$destdir" ]; then
-      make install DESTDIR=$destdir || exit 1
-    else
-      sudo make install DESTDIR=$destdir || exit 1
-    fi
+    sudo make install DESTDIR=$destdir || exit 1
   fi
 fi
 
