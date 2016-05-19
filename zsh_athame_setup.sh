@@ -27,6 +27,7 @@ rc=1
 submodule=1
 vimbin=""
 destdir=""
+prefix="/usr"
 for arg in "$@"
 do
   case $arg in
@@ -39,6 +40,10 @@ do
     "--nosubmodule" ) submodule=0;;
     --vimbin=*) vimbin="${arg#*=}";;
     --destdir=*) destdir="${arg#*=}";;
+    --prefix=*) prefix="${arg#*=}";;
+    --libdir=*) libdir="${arg#*=}";;
+    --docdir=*) docdir="${arg#*=}";;
+    --htmldir=*) htmldir="${arg#*=}";;
     "--help" ) echo -e " --redownload: redownload zsh\n" \
                         "--nobuild: stop before actually building src\n" \
                         "--notest: don't run tests\n" \
@@ -50,9 +55,19 @@ do
                         "         just make and install changes\n" \
                         "--norc: don't copy the rc file to /etc/athamerc\n" \
                         "--nosubmodule: don't update submodules\n" \
+                        "additional flags: these flags are passed to configure\n" \
+                        "    --prefix=\n" \
+                        "    --libdir=\n" \
+                        "    --docdir=\n" \
+                        "    --htmldir=\n" \
                         "--help: display this message"; exit;;
   esac
 done
+
+prefix_flag="--prefix=$prefix"
+libdir_flag=${libdir:+"--libdir=$libdir"}
+docdir_flag="--docdir=${docdir-$prefix/share/doc/zsh}"
+htmldir_flag="--htmldir=${htmldir-$docdir/html}"
 
 #Get vim binary
 if [ -z $vimbin ]; then
@@ -117,9 +132,9 @@ fi
 #Build and install zsh
 if [ $build = 1 ]; then
   if [ ! -f Makefile ]; then
-    ./configure --prefix=/usr \
-        --docdir=/usr/share/doc/zsh \
-        --htmldir=/usr/share/doc/zsh/html \
+    ./configure $prefix_flag \
+        $docdir_flag \
+        $htmldir_flag \
         --enable-etcdir=/etc/zsh \
         --enable-zshenv=/etc/zsh/zshenv \
         --enable-zlogin=/etc/zsh/zlogin \
