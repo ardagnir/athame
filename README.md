@@ -14,7 +14,10 @@ Yes, and if you're fine with basic vi imitations designed by a bunch of Emacs us
 - Athame also works on OSX.
 
 For vim-mode (Athame will act similarly to a normal shell if these are missing):
- - Vim (your version needs to have [+clientserver](#setting-up-vim-with-clientserver) support)
+ - Vim 7.4
+   - Your version needs to have [+clientserver](#setting-up-vim-with-clientserver)
+   - Athame may expose bugs in older versions of Vim. I recommend using a version that includes patches 1-928 at the minimum.
+
  - X (For linux, you probably have this already. For OSX, install XQuartz)
 
 ##Will Athame break my shell?
@@ -28,42 +31,38 @@ Clone this repo recursively:
     git clone --recursive http://github.com/ardagnir/athame
 
 ##Setting up Athame Readline
-**1.** Run the setup script
+**Arch Linux**
 
-    cd athame
     ./readline_athame_setup.sh
 
-**2.** If you have an old version of Athame and a ~/.athamerc file that doesn't source /etc/athamerc, check /etc/athamerc for changes.
+**Debian or Ubuntu**
 
-*Notes:*
-- *If this doesn't work, you may be using a distro (like Debian or Ubuntu) that doesn't use the system readline. See [building bash with system readline](#setting-up-bash-to-use-athame-readline)*
-- *You can add the --nobuild flag to the setup script if you want to configure/build/install yourself*
-- *You can change what Vim binary is used by passing --vimbin=/path/to/vim to the setup script*
+    ./readline_athame_setup.sh --libdir=/lib/x86_64-linux-gnu
 
+Most programs on Debian and Ubuntu don't use the system readline by default. You have to rebuild some of your programs to use the system readline if you want to use Athame.
 
-##Setting up Athame Zsh
-**1.** Run the setup script
-
-    cd athame
-    ./zsh_athame_setup.sh
-
-**2.** If you have an old version of Athame and a ~/.athamerc file that doesn't source /etc/athamerc, check /etc/athamerc for changes.**
-
-*Note:*
-- *You can add the --nobuild flag to the setup script if you want to configure/build/install yourself*
-- *You can change what Vim binary is used by passing --vimbin=/path/to/vim to the setup script*
-
-##Setting up Bash to use Athame Readline
-Some distros (like Debian and Ubuntu) don't setup bash to use the system readline.
-To check if this is the case, run:
-
-    ldd $(which bash) | grep readline
-
-If nothing shows up, you have to setup bash to use the system readline. If you're too lazy, you can run this script:
+To build bash so that it uses the system readline:
 
     ./bash_readline_setup.sh
 
-If something shows up in `ldd`, but it isn't pointing at `/usr/lib/libreadline.so.6` (that's where Athame installs to by default), you need to move Athame's readline to whatever location it's looking in.
+**Additional Notes**
+- You can add the --nobuild flag to the setup script if you want to configure/build/install yourself.
+- You can change what Vim binary is used by passing --vimbin=/path/to/vim to the setup script.
+
+
+##Setting up Athame Zsh
+**Arch Linux**
+
+    ./zsh_athame_setup.sh
+
+**Debian or Ubuntu**
+
+    apt-get build-dep zsh
+    ./zsh_athame_setup.sh
+
+**Additional Notes**
+- You can add the --nobuild flag to the setup script if you want to configure/build/install yourself
+- You can change what Vim binary is used by passing --vimbin=/path/to/vim to the setup script
 
 ##FAQ
 ####How do I use this?
@@ -93,7 +92,13 @@ The default athamerc includes "startinsert" to make Athame start in insert mode.
 Athame should be very fast, but it will slow down if your Vim setup is slow or if you have invalid vimscript in either your athamerc or vimrc. Try using a clean vimrc or athamerc and see if it speeds up. If not, file an issue.
 
 ####I installed Athame for Readline, but it isn't doing anything!
-Are you using the [system readline?](#setting-up-bash-to-use-athame-readline)
+Are you using the system readline?
+Type:
+
+    ldd $(which bash)
+This should include libreadline. If it doesn't, you need to build bash to use the system readline. You can do this by running:
+
+    ./bash_readline_setup.sh
 
 ####I got the error "Couldn't load vim path"
 Is Vim at the correct path? You can change the path Athame looks at with the --vimbin flag.
