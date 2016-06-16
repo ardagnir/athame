@@ -9,6 +9,14 @@ Athame patches your shell to add full Vim support by routing your keystrokes thr
 
 Yes, and if you're fine with basic vi imitations designed by a bunch of Emacs users, feel free to use them. ...but for the crazy Vim fanatics who sacrifice goats to the modal gods, Athame gives you the full power of Vim.
 
+**Will Athame break my shell?**
+
+If anything goes wrong in Athame during runtime, it is designed to fall back to normal shell behavior.
+
+The setup script will also run tests, locally on your computer, to make sure Athame works on your computer before installing it.
+
+...but there are no guarantees. You probably shouldn't install Athame on production systems.
+
 ##Requirements
 - Athame works best in GNU/Linux.
 - Athame also works on OSX.
@@ -19,11 +27,6 @@ For vim-mode (Athame will act similarly to a normal shell if these are missing):
    - Athame may expose bugs in older versions of Vim. I recommend using a version that includes patches 1-928 at the minimum.
 
  - X (For linux, you probably have this already. For OSX, install XQuartz)
-
-##Will Athame break my shell?
-Athame *probably* won't break your shell. If anything goes wrong, it *should* fail into normal shell behavior. If, for example, you haven't started X, Athame will give a warning and act like a normal shell until you do.
-
-...but there are no guarantees. You probably shouldn't install Athame on production systems.
 
 ##Download
 Clone this repo recursively:
@@ -40,6 +43,16 @@ Clone this repo recursively:
     ./readline_athame_setup.sh --libdir=/lib/x86_64-linux-gnu
 
 Most programs on Debian and Ubuntu don't use the system readline by default. You have to rebuild some of your programs to use the system readline if you want to use Athame.
+
+To build bash so that it uses the system readline:
+
+    ./bash_readline_setup.sh
+
+**OS X**
+
+    ./readline_athame_setup.sh
+
+Most programs on OS X don't use the system readline by default. You have to rebuild some of your programs to use the system readline if you want to use Athame.
 
 To build bash so that it uses the system readline:
 
