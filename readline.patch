@@ -138,7 +138,7 @@ diff -ru a/readline.c b/readline.c
    /* Restore the original of this history line, iff the line that we
       are editing was originally in the history, AND the line has changed. */
    entry = current_history ();
-@@ -561,7 +566,13 @@
+@@ -561,7 +566,14 @@
  	}
  
        RL_SETSTATE(RL_STATE_READCMD);
@@ -149,6 +149,7 @@ diff -ru a/readline.c b/readline.c
 +      }
 +      else {
 +        c = rl_read_key();
++        athame_after_bypass();
 +      }
        RL_UNSETSTATE(RL_STATE_READCMD);
  

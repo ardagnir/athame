@@ -1,6 +1,15 @@
 diff -ru a/Config/defs.mk.in
 --- a/Config/defs.mk.in	2014-12-13 18:55:54.000000000 -0500
 +++ b/Config/defs.mk.in	2015-07-15 22:06:56.455125410 -0400
+@@ -41,7 +41,7 @@
+ exec_prefix     = @exec_prefix@
+ bindir          = @bindir@
+ libdir          = @libdir@
+-MODDIR          = $(libdir)/$(tzsh)/$(VERSION)
++MODDIR          = $(ATHAME_TESTDIR)$(libdir)/$(tzsh)/$(VERSION)
+ infodir         = @infodir@
+ mandir          = @mandir@
+ datarootdir     = @datarootdir@
 @@ -67,7 +67,7 @@
  DLLDFLAGS       = @DLLDFLAGS@
  LIBLDFLAGS      = @LIBLDFLAGS@
@@ -38,7 +47,7 @@ diff -ru a/Src/Makemod.in.in b/Src/Makemod.in.in
  
  sdir_src      = $(sdir_top)/Src
  dir_src       = $(dir_top)/Src
-+athame        = -DVIMBED_LOCATION='"$(libdir)/athame_zsh"' -DATHAME_VIM_BIN='"${ATHAME_VIM_BIN}"'
++athame        = -DVIMBED_LOCATION='"$(ATHAME_TESTDIR)$(libdir)/athame_zsh"' -DATHAME_VIM_BIN='"${ATHAME_VIM_BIN}"'
  
  # ========== COMPILATION RULES ==========
  

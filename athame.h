@@ -37,6 +37,7 @@ extern int athame_enabled();
 extern void athame_clear_error();
 extern void athame_cleanup();
 extern int athame_is_set(char* env, int def);
+extern void athame_after_bypass();
 
 #ifdef __cplusplus
 }

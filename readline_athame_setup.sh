@@ -21,29 +21,40 @@
 patches=8
 redownload=0
 build=1
+runtest=1
 athame=1
 dirty=0
 rc=1
 submodule=1
 vimbin=""
+destdir=""
+prefix_flag="prefix=/usr"
+libdir_flag=""
 for arg in "$@"
 do
   case $arg in
     "--redownload" ) redownload=1;;
     "--nobuild" ) build=0;;
+    "--notest" ) runtest=0;;
     "--noathame" ) athame=0;;
     "--dirty" ) dirty=1;;
     "--norc" ) rc=0;;
     "--nosubmodule" ) submodule=0;;
     --vimbin=*) vimbin="${arg#*=}";;
+    --destdir=*) destdir="${arg#*=}";;
+    --prefix=*) prefix_flag='--prefix='"${arg#*=}";;
+    --libdir=*) libdir="${arg#*=}";libdir_flag="--libdir=$libdir";;
     "--help" ) echo -e " --redownload: redownload readline and patches\n" \
                         "--nobuild: stop before actually building src\n" \
+                        "--notest: don't run tests\n" \
                         "--noathame: setup normal readline without athame\n" \
                         "--vimbin=path/to/vim: set a path to the vim binary\n"\
                         "                      you want athame to use\n" \
-                        "--dirty: don't run the whole build process,\n" \
+                        "--prefix: set prefix for configure\n"\
+                        "--libdir: set libdir for configure\n"\
+                        "--destdir: set DESTDIR for install\n"\
+                        "--dirty: don't run the whole patching/configure process,\n" \
                         "         just make and install changes\n" \
-                        "         (only use after a successful build)\n" \
                         "--norc: don't copy the rc file to /etc/athamerc\n" \
                         "--nosubmodule: don't update submodules\n" \
                         "--help: display this message"; exit;;
@@ -94,6 +105,10 @@ for (( patch=1; patch <= patches; patch++ )); do
 done
 cd ..
 
+if [ ! -d readline-6.3_tmp ]; then
+  dirty=0
+fi
+
 #Unpack readline dir
 if [ $dirty = 0 ]; then
   rm -rf readline-6.3_tmp
@@ -114,27 +129,54 @@ fi
 
 if [ $athame = 1 ]; then
   #Patch Readline with athame
-  echo "Patching with athame patch"
   if [ $dirty = 0 ]; then
+    echo "Patching with Athame patch"
     patch -p1 < ../readline.patch
-    cp -r ../vimbed .
   fi
+  rm -rf vimbed
+  cp -r ../vimbed .
+  echo "Copying Athame files"
   cp ../athame.* .
   cp ../athame_readline.h athame_intermediary.h
 fi
 
 #Build and install Readline
 if [ $build = 1 ]; then
-  if [ $dirty = 0 ]; then
-    ./configure --prefix=/usr
+  if [ ! -f Makefile ]; then
+    ./configure "$prefix_flag" "$libdir_flag" || exit 1
   fi
-  make SHLIB_LIBS="-lncurses -lutil" ATHAME_VIM_BIN=$vimbin
-  sudo make install
+  make SHLIB_LIBS="-lncurses -lutil" ATHAME_VIM_BIN=$vimbin || exit 1
+  if [ $runtest = 1 ]; then
+    rm -rf $(pwd)/../test/build
+    mkdir -p $(pwd)/../test/build
+    make install DESTDIR=$(pwd)/../test/build || exit 1
+    cd ../test
+    export LD_LIBRARY_PATH=$(dirname $(find $(pwd)/build -name libreadline* | head -n 1))
+    export ATHAME_VIMBED_LOCATION=$(find $(pwd)/build -name athame_readline | head -n 1)
+
+    ldd $(which bash) | grep libreadline >/dev/null
+    if [ $? -eq 1 ]; then
+      echo "Bash isn't set to use system readline. Setting up local bash for testing."
+      cd ..
+      ./bash_readline_setup.sh --destdir=$(pwd)/test/build --with-installed-readline=$(pwd)/test/build
+      cd test
+      ./runtests.sh "$(pwd)/build/bin/bash -i" || exit 1
+    else
+      ./runtests.sh "bash -i" || exit 1
+    fi
+    cd ../readline-6.3_tmp
+  fi
+  echo "Installing Readline with Athame..."
+  if [ -n "$destdir" ]; then
+    mkdir -p $destdir
+  fi
+  if [ -w "$destdir" ]; then
+    make install DESTDIR=$destdir || exit 1
+  else
+    sudo make install DESTDIR=$destdir || exit 1
+  fi
 fi
 
 if [ $rc = 1 ]; then
   sudo cp ../athamerc /etc/athamerc
 fi
-
-#Leave readline dir
-cd ..

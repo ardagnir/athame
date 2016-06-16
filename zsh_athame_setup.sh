@@ -20,32 +20,54 @@
 
 redownload=0
 build=1
+runtest=1
 athame=1
 dirty=0
 rc=1
 submodule=1
 vimbin=""
+destdir=""
+prefix="/usr"
 for arg in "$@"
 do
   case $arg in
     "--redownload" ) redownload=1;;
     "--nobuild" ) build=0;;
     "--noathame" ) athame=0;;
+    "--notest" ) runtest=0;;
     "--dirty" ) dirty=1;;
     "--norc" ) rc=0;;
     "--nosubmodule" ) submodule=0;;
     --vimbin=*) vimbin="${arg#*=}";;
+    --destdir=*) destdir="${arg#*=}";;
+    --prefix=*) prefix="${arg#*=}";;
+    --libdir=*) libdir="${arg#*=}";;
+    --docdir=*) docdir="${arg#*=}";;
+    --htmldir=*) htmldir="${arg#*=}";;
     "--help" ) echo -e " --redownload: redownload zsh\n" \
                         "--nobuild: stop before actually building src\n" \
+                        "--notest: don't run tests\n" \
                         "--noathame: setup normal zsh without athame\n" \
-                        "--dirty: don't run the whole build process,\n" \
+                        "--vimbin=path/to/vim: set a path to the vim binary\n"\
+                        "                      you want athame to use\n" \
+                        "--destdir: set DESTDIR for install\n"\
+                        "--dirty: don't run the whole patching/configure process,\n" \
                         "         just make and install changes\n" \
-                        "         (only use after a successful build)\n" \
                         "--norc: don't copy the rc file to /etc/athamerc\n" \
                         "--nosubmodule: don't update submodules\n" \
+                        "additional flags: these flags are passed to configure\n" \
+                        "    --prefix=\n" \
+                        "    --libdir=\n" \
+                        "    --docdir=\n" \
+                        "    --htmldir=\n" \
                         "--help: display this message"; exit;;
   esac
 done
+
+prefix_flag="--prefix=$prefix"
+libdir_flag=${libdir:+"--libdir=$libdir"}
+docdir_flag="--docdir=${docdir-$prefix/share/doc/zsh}"
+htmldir_flag="--htmldir=${htmldir-$docdir/html}"
 
 #Get vim binary
 if [ -z $vimbin ]; then
@@ -84,6 +106,10 @@ if [ ! -f zsh-5.0.8.tar.bz2 ]; then
   fi
 fi
 
+if [ ! -d zsh-5.0.8_tmp ]; then
+  dirty=0
+fi
+
 #Unpack zsh dir
 if [ $dirty = 0 ]; then
   rm -rf zsh-5.0.8_tmp
@@ -96,18 +122,19 @@ cd zsh-5.0.8_tmp
 if [ $athame = 1 ]; then
   if [ $dirty = 0 ]; then
     patch -p1 < ../zsh.patch
-    cp -r ../vimbed Src/
   fi
+  rm -rf Src/vimbed
+  cp -r ../vimbed Src/
   cp ../athame.* Src/Zle/
   cp ../athame_zsh.h Src/Zle/athame_intermediary.h
 fi
 
 #Build and install zsh
 if [ $build = 1 ]; then
-  if [ $dirty = 0 ]; then
-    ./configure --prefix=/usr \
-        --docdir=/usr/share/doc/zsh \
-        --htmldir=/usr/share/doc/zsh/html \
+  if [ ! -f Makefile ]; then
+    ./configure $prefix_flag \
+        $docdir_flag \
+        $htmldir_flag \
         --enable-etcdir=/etc/zsh \
         --enable-zshenv=/etc/zsh/zshenv \
         --enable-zlogin=/etc/zsh/zlogin \
@@ -123,15 +150,50 @@ if [ $build = 1 ]; then
         --with-tcsetpgrp \
         --enable-pcre \
         --enable-cap \
-        --enable-zsh-secure-free
+        --enable-zsh-secure-free \
+        || exit 1
   fi
-  make ATHAME_VIM_BIN=$vimbin
-  sudo make install
+  if [ $runtest = 1 ]; then
+    rm -rf $(pwd)/../test/build
+    mkdir -p $(pwd)/../test/build
+
+    # make sure the files affected by ATHAME_TESTDIR are updated to use test settings
+    rm -f Src/zshpaths.h && touch Src/Zle/athame.c
+
+    mkdir -p $(pwd)/../test/build/usr/lib
+    make ATHAME_VIM_BIN=$vimbin ATHAME_TESTDIR=$(pwd)/../test/build || exit 1
+    make install DESTDIR=$(pwd)/../test/build || exit 1
+
+    # make sure the files affected by ATHAME_TESTDIR are updated to not use test settings
+    rm -f Src/zshpaths.h && touch Src/Zle/athame.c
+
+    cd ../test
+    ./runtests.sh "script -c ../build/usr/bin/zsh" || exit 1
+    cd -
+    make ATHAME_VIM_BIN=$vimbin || exit 1
+    echo "Installing Zsh with Athame..."
+    if [ -n "$destdir" ]; then
+      mkdir -p $destdir
+    fi
+    if [ -w "$destdir" ]; then
+      make install DESTDIR=$destdir || exit 1
+    else
+      sudo make install DESTDIR=$destdir || exit 1
+    fi
+  else
+    make ATHAME_VIM_BIN=$vimbin || exit 1
+    echo "Installing Zsh with Athame..."
+    if [ -n "$destdir" ]; then
+      mkdir -p $destdir
+    fi
+    if [ -w "$destdir" ]; then
+      make install DESTDIR=$destdir || exit 1
+    else
+      sudo make install DESTDIR=$destdir || exit 1
+    fi
+  fi
 fi
 
 if [ $rc = 1 ]; then
   sudo cp ../athamerc /etc/athamerc
 fi
-
-#Leave the zsh dir
-cd ..

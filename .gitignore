@@ -1,3 +1,9 @@
+test/build
+test/testrun
+*.tar.bz2
+*.tar.gz
+*_patches
+*_tmp
 *.sw?
 Makefile
 *.so*
