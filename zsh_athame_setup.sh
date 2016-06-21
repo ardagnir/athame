@@ -126,6 +126,7 @@ if [ $athame = 1 ]; then
   rm -rf Src/vimbed
   cp -r ../vimbed Src/
   cp ../athame.* Src/Zle/
+  cp ../athame_util.h Src/Zle/
   cp ../athame_zsh.h Src/Zle/athame_intermediary.h
 fi
 
