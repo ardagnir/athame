@@ -31,7 +31,7 @@
 extern "C" {
 #endif
 
-extern void athame_init(FILE* outstream);
+extern void athame_init(int instream, FILE* outstream);
 extern char athame_loop(int instream);
 extern int athame_enabled();
 extern void athame_clear_error();

@@ -45,9 +45,10 @@
 #include "athame_util.h"
 
 /* Forward declarations used in this file. */
-void athame_init(FILE* outstream)
+void athame_init(int instream, FILE* outstream)
 {
   athame_outstream = outstream ? outstream : stderr;
+  vim_loaded = 0;
   last_tab = 0;
   tab_fix = 0;
   after_tab_fix = 0;
@@ -82,11 +83,6 @@ void athame_init(FILE* outstream)
   if (!getenv("DISPLAY"))
   {
     athame_set_failure("No X display found.");
-    return;
-  }
-  first_char = athame_get_first_char();
-  if (first_char && strchr("\n\r", first_char) != 0)
-  {
     return;
   }
 
@@ -166,26 +162,12 @@ void athame_init(FILE* outstream)
   }
   else if (pid == -1)
   {
-    //TODO: error handling
-    printf("ERROR! Couldn't run vim!");
+    athame_set_failure("Failure starting Vim");
   }
   else
   {
     vim_pid = pid;
-
-    if(athame_wait_for_vim())
-    {
-      //We already set failure in the function
-      return;
-    }
-    if (athame_wait_for_file(contents_file_name, 20))
-    {
-      athame_set_failure("Vimbed failure.");
-      return;
-    }
-    athame_sleep(50); // Give some time to send correct mode for gdb-like uses that need to know now
-    athame_get_vim_info(1, 0);
-    athame_bottom_mode();
+    athame_wait_for_vim(instream > -1, instream);
   }
 }
 
@@ -277,11 +259,6 @@ int athame_enabled()
 char athame_loop(int instream)
 {
   char returnVal = 0;
-  if (first_char && strchr("\n\r", first_char) != 0)
-  {
-    return first_char;
-  }
-
   if(tab_fix)
   {
     //Delete the space we just sent to get completion working.
@@ -301,6 +278,14 @@ char athame_loop(int instream)
   {
     sent_to_vim = 0;
   }
+
+  char first_char = athame_get_first_char(instream);
+  if (first_char && strchr("\n\r\t", first_char) != 0)
+  {
+    return first_char;
+  }
+
+  athame_wait_for_vim(0, 0);
 
   if(!updated)
   {
@@ -399,7 +384,7 @@ char athame_loop(int instream)
         {
           athame_send_to_vim('\x1d'); //<C-]> Finish abbrevs/kill mappings
         }
-        athame_sleep(200);
+        athame_sleep(200, 0, 0);
         athame_get_vim_info(0, 0);
       }
       if (athame_is_set("ATHAME_SHOW_MODE", 1))

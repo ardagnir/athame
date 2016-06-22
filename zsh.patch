@@ -75,7 +75,7 @@ diff -ru a/Src/Zle/zle_main.c b/Src/Zle/zle_main.c
  void
  zlecore(void)
  {
-+    athame_init(NULL);
++    athame_init(SHTTY, NULL);
 +
      Keymap km;
  #if !defined(HAVE_POLL) && defined(HAVE_SELECT)

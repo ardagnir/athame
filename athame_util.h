@@ -5,17 +5,18 @@ static char athame_process_input(int instream);
 static char athame_process_char(char instream);
 static int athame_setup_history();
 static char* athame_get_lines_from_vim(int start_row, int end_row);
-static void athame_sleep(int msec);
+static int athame_sleep(int msec, int char_break, int instream);
 static int athame_get_vim_info_inner(int read_pipe);
 static void athame_update_vimline(int row, int col);
 static int athame_remote_expr(char* expr, int bock);
-static char athame_get_first_char();
+static char athame_get_first_char(int instream);
 static void athame_highlight(int start, int end);
 static void athame_bottom_display(char* string, int style, int color, int cursor);
 static void athame_bottom_mode();
 static void athame_poll_vim(int block);
 static void athame_draw_failure();
 static int athame_has_clean_quit();
+static int athame_wait_for_file(char* file_name, int sanity, int char_break, int instream);
 
 #define DEFAULT_BUFFER_SIZE 1024
 
@@ -37,6 +38,7 @@ static char* messages_file_name;
 static char* vimbed_file_name;
 static char* dir_name;
 static char* servername;
+static int vim_loaded = 0;
 static int sent_to_vim = 0;
 static int needs_poll = 0;
 static FILE* athame_outstream = 0;
@@ -51,28 +53,31 @@ static char athame_displaying_mode[3];
 static int end_col; //For visual mode
 static int end_row; //For visual mode
 
-
 static int athame_dirty;
 
-static char first_char;
-
-static int athame_wait_for_vim()
+// If char_break is not 0, will break if any char is in instream.
+static int athame_wait_for_vim(int char_break, int instream)
 {
+  if (vim_loaded)
+  {
+    return 0;
+  }
   struct timespec timeout;
   timeout.tv_sec = 1;
   timeout.tv_nsec = 0;
   fd_set files;
   FD_ZERO(&files);
   FD_SET(vim_term, &files);
+  if(char_break) {
+    FD_SET(instream, &files);
+  }
   sigset_t block_signals;
   sigfillset(&block_signals);
-  //Wait for vim to start up
-  int results = pselect(vim_term + 1, &files, NULL, NULL, &timeout, &block_signals);
+  // Wait for vim to start up
+  int results = pselect(MAX(vim_term, char_break ? instream : 0) + 1, &files, NULL, NULL, &timeout, &block_signals);
 
-  if (results <= 0)
-  {
-    athame_set_failure("Vim timed out.");
-    return 1;
+  if(char_break && !FD_ISSET(vim_term, &files)) {
+    return 2;
   }
 
   int amount = read(vim_term, athame_buffer, 200);
@@ -107,12 +112,32 @@ static int athame_wait_for_vim()
     }
     return 1;
   }
+  int error = athame_wait_for_file(contents_file_name, 50, char_break, instream);
+  if (error == 1)
+  {
+    athame_set_failure("Vimbed failure.");
+  }
+  if (error > 0)
+  {
+     return error;
+  }
+
+  // Grab the mode now because the program might block (like gdb).
+  int i;
+  for(i = 0; i < 6; i++) {
+    if (athame_mode[0] != 'n' || athame_sleep(10, char_break, instream)) {
+      break;
+    }
+    athame_get_vim_info(0, 0);
+  }
+  athame_bottom_mode();
+  vim_loaded = 1;
   return 0;
 }
 
-static int athame_wait_for_file(char* file_name, int sanity)
+static int athame_wait_for_file(char* file_name, int sanity, int char_break, int instream)
 {
-  //Check for existance of a file to see if we have advanced that far
+  // Check for existance of a file to see if we have advanced that far
   FILE* theFile = 0;
   theFile = fopen(file_name, "r");
   while (!theFile)
@@ -121,7 +146,9 @@ static int athame_wait_for_file(char* file_name, int sanity)
     {
       return 1;
     }
-    athame_sleep(50);
+    if (athame_sleep(20, char_break, instream)) {
+      return 2;
+    }
     theFile = fopen(file_name, "r");
   }
   fclose(theFile);
@@ -137,31 +164,48 @@ void athame_clear_error()
   }
 }
 
-static char athame_get_first_char()
+static char athame_get_first_char(int instream)
 {
   char return_val = '\0';
   fd_set files;
   FD_ZERO(&files);
-  FD_SET(fileno(stdin), &files);
+  FD_SET(instream, &files);
   struct timeval timeout;
   timeout.tv_sec = 0;
   timeout.tv_usec = 1 * 1000;
 
-  int results = select(fileno(stdin)+1, &files, NULL, NULL, &timeout);
+  int results = select(instream + 1, &files, NULL, NULL, &timeout);
   if(results > 0){
-    read(fileno(stdin), &return_val, 1);
+    read(instream, &return_val, 1);
   }
   return return_val;
 }
 
-static void athame_sleep(int msec)
+static int athame_sleep(int msec, int char_break, int instream)
 {
-    struct timespec timeout, timeout2;
-    timeout.tv_sec = 0;
-    timeout.tv_nsec = msec * 1000000;
-    while (nanosleep(&timeout, &timeout2)<0)
+    if(char_break)
     {
-      timeout = timeout2;
+      struct timeval timeout;
+      timeout.tv_sec = 0;
+      timeout.tv_usec = msec * 1000000;
+
+      fd_set files;
+      FD_ZERO(&files);
+      FD_SET(instream, &files);
+      sigset_t block_signals;
+      sigfillset(&block_signals);
+      return pselect(instream + 1, &files, NULL, NULL, &timeout, &block_signals) > 0;
+    }
+    else
+    {
+      struct timespec timeout, timeout2;
+      timeout.tv_sec = 0;
+      timeout.tv_nsec = msec * 1000000;
+      while (nanosleep(&timeout, &timeout2)<0)
+      {
+        timeout = timeout2;
+      }
+      return 0;
     }
 }
 

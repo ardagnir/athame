@@ -124,7 +124,7 @@ diff -ru a/readline.c b/readline.c
    if (rl_pre_input_hook)
      (*rl_pre_input_hook) ();
  
-+  athame_init(rl_outstream);
++  athame_init(fileno(rl_instream), rl_outstream);
 +
    RL_CHECK_SIGNALS ();
  }
