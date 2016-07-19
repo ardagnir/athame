@@ -17,6 +17,7 @@ static void athame_poll_vim(int block);
 static void athame_draw_failure();
 static int athame_has_clean_quit();
 static int athame_wait_for_file(char* file_name, int sanity, int char_break, int instream);
+static int athame_select(int file_desc1, int file_desc2, int timeout_sec, int timeout_ms, int no_signals);
 
 #define DEFAULT_BUFFER_SIZE 1024
 
@@ -38,7 +39,11 @@ static char* messages_file_name;
 static char* vimbed_file_name;
 static char* dir_name;
 static char* servername;
-static int vim_loaded = 0;
+#define VIM_NOT_STARTED 0
+#define VIM_TRIED_START 1
+#define VIM_CONFIRMED_START 2
+#define VIM_RUNNING 3
+static int vim_stage = VIM_NOT_STARTED;
 static int sent_to_vim = 0;
 static int needs_poll = 0;
 static FILE* athame_outstream = 0;
@@ -55,28 +60,82 @@ static int end_row; //For visual mode
 
 static int athame_dirty;
 
-// If char_break is not 0, will break if any char is in instream.
-static int athame_wait_for_vim(int char_break, int instream)
+static int start_vim(int char_break, int instream)
 {
-  if (vim_loaded)
+  if (char_break && athame_select(instream, -1, 0, 0, 0))
   {
-    return 0;
+    return 2;
   }
-  struct timespec timeout;
-  timeout.tv_sec = 1;
-  timeout.tv_nsec = 0;
-  fd_set files;
-  FD_ZERO(&files);
-  FD_SET(vim_term, &files);
-  if(char_break) {
-    FD_SET(instream, &files);
-  }
-  sigset_t block_signals;
-  sigfillset(&block_signals);
-  // Wait for vim to start up
-  int results = pselect(MAX(vim_term, char_break ? instream : 0) + 1, &files, NULL, NULL, &timeout, &block_signals);
+  else
+  {
+    char* etcrc = "/etc/athamerc";
+    char homerc[256];
+    char* athamerc;
+    if (!getenv("ATHAME_TEST_RC"))
+    {
+      snprintf(homerc, 255, "%s/.athamerc", getenv("HOME"));
+      if (!access(homerc, R_OK))
+      {
+        athamerc = homerc;
+      }
+      else if (!access(etcrc, R_OK))
+      {
+        athamerc = etcrc;
+      }
+      else
+      {
+        athame_set_failure("No athamerc found.");
+        return 1;
+      }
+    }
 
-  if(char_break && !FD_ISSET(vim_term, &files)) {
+    int pid = forkpty(&vim_term, NULL, NULL, NULL);
+    if (pid == 0)
+    {
+      snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "+call Vimbed_UpdateText(%d, %d, %d, %d, 1)", athame_row+1, 1, athame_row+1, 1);
+      int vim_error = 0;
+      char* testrc;
+      if (ATHAME_VIM_BIN[0]) {
+        if (testrc = getenv("ATHAME_TEST_RC")) {
+          vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-u", "NONE", "-S", vimbed_file_name, "-S", testrc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
+        } else {
+          vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
+        }
+      }
+      else {
+        if (testrc = getenv("ATHAME_TEST_RC")) {
+          vim_error = execlp("vim", "vim", "--servername", servername, "-u", "NONE", "-S", vimbed_file_name, "-S", testrc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
+        } else {
+          vim_error = execlp("vim", "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
+        }
+      }
+      if (vim_error != 0)
+      {
+        printf("Error: %d", errno);
+        exit(EXIT_FAILURE);
+      }
+    }
+    else if (pid == -1)
+    {
+      athame_set_failure("Failure starting Vim");
+      return 1;
+    }
+    else
+    {
+      vim_pid = pid;
+      return 0;
+    }
+  }
+}
+
+static int confirm_vim_start(int char_break, int instream)
+{
+  int selected = athame_select(vim_term, char_break ? instream : -1, char_break ? 5 : 1, 0, 1);
+  if (selected == 0) {
+    athame_set_failure("Vim timed out");
+    return 1;
+  }
+  else if (selected == 2) {
     return 2;
   }
 
@@ -112,6 +171,11 @@ static int athame_wait_for_vim(int char_break, int instream)
     }
     return 1;
   }
+  return 0;
+}
+
+static int athame_wait_for_vim(int char_break, int instream)
+{
   int error = athame_wait_for_file(contents_file_name, 50, char_break, instream);
   if (error == 1)
   {
@@ -131,8 +195,30 @@ static int athame_wait_for_vim(int char_break, int instream)
     athame_get_vim_info(0, 0);
   }
   athame_bottom_mode();
-  vim_loaded = 1;
   return 0;
+}
+
+// Make sure vim is running,
+//  or set athame_failure,
+//  or (if char_break) break on char press
+static int athame_ensure_vim(int char_break, int instream)
+{
+  // These will fallthrough if not interrupted.
+  if(vim_stage == VIM_NOT_STARTED) {
+    if(!start_vim(char_break, instream)) {
+      vim_stage = VIM_TRIED_START;
+    }
+  }
+  if(vim_stage == VIM_TRIED_START) {
+    if(!confirm_vim_start(char_break, instream)) {
+      vim_stage = VIM_CONFIRMED_START;
+    }
+  }
+  if(vim_stage == VIM_CONFIRMED_START) {
+    if(!athame_wait_for_vim(char_break, instream)) {
+      vim_stage = VIM_RUNNING;
+    }
+  }
 }
 
 static int athame_wait_for_file(char* file_name, int sanity, int char_break, int instream)
@@ -167,15 +253,7 @@ void athame_clear_error()
 static char athame_get_first_char(int instream)
 {
   char return_val = '\0';
-  fd_set files;
-  FD_ZERO(&files);
-  FD_SET(instream, &files);
-  struct timeval timeout;
-  timeout.tv_sec = 0;
-  timeout.tv_usec = 1 * 1000;
-
-  int results = select(instream + 1, &files, NULL, NULL, &timeout);
-  if(results > 0){
+  if (athame_select(instream, -1, 0, 0, 0) > 0) {
     read(instream, &return_val, 1);
   }
   return return_val;
@@ -185,16 +263,7 @@ static int athame_sleep(int msec, int char_break, int instream)
 {
     if(char_break)
     {
-      struct timeval timeout;
-      timeout.tv_sec = 0;
-      timeout.tv_usec = msec * 1000000;
-
-      fd_set files;
-      FD_ZERO(&files);
-      FD_SET(instream, &files);
-      sigset_t block_signals;
-      sigfillset(&block_signals);
-      return pselect(instream + 1, &files, NULL, NULL, &timeout, &block_signals) > 0;
+      return athame_select(instream, -1, 0, msec, 1) > 0;
     }
     else
     {
@@ -214,7 +283,7 @@ static int athame_setup_history()
 {
   FILE* updateFile = fopen(update_file_name, "w+");
 
-  if(!updateFile){
+  if(!updateFile) {
     athame_set_failure("Couldn't create temporary file in /tmp/vimbed.");
     return 1;
   }
@@ -242,6 +311,11 @@ static int athame_setup_history()
   return 0;
 }
 
+// Sends a message to vim
+//
+// All the use_pipe stuff is for checking that clientserver actually works. By
+// now Vim has told us that it does, but we actually make sure since some
+// versions (like MacVim) lie about it.
 static int athame_remote_expr(char* expr, int block)
 {
   int stdout_to_readline[2];
@@ -312,21 +386,19 @@ static int athame_remote_expr(char* expr, int block)
     {
       close(stdout_to_readline[1]);
       close(stderr_to_readline[1]);
-      fd_set streams;
-      FD_ZERO(&streams);
-      FD_SET(stdout_to_readline[0], &streams);
-      FD_SET(stdout_to_readline[0], &streams);
-      if (select(MAX(stdout_to_readline[0], stderr_to_readline[1])+1, &streams, NULL, NULL, NULL) > 0)
+      int selected = athame_select(stdout_to_readline[0], stderr_to_readline[0], -1, -1, 0);
+      if(selected)
       {
-        if(FD_ISSET(stderr_to_readline[0], &streams))
-        {
-          athame_set_failure("Clientserver error");
+        char error[80];
+        if(selected == 2 || read(stdout_to_readline[0], &error, 1) < 1) {
+          char* prefix = "Clientserver error: ";
+          int prelen = strlen(prefix);
+          strcpy(error, prefix);
+          error[read(stderr_to_readline[0], &error+prelen, 80-prelen) + prelen] = '\0';
+          athame_set_failure(error);
           return -1;
         }
-        if(FD_ISSET(stdout_to_readline[0], &streams))
-        {
-          cs_confirmed = 1;
-        }
+        cs_confirmed = 1;
       }
       close(stdout_to_readline[0]);
       close(stderr_to_readline[0]);
@@ -690,11 +762,19 @@ static char athame_process_input(int instream)
   }
 }
 
-static char athame_process_char(char char_read){
+static int athame_handle_special_char(char char_read) {
   //Unless in vim commandline send return/tab/<C-D>/<C-L> to readline instead of vim
   if(athame_failure || (strchr("\n\r\t\x04\x0c", char_read) && strcmp(athame_mode, "c") != 0 ))
   {
     last_tab = (char_read == '\t');
+    return 1;
+  }
+  return 0;
+}
+
+static char athame_process_char(char char_read){
+  if (athame_handle_special_char(char_read))
+  {
     return char_read;
   }
   else
@@ -928,4 +1008,39 @@ static char* athame_get_lines_from_vim(int start_row, int end_row)
   fclose(contentsFile);
 
   return athame_buffer;
+}
+
+static int athame_select(int file_desc1, int file_desc2, int timeout_sec, int timeout_ms, int no_signals) {
+    fd_set files;
+    FD_ZERO(&files);
+    if (file_desc1 > -1) {
+      FD_SET(file_desc1, &files);
+    }
+    if (file_desc2 > -1) {
+      FD_SET(file_desc2, &files);
+    }
+    sigset_t block_signals;
+    int use_timeout = timeout_sec >= 0 && timeout_ms >= 0;
+    int results;
+    if (no_signals) {
+      struct timespec timeout;
+      timeout.tv_sec = timeout_sec;
+      timeout.tv_nsec = timeout_ms * 1000000;
+      sigfillset(&block_signals);
+      results = pselect(MAX(file_desc1, file_desc2) + 1, &files, NULL, NULL, use_timeout ? &timeout : NULL, &block_signals);
+    } else {
+      struct timeval timeout;
+      timeout.tv_sec = timeout_sec;
+      timeout.tv_usec = timeout_ms * 1000;
+      results = select(MAX(file_desc1, file_desc2) + 1, &files, NULL, NULL, use_timeout ? &timeout : NULL);
+    }
+    if (results > 0) {
+      if (file_desc1 >= 0 && FD_ISSET(file_desc1, &files)) {
+         return 1;
+      }
+      if (file_desc2 >= 0 && FD_ISSET(file_desc2, &files)) {
+         return 2;
+      }
+    }
+    return 0;
 }

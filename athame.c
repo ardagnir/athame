@@ -48,7 +48,7 @@
 void athame_init(int instream, FILE* outstream)
 {
   athame_outstream = outstream ? outstream : stderr;
-  vim_loaded = 0;
+  vim_stage = VIM_NOT_STARTED;
   last_tab = 0;
   tab_fix = 0;
   after_tab_fix = 0;
@@ -62,7 +62,6 @@ void athame_init(int instream, FILE* outstream)
   last_cmd_pos = 0;
   cs_confirmed = 0;
   athame_failure = 0;
-
 
   dev_null = 0;
   vim_pid = 0;
@@ -104,71 +103,15 @@ void athame_init(int instream, FILE* outstream)
     asprintf(&vimbed_file_name, "%s/vimbed.vim", VIMBED_LOCATION);
   }
 
-  char* etcrc = "/etc/athamerc";
-  char homerc[256];
-  char* athamerc;
-  if (!getenv("ATHAME_TEST_RC"))
-  {
-    snprintf(homerc, 255, "%s/.athamerc", getenv("HOME"));
-    if (!access(homerc, R_OK))
-    {
-      athamerc = homerc;
-    }
-    else if (!access(etcrc, R_OK))
-    {
-      athamerc = etcrc;
-    }
-    else
-    {
-      athame_set_failure("No athamerc found.");
-      return;
-    }
-  }
-
+  dev_null = fopen("/dev/null", "w");
   mkdir("/tmp/vimbed", S_IRWXU);
   mkdir(dir_name, S_IRWXU);
 
   if (athame_setup_history())
   {
-    return;
+    return 1;
   }
-
-  dev_null = fopen("/dev/null", "w");
-  int pid = forkpty(&vim_term, NULL, NULL, NULL);
-  if (pid == 0)
-  {
-    snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "+call Vimbed_UpdateText(%d, %d, %d, %d, 1)", athame_row+1, 1, athame_row+1, 1);
-    int vim_error = 0;
-    char* testrc;
-    if (ATHAME_VIM_BIN[0]) {
-      if (testrc = getenv("ATHAME_TEST_RC")) {
-        vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-u", "NONE", "-S", vimbed_file_name, "-S", testrc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
-      } else {
-        vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
-      }
-    }
-    else {
-      if (testrc = getenv("ATHAME_TEST_RC")) {
-        vim_error = execlp("vim", "vim", "--servername", servername, "-u", "NONE", "-S", vimbed_file_name, "-S", testrc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
-      } else {
-        vim_error = execlp("vim", "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
-      }
-    }
-    if (vim_error != 0)
-    {
-      printf("Error: %d", errno);
-      exit(EXIT_FAILURE);
-    }
-  }
-  else if (pid == -1)
-  {
-    athame_set_failure("Failure starting Vim");
-  }
-  else
-  {
-    vim_pid = pid;
-    athame_wait_for_vim(instream > -1, instream);
-  }
+  athame_ensure_vim(1, instream);
 }
 
 void athame_cleanup()
@@ -279,13 +222,14 @@ char athame_loop(int instream)
     sent_to_vim = 0;
   }
 
-  char first_char = athame_get_first_char(instream);
-  if (first_char && strchr("\n\r\t", first_char) != 0)
+  // This is a performance step that allows us to bypass starting up vim if we aren't going to talk to it.
+  char first_char = (vim_stage != VIM_RUNNING) ? athame_get_first_char(instream) : 0;
+  if (first_char && athame_handle_special_char(first_char))
   {
     return first_char;
   }
 
-  athame_wait_for_vim(0, 0);
+  athame_ensure_vim(0, 0);
 
   if(!updated)
   {
@@ -302,32 +246,26 @@ char athame_loop(int instream)
     athame_bottom_mode();
 
     struct timeval timeout;
-    int results = 0;
+    int selected = 0;
     if(first_char){
       returnVal = athame_process_char(first_char);
       first_char = 0;
     }
     else {
-      while(results == 0 && !athame_failure)
+      while(selected == 0 && !athame_failure)
       {
-        fd_set files;
-        FD_ZERO(&files);
-        FD_SET(instream, &files);
-        FD_SET(vim_term, &files);
-        timeout.tv_sec = 0;
-        timeout.tv_usec = 500 * 1000;
+        int timeout_msec = (strcmp(athame_mode, "c") == 0 || needs_poll) ? 500 : -1;
 
-        results = select(MAX(vim_term, instream)+1, &files, NULL, NULL, (strcmp(athame_mode, "c") == 0 || needs_poll)? &timeout : NULL);
-        if (waitpid(vim_pid, NULL, WNOHANG) == 0) //Is vim still running?
+        selected = athame_select(instream, vim_term, 0, timeout_msec, 0);
+        if (waitpid(vim_pid, NULL, WNOHANG) == 0) // Is vim still running?
         {
-          if (results > 0)
+          if (selected == 1)
           {
-            if(FD_ISSET(instream, &files)){
-              returnVal = athame_process_input(instream);
-            }
-            else if(FD_ISSET(vim_term, &files)){
-              athame_get_vim_info(1, 1);
-            }
+            returnVal = athame_process_input(instream);
+          }
+          else if (selected == 2)
+          {
+            athame_get_vim_info(1, 1);
           }
           else
           {
