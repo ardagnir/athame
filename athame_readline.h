@@ -49,11 +49,7 @@ static int helper_ap_char_length(char* buffer)
 {
   int ret;
   int len = mbstowcs(NULL, buffer, 0);
-  wchar_t* wbuf = malloc((1 + len) * sizeof(wchar_t));
-  mbstowcs(wbuf, buffer, len + 1);
-  ret = wcswidth(wbuf, len + 1);
-  free(wbuf);
-  return ret;
+  return len;
 }
 
 static int ap_get_line_char_length()
