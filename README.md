@@ -181,9 +181,8 @@ Your distro's full Vim version should have +clientserver support, but if you wan
     sudo make install
 
 ##Bugs
-- Tab indentation doesn't work in the python2 shell. (You can indent with spaces though)
-- See [issues](https://github.com/ardagnir/athame/issues) for more.
-- If you see a bug without an issue, create one.
+- See [issues](https://github.com/ardagnir/athame/issues)
+- If you see a bug without an issue, please create one.
 
 ##License
 GPL v3
