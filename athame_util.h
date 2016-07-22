@@ -87,7 +87,8 @@ static int start_vim(int char_break, int instream)
     int pid = forkpty(&vim_term, NULL, NULL, NULL);
     if (pid == 0)
     {
-      snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "+call Vimbed_UpdateText(%d, %d, %d, %d, 1)", athame_row+1, 1, athame_row+1, 1);
+      int cursor = ap_get_cursor();
+      snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "+call Vimbed_UpdateText(%d, %d, %d, %d, 1)", athame_row+1, cursor+1, athame_row+1, cursor+1);
       int vim_error = 0;
       char* testrc;
       if (ATHAME_VIM_BIN[0]) {
@@ -299,6 +300,7 @@ static int athame_setup_history()
     fwrite("\n", 1, 1, updateFile);
     total_lines++;
   }
+  fwrite(ap_get_line_buffer(), 1, ap_get_line_buffer_length(), updateFile);
   fwrite("\n", 1, 1, updateFile);
   athame_row = total_lines;
   ap_get_history_end();
