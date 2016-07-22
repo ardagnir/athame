@@ -48,10 +48,10 @@ static int sent_to_vim = 0;
 static int needs_poll = 0;
 static FILE* athame_outstream = 0;
 
- //Keep track of if last key was a tab. We need to fake keys between tabpresses or readline completion gets confused.
-static int last_tab;
-static int tab_fix; //We just sent a fake space to help completion work. Now delete it.
-static int after_tab_fix;
+ //Keep track of if last key was a completion key. We need to fake keys between them or readline completion gets confused.
+static int last_comp;
+static int comp_fix; //We just sent a fake space to help completion work. Now delete it.
+static int after_comp_fix;
 
 static char athame_mode[3];
 static char athame_displaying_mode[3];
@@ -123,6 +123,7 @@ static int start_vim(int char_break, int instream)
     else
     {
       vim_pid = pid;
+      ap_set_control_chars();
       return 0;
     }
   }
@@ -763,10 +764,10 @@ static char athame_process_input(int instream)
 }
 
 static int athame_handle_special_char(char char_read) {
-  //Unless in vim commandline send return/tab/<C-D>/<C-L> to readline instead of vim
-  if(athame_failure || (strchr("\n\r\t\x04\x0c", char_read) && strcmp(athame_mode, "c") != 0 ))
+  //Unless in vim commandline send special chars to readline instead of vim
+  if(athame_failure || (strchr(ap_special, char_read) && strcmp(athame_mode, "c") != 0 ))
   {
-    last_tab = (char_read == '\t');
+    last_comp = (strchr(ap_completion, char_read) != 0);
     return 1;
   }
   return 0;
@@ -786,10 +787,10 @@ static char athame_process_char(char char_read){
       char_read = '\b';
     }
     athame_send_to_vim(char_read);
-    if(last_tab)
+    if(last_comp)
     {
-      last_tab = 0;
-      tab_fix = 1;
+      last_comp = 0;
+      comp_fix = 1;
       return ' ';
     }
     return 0;

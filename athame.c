@@ -49,9 +49,9 @@ void athame_init(int instream, FILE* outstream)
 {
   athame_outstream = outstream ? outstream : stderr;
   vim_stage = VIM_NOT_STARTED;
-  last_tab = 0;
-  tab_fix = 0;
-  after_tab_fix = 0;
+  last_comp = 0;
+  comp_fix = 0;
+  after_comp_fix = 0;
   expr_pid = 0;
   athame_dirty = 0;
   updated = 1;
@@ -202,19 +202,19 @@ int athame_enabled()
 char athame_loop(int instream)
 {
   char returnVal = 0;
-  if(tab_fix)
+  if(comp_fix)
   {
     //Delete the space we just sent to get completion working.
-    tab_fix = 0;
+    comp_fix = 0;
     updated = 1; //We don't want to override the actual vim change.
-    after_tab_fix = 1;
+    after_comp_fix = 1;
     return '\b';
   }
 
-  if(after_tab_fix)
+  if(after_comp_fix)
   {
-    after_tab_fix = 0;
-    // This is for the key we sent to vim that triggered the tab fix.
+    after_comp_fix = 0;
+    // This is for the key we sent to vim that triggered the comp fix.
     sent_to_vim = 1;
   }
   else
@@ -296,7 +296,7 @@ char athame_loop(int instream)
               fprintf(athame_outstream, "\e[%dG\e[K", ap_get_prompt_length() + 1);
             }
             ap_display();
-            return '\x04'; //<C-D>
+            return ap_delete;
           }
           else
           {
