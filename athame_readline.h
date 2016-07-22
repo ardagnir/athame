@@ -194,37 +194,35 @@ static char ap_handle_signals()
   return 0;
 }
 
-static char ap_completion[KEYMAP_SIZE];
 static char ap_delete;
 static char ap_special[KEYMAP_SIZE];
 
 static void ap_set_control_chars()
 {
   // In default readline these are: tab, <C-D>, <C-L>, and all the newline keys.
-  int completionLen = 0;
   int specialLen = 0;
   ap_delete = '\x04';
   for(int key = 0; key < KEYMAP_SIZE; key++)
   {
     if (_rl_keymap[key].type == ISFUNC)
     {
-      if (_rl_keymap[key].function == rl_complete)
-      {
-          ap_completion[completionLen++] = key;
-          ap_special[specialLen++] = key;
-      }
-      else if (_rl_keymap[key].function == rl_delete)
+      if (_rl_keymap[key].function == rl_delete)
       {
           ap_delete = key;
           ap_special[specialLen++] = key;
       }
       else if (_rl_keymap[key].function == rl_newline
-       || _rl_keymap[key].function == rl_clear_screen)
+            || _rl_keymap[key].function == rl_complete
+            || _rl_keymap[key].function == rl_clear_screen)
       {
           ap_special[specialLen++] = key;
       }
     }
   }
-  ap_completion[completionLen] = '\0';
   ap_special[specialLen] = '\0';
+}
+
+// Tells readline that we weren't in the middle of tab completion, search, etc.
+static void ap_set_nospecial() {
+  rl_last_func = rl_insert;
 }

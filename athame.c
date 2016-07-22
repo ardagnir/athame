@@ -49,9 +49,6 @@ void athame_init(int instream, FILE* outstream)
 {
   athame_outstream = outstream ? outstream : stderr;
   vim_stage = VIM_NOT_STARTED;
-  last_comp = 0;
-  comp_fix = 0;
-  after_comp_fix = 0;
   expr_pid = 0;
   athame_dirty = 0;
   updated = 1;
@@ -202,25 +199,7 @@ int athame_enabled()
 char athame_loop(int instream)
 {
   char returnVal = 0;
-  if(comp_fix)
-  {
-    //Delete the space we just sent to get completion working.
-    comp_fix = 0;
-    updated = 1; //We don't want to override the actual vim change.
-    after_comp_fix = 1;
-    return '\b';
-  }
-
-  if(after_comp_fix)
-  {
-    after_comp_fix = 0;
-    // This is for the key we sent to vim that triggered the comp fix.
-    sent_to_vim = 1;
-  }
-  else
-  {
-    sent_to_vim = 0;
-  }
+  sent_to_vim = 0;
 
   // This is a performance step that allows us to bypass starting up vim if we aren't going to talk to it.
   char first_char = (vim_stage != VIM_RUNNING) ? athame_get_first_char(instream) : 0;

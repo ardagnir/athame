@@ -48,11 +48,6 @@ static int sent_to_vim = 0;
 static int needs_poll = 0;
 static FILE* athame_outstream = 0;
 
- //Keep track of if last key was a completion key. We need to fake keys between them or readline completion gets confused.
-static int last_comp;
-static int comp_fix; //We just sent a fake space to help completion work. Now delete it.
-static int after_comp_fix;
-
 static char athame_mode[3];
 static char athame_displaying_mode[3];
 static int end_col; //For visual mode
@@ -767,9 +762,9 @@ static int athame_handle_special_char(char char_read) {
   //Unless in vim commandline send special chars to readline instead of vim
   if(athame_failure || (strchr(ap_special, char_read) && strcmp(athame_mode, "c") != 0 ))
   {
-    last_comp = (strchr(ap_completion, char_read) != 0);
     return 1;
   }
+  ap_set_nospecial();
   return 0;
 }
 
@@ -787,12 +782,6 @@ static char athame_process_char(char char_read){
       char_read = '\b';
     }
     athame_send_to_vim(char_read);
-    if(last_comp)
-    {
-      last_comp = 0;
-      comp_fix = 1;
-      return ' ';
-    }
     return 0;
   }
 }
