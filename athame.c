@@ -165,19 +165,6 @@ void athame_cleanup()
   }
 }
 
-int athame_is_set(char* env, int def)
-{
-  char* env_val = getenv(env);
-  if (!env_val)
-  {
-    setenv(env, def?"1":"0", 0);
-    return def;
-  }
-  else {
-    return env_val[0] == '1';
-  }
-}
-
 int athame_enabled()
 {
   if (athame_is_set("ATHAME_ENABLED", 1))
@@ -319,5 +306,11 @@ void athame_after_bypass() {
   if (athame_failure && athame_is_set("ATHAME_SHOW_ERROR", 1))
   {
     athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
+  }
+}
+
+void athame_char_handled() {
+  if (!ap_needs_to_leave()) {
+    athame_bottom_mode();
   }
 }

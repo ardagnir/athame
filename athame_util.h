@@ -18,6 +18,7 @@ static void athame_draw_failure();
 static int athame_has_clean_quit();
 static int athame_wait_for_file(char* file_name, int sanity, int char_break, int instream);
 static int athame_select(int file_desc1, int file_desc2, int timeout_sec, int timeout_ms, int no_signals);
+static int athame_is_set(char* env, int def);
 
 #define DEFAULT_BUFFER_SIZE 1024
 
@@ -236,15 +237,6 @@ static int athame_wait_for_file(char* file_name, int sanity, int char_break, int
   }
   fclose(theFile);
   return 0;
-}
-
-
-void athame_clear_error()
-{
-  if(athame_failure)
-  {
-    athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
-  }
 }
 
 static char athame_get_first_char(int instream)
@@ -1035,4 +1027,17 @@ static int athame_select(int file_desc1, int file_desc2, int timeout_sec, int ti
       }
     }
     return 0;
+}
+
+int athame_is_set(char* env, int def)
+{
+  char* env_val = getenv(env);
+  if (!env_val)
+  {
+    setenv(env, def?"1":"0", 0);
+    return def;
+  }
+  else {
+    return env_val[0] == '1';
+  }
 }
