@@ -190,6 +190,7 @@ static char ap_handle_signals()
     {
       (*rl_signal_event_hook) ();
     }
+    return '\x03'; //<C-C>
   }
   return 0;
 }
