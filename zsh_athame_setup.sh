@@ -95,30 +95,30 @@ fi
 
 #Download zsh
 if [ $redownload = 1 ]; then
-  rm -r zsh-5.0.8.tar.bz2
+  rm -r zsh-5.k.1.tar.gz
 fi
-if [ ! -f zsh-5.0.8.tar.bz2 ]; then
-  wget http://www.zsh.org/pub/old/zsh-5.0.8.tar.bz2
-  if [ "$(md5sum zsh-5.0.8.tar.bz2)" != "e6759e8dd7b714d624feffd0a73ba0fe  zsh-5.0.8.tar.bz2" ]; then
-    rm zsh-5.0.8.tar.bz2
+if [ ! -f zsh-5.1.1.tar.gz ]; then
+  wget http://www.zsh.org/pub/old/zsh-5.1.1.tar.gz
+  if [ "$(md5sum zsh-5.1.1.tar.gz)" != "8ba28a9ef82e40c3a271602f18343b2f  zsh-5.1.1.tar.gz" ]; then
+    rm zsh-5.1.1.tar.gz
     echo "FAILED: Incorrect md5 hash" >&2
     exit 1
   fi
 fi
 
-if [ ! -d zsh-5.0.8_tmp ]; then
+if [ ! -d zsh-5.1.1_tmp ]; then
   dirty=0
 fi
 
 #Unpack zsh dir
 if [ $dirty = 0 ]; then
-  rm -rf zsh-5.0.8_tmp
-  tar -xf zsh-5.0.8.tar.bz2
-  mv zsh-5.0.8 zsh-5.0.8_tmp
+  rm -rf zsh-5.1.1_tmp
+  tar -xf zsh-5.1.1.tar.gz
+  mv zsh-5.1.1 zsh-5.1.1_tmp
 fi
 
 #Patch Zsh with Athame
-cd zsh-5.0.8_tmp
+cd zsh-5.1.1_tmp
 if [ $athame = 1 ]; then
   if [ $dirty = 0 ]; then
     patch -p1 < ../zsh.patch
