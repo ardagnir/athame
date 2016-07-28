@@ -106,7 +106,7 @@ void athame_init(int instream, FILE* outstream)
 
   if (athame_setup_history())
   {
-    return 1;
+    return;
   }
   athame_ensure_vim(1, instream);
 }
