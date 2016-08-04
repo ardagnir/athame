@@ -223,3 +223,15 @@ static char ap_handle_signals()
     return EOF;
   return 0;
 }
+
+static char* ap_special = "\t\x04\r\n\x0c";
+static char ap_delete = '\x04';
+
+static void ap_set_control_chars()
+{
+	//TODO: Lookup zsh control chars instead of assuming defaults.
+}
+
+static void ap_set_nospecial() {
+	// We don't care about this in zsh.
+}

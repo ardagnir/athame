@@ -137,6 +137,7 @@ if [ $athame = 1 ]; then
   cp -r ../vimbed .
   echo "Copying Athame files"
   cp ../athame.* .
+  cp ../athame_util.h .
   cp ../athame_readline.h athame_intermediary.h
 fi
 

@@ -124,7 +124,7 @@ diff -ru a/readline.c b/readline.c
    if (rl_pre_input_hook)
      (*rl_pre_input_hook) ();
  
-+  athame_init(rl_outstream);
++  athame_init(fileno(rl_instream), rl_outstream);
 +
    RL_CHECK_SIGNALS ();
  }
@@ -154,6 +154,14 @@ diff -ru a/readline.c b/readline.c
        RL_UNSETSTATE(RL_STATE_READCMD);
  
        /* look at input.c:rl_getc() for the circumstances under which this will
+@@ -600,6 +612,7 @@
+ 
+       lastc = c;
+       _rl_dispatch ((unsigned char)c, _rl_keymap);
++      athame_char_handled();
+       RL_CHECK_SIGNALS ();
+ 
+       /* If there was no change in _rl_last_command_was_kill, then no kill
 diff -ru a/shlib/Makefile.in b/shlib/Makefile.in
 --- a/shlib/Makefile.in	2015-07-15 00:03:32.898231038 -0400
 +++ b/shlib/Makefile.in	2015-07-14 23:37:04.674826478 -0400

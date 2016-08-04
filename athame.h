@@ -31,13 +31,24 @@
 extern "C" {
 #endif
 
-extern void athame_init(FILE* outstream);
+// Initialize athame.
+extern void athame_init(int instream, FILE* outstream);
+
+// Loop over input and do vimy stuff until a special key is pressed.
 extern char athame_loop(int instream);
+
+// Is athame currently enabled?
 extern int athame_enabled();
-extern void athame_clear_error();
+
+// Cleanup all the memory allocated by athame and shut vim down.
 extern void athame_cleanup();
-extern int athame_is_set(char* env, int def);
+
+// Run after bypassing athame.
 extern void athame_after_bypass();
+
+// Called after we are done with the char returned by athame.
+// This is really a hack to display mode while an external process is waiting for char input that it will probably send to readline and thus vim.
+extern void athame_char_handled();
 
 #ifdef __cplusplus
 }

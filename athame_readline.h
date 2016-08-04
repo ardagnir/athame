@@ -49,11 +49,7 @@ static int helper_ap_char_length(char* buffer)
 {
   int ret;
   int len = mbstowcs(NULL, buffer, 0);
-  wchar_t* wbuf = malloc((1 + len) * sizeof(wchar_t));
-  mbstowcs(wbuf, buffer, len + 1);
-  ret = wcswidth(wbuf, len + 1);
-  free(wbuf);
-  return ret;
+  return len;
 }
 
 static int ap_get_line_char_length()
@@ -186,14 +182,48 @@ static char* ap_get_slice(char* text, int start, int end)
 
 static char ap_handle_signals()
 {
-  if (_rl_caught_signal == SIGINT)
+  if (_rl_caught_signal == SIGINT || _rl_caught_signal == SIGHUP)
   {
-    _rl_signal_handler(SIGINT);
+    _rl_signal_handler(_rl_caught_signal);
     athame_cleanup();
     if (rl_signal_event_hook)
     {
       (*rl_signal_event_hook) ();
     }
+    return '\x03'; //<C-C>
   }
   return 0;
+}
+
+static char ap_delete;
+static char ap_special[KEYMAP_SIZE];
+
+static void ap_set_control_chars()
+{
+  // In default readline these are: tab, <C-D>, <C-L>, and all the newline keys.
+  int specialLen = 0;
+  ap_delete = '\x04';
+  for(int key = 0; key < KEYMAP_SIZE; key++)
+  {
+    if (_rl_keymap[key].type == ISFUNC)
+    {
+      if (_rl_keymap[key].function == rl_delete)
+      {
+          ap_delete = key;
+          ap_special[specialLen++] = key;
+      }
+      else if (_rl_keymap[key].function == rl_newline
+            || _rl_keymap[key].function == rl_complete
+            || _rl_keymap[key].function == rl_clear_screen)
+      {
+          ap_special[specialLen++] = key;
+      }
+    }
+  }
+  ap_special[specialLen] = '\0';
+}
+
+// Tells readline that we weren't in the middle of tab completion, search, etc.
+static void ap_set_nospecial() {
+  rl_last_func = rl_insert;
 }
