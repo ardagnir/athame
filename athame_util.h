@@ -33,6 +33,7 @@ static int cs_confirmed;
 static FILE* dev_null;
 static int athame_row;
 static int updated;
+static char* slice_file_name;
 static char* contents_file_name;
 static char* update_file_name;
 static char* meta_file_name;
@@ -94,16 +95,16 @@ static int start_vim(int char_break, int instream)
       char* testrc;
       if (ATHAME_VIM_BIN[0]) {
         if (testrc = getenv("ATHAME_TEST_RC")) {
-          vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-u", "NONE", "-S", vimbed_file_name, "-S", testrc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
+          vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-u", "NONE", "-S", vimbed_file_name, "-S", testrc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
         } else {
-          vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
+          vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
         }
       }
       else {
         if (testrc = getenv("ATHAME_TEST_RC")) {
-          vim_error = execlp("vim", "vim", "--servername", servername, "-u", "NONE", "-S", vimbed_file_name, "-S", testrc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
+          vim_error = execlp("vim", "vim", "--servername", servername, "-u", "NONE", "-S", vimbed_file_name, "-S", testrc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
         } else {
-          vim_error = execlp("vim", "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
+          vim_error = execlp("vim", "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
         }
       }
       if (vim_error != 0)
@@ -174,10 +175,15 @@ static int confirm_vim_start(int char_break, int instream)
 
 static int athame_wait_for_vim(int char_break, int instream)
 {
-  int error = athame_wait_for_file(contents_file_name, 50, char_break, instream);
+  int error = athame_wait_for_file(slice_file_name, 50, char_break, instream);
   if (error == 1)
   {
-    athame_set_failure("Vimbed failure.");
+    if (athame_wait_for_file(contents_file_name, 1, 0, 0) == 0) {
+      athame_set_failure("Using incompatible vimbed version.");
+    }
+    else {
+      athame_set_failure("Vimbed failure.");
+    }
   }
   if (error > 0)
   {
@@ -400,25 +406,13 @@ static int athame_remote_expr(char* expr, int block)
 
 static void athame_update_vimline(int row, int col)
 {
-  FILE* contentsFile = fopen(contents_file_name, "r");
   FILE* updateFile = fopen(update_file_name, "w+");
 
-  int reading_row = 0;
-  while (fgets(athame_buffer, DEFAULT_BUFFER_SIZE, contentsFile))
-  {
-    if(row != reading_row)
-    {
-      fwrite(athame_buffer, 1, strlen(athame_buffer), updateFile);
-    }
-    else
-    {
-      fwrite(ap_get_line_buffer(), 1, ap_get_line_buffer_length(), updateFile);
-      fwrite("\n", 1, 1, updateFile);
-    }
-    reading_row++;
-  }
-  fclose(contentsFile);
+  fwrite(ap_get_line_buffer(), 1, ap_get_line_buffer_length(), updateFile);
+  fwrite("\n", 1, 1, updateFile);
+
   fclose(updateFile);
+
   snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 0)", row+1, col+1, row+1, col+1);
 
   athame_remote_expr(athame_buffer, 1);
@@ -948,49 +942,16 @@ static int athame_get_vim_info_inner(int read_pipe)
 
 static char* athame_get_lines_from_vim(int start_row, int end_row)
 {
-  FILE* contentsFile = fopen(contents_file_name, "r");
-  int bytes_read = fread(athame_buffer, 1, DEFAULT_BUFFER_SIZE-1, contentsFile);
-  athame_buffer[bytes_read] = 0;
-
-  int current_line = 0;
-  char* line_text = athame_buffer;
-  while (current_line < start_row )
-  {
-    line_text = strchr(line_text, '\n');
-    while(!line_text)
-    {
-      int bytes_read = fread(athame_buffer, 1, DEFAULT_BUFFER_SIZE-1, contentsFile);
-      if (!bytes_read)
-      {
-        return 0;
-      }
-      athame_buffer[bytes_read] = 0;
-      line_text = strchr(athame_buffer, '\n');
-    }
-    line_text++;
-    current_line++;
+  FILE* sliceFile = fopen(slice_file_name, "r");
+  int bytes_read = fread(athame_buffer, 1, DEFAULT_BUFFER_SIZE-1, sliceFile);
+  if (bytes_read > 0) {
+    // -1 to remove trailing newline
+    athame_buffer[bytes_read - 1] = '\0';
   }
-  int len = strlen(line_text);
-  memmove(athame_buffer, line_text, len + 1);
-
-  len += fread(athame_buffer + len, 1, DEFAULT_BUFFER_SIZE - 1 - len, contentsFile);
-  athame_buffer[len] = 0;
-  char* next_line = athame_buffer;
-  for(current_line = start_row; current_line <= end_row; current_line++)
-  {
-    next_line = strchr(next_line, '\n');
-    if(!next_line){
-      break;
-    }
-    next_line++;
+  else {
+    athame_buffer[0] = '\0';
   }
-
-  if(next_line)
-  {
-    *(next_line - 1) = '\0';
-  }
-  fclose(contentsFile);
-
+  fclose(sliceFile);
   return athame_buffer;
 }
 

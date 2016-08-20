@@ -65,6 +65,7 @@ void athame_init(int instream, FILE* outstream)
 
   servername = 0;
   dir_name = 0;
+  slice_file_name = 0;
   contents_file_name = 0;
   update_file_name = 0;
   meta_file_name = 0;
@@ -87,6 +88,7 @@ void athame_init(int instream, FILE* outstream)
   //The pid establishes uniqueness between processes and makes debugging easier.
   asprintf(&servername, "athame_%d_%d", getpid(), rand() % (1000000000));
   asprintf(&dir_name, "/tmp/vimbed/%s", servername);
+  asprintf(&slice_file_name, "%s/slice.txt", dir_name);
   asprintf(&contents_file_name, "%s/contents.txt", dir_name);
   asprintf(&update_file_name, "%s/update.txt", dir_name);
   asprintf(&meta_file_name, "%s/meta.txt", dir_name);
@@ -120,6 +122,11 @@ void athame_cleanup()
   if(vim_pid)
   {
     kill(vim_pid, 9);
+  }
+  if(slice_file_name)
+  {
+    unlink(slice_file_name);
+    free(slice_file_name);
   }
   if(contents_file_name)
   {
