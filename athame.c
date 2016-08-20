@@ -318,7 +318,13 @@ char athame_loop(int instream)
       athame_displaying_mode[0] = '\0';
     }
     updated = 0;
+  } else {
+    // If we ate the first_char, we should return it.
+    if(returnVal == 0) {
+      returnVal = first_char;
+    }
   }
+
   return returnVal;
 }
 
