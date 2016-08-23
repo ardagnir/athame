@@ -138,7 +138,7 @@ static int confirm_vim_start(int char_break, int instream)
     return 2;
   }
 
-  int amount = read(vim_term, athame_buffer, 200);
+  int amount = read(vim_term, athame_buffer, 5);
   athame_buffer[amount] = '\0';
   if(strncmp(athame_buffer, "Error", 5) == 0)
   {
@@ -155,21 +155,30 @@ static int confirm_vim_start(int char_break, int instream)
     }
     return 1;
   }
-  else if(strstr(athame_buffer, "--servername"))
+  else if(strncmp(athame_buffer, "VIM", 3) == 0)
+    // Vim should dump termcap stuff before this if things are working, so only bother checking for errors if we start with VIM.
+    // If Vim changes to not start errors with "VIM", we will still catch the error later with the vague "Vimbed failure" label
   {
-    if (ATHAME_VIM_BIN[0])
+    athame_sleep(20, 0, 0);
+    amount = read(vim_term, athame_buffer, 200);
+    athame_buffer[amount] = '\0';
+    if(strstr(athame_buffer, "--servername"))
     {
-      char* error;
-      asprintf(&error, "%s was not compiled with clientserver support.", ATHAME_VIM_BIN);
-      athame_set_failure(error);
-      free(error);
-    }
-    else
-    {
-      athame_set_failure("Tried running vim without clientserver support.");
-    }
-    return 1;
-  }
+      if (ATHAME_VIM_BIN[0])
+      {
+        char* error;
+        asprintf(&error, "%s was not compiled with clientserver support.", ATHAME_VIM_BIN);
+
+        athame_set_failure(error);
+        free(error);
+      }
+      else
+      {
+        athame_set_failure("Tried running vim without clientserver support.");
+      }
+      return 1;
+    } //--servername
+  } //VIM
   return 0;
 }
 
