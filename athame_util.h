@@ -95,16 +95,16 @@ static int start_vim(int char_break, int instream)
       char* testrc;
       if (ATHAME_VIM_BIN[0]) {
         if (testrc = getenv("ATHAME_TEST_RC")) {
-          vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-u", "NONE", "-S", vimbed_file_name, "-S", testrc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
+          vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-u", "NONE", "-S", vimbed_file_name, "-S", testrc, "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
         } else {
-          vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
+          vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
         }
       }
       else {
         if (testrc = getenv("ATHAME_TEST_RC")) {
-          vim_error = execlp("vim", "vim", "--servername", servername, "-u", "NONE", "-S", vimbed_file_name, "-S", testrc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
+          vim_error = execlp("vim", "vim", "--servername", servername, "-u", "NONE", "-S", vimbed_file_name, "-S", testrc,  "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
         } else {
-          vim_error = execlp("vim", "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
+          vim_error = execlp("vim", "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
         }
       }
       if (vim_error != 0)
