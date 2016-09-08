@@ -155,7 +155,12 @@ if [ $build = 1 ]; then
     export LD_LIBRARY_PATH=$(dirname $(find $(pwd)/build -name libreadline* | head -n 1))
     export ATHAME_VIMBED_LOCATION=$(find $(pwd)/build -name athame_readline | head -n 1)
 
-    ldd $(which bash) | grep libreadline >/dev/null
+    ldd="ldd"
+    if [ "$(uname)" == "Darwin" ]; then
+      ldd="otool -L"
+    fi
+    $ldd $(which bash) | grep libreadline >/dev/null
+
     if [ $? -eq 1 ]; then
       echo "Bash isn't set to use system readline. Setting up local bash for testing."
       cd ..
