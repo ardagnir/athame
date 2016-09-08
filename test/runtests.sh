@@ -19,7 +19,10 @@
 # along with Athame.  If not, see <http://www.gnu.org/licenses/>.
 
 slow=0
+sanity=0
+
 function runtest () {
+  sanity=$((sanity-1))
   export ATHAME_TEST_RC=$(pwd)/../athamerc
   echo "Testing Athame $3..."
   mkdir -p testrun
@@ -65,6 +68,7 @@ function runtest () {
       if [[ $REPLY =~ ^[Vv]$ ]]; then
         cat testrun/failures
       elif [[ $REPLY =~ ^[C]$ ]]; then
+        sanity=$((sanity+1))
         return 1
       elif [[ $REPLY =~ ^[Xx]$ ]]; then
         exit 1
@@ -73,6 +77,8 @@ function runtest () {
       fi
     done
   fi
+  sanity=$((sanity+1))
+  return 0
 }
 
 if [ -z $DISPLAY ]; then
@@ -99,7 +105,7 @@ unset DISPLAY
 runtest "$1" shell "Shell Fallback without X"
 DISPLAY=$temp
 
-if [[ $slow == 1 ]]; then
+if [ $slow -eq 1 ]; then
   echo "Test Result: Athame is running slow on this computer."
   read -p "Install anyway? (y:yes, other:no)? " -rn 1
   if ! [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -107,4 +113,10 @@ if [[ $slow == 1 ]]; then
     exit 1
   fi
   echo ""
+fi
+
+# Bash errors can cause us to skip code. Make extra sure we've run the tests if 
+# we're saying we passed.
+if [ $sanity -lt 0 ]; then
+  exit 1
 fi
