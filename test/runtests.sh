@@ -38,13 +38,21 @@ function runtest () {
     # Instead we use charread to simulate typing at 33 char/sec.
     # This actually ends up being closer to 25-30 char/sec on my crappy laptop because
     # of overhead in charread, but that is still faster than world-recod human typists.
-    script -c "../charread.sh .03 input_text | $1" failure > /dev/null
+    script -c "../charread.sh .03 input_text | $1" failure > /dev/null 2> /dev/null
+    if [ $? -ne 0 ]; then
+      # Linux version failed. Try bsd version:
+      script failure bash -c "../charread.sh .03 input_text | $1" > /dev/null
+    fi
     diff ../$2/expected$i out$i >>failure 2>&1
     if [ $? -eq 0 ]; then
       echo "Success!"
     else
         echo "Failed at high speed. Retrying at slower speed"
-        script -c "../charread.sh .15 input_text | $1" failure > /dev/null
+        script -c "../charread.sh .15 input_text | $1" failure > /dev/null 2> /dev/null
+        if [ $? -ne 0 ]; then
+          # Linux version failed. Try bsd version:
+          script failure bash -c "../charread.sh .15 input_text | $1" > /dev/null
+        fi
         diff ../$2/expected$i out$i >>failure 2>&1
         if [ $? -eq 0 ]; then
           echo "Success!"
