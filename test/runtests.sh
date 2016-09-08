@@ -31,7 +31,7 @@ function runtest () {
   failures=""
   cd testrun
   for t in inst*.sh; do
-    i=${t:4: -3}
+    i=${t:4:${#t}-7}
     echo "Test $i:"
     cat ../prefix.sh inst$i.sh | grep -v '^\#' > input_text
     # If we just pipe the text directly, Vim gets behind and athame times it out.
