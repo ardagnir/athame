@@ -90,7 +90,7 @@ if [ $redownload = 1 ]; then
   rm -r readline-6.3.tar.gz
 fi
 if [ ! -f readline-6.3.tar.gz ]; then
-  wget https://ftp.gnu.org/gnu/readline/readline-6.3.tar.gz
+  curl -O https://ftp.gnu.org/gnu/readline/readline-6.3.tar.gz
 fi
 
 mkdir -p readline_patches
@@ -100,7 +100,7 @@ for (( patch=1; patch <= patches; patch++ )); do
     rm -r readline63-$(printf "%03d" $patch)
   fi
   if [ ! -f readline63-$(printf "%03d" $patch) ]; then
-    wget https://ftp.gnu.org/gnu/readline/readline-6.3-patches/readline63-$(printf "%03d" $patch)
+    curl -O https://ftp.gnu.org/gnu/readline/readline-6.3-patches/readline63-$(printf "%03d" $patch)
   fi
 done
 cd ..

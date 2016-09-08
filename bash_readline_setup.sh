@@ -51,7 +51,7 @@ if [ $redownload = 1 ]; then
   rm -r bash-4.3.tar.gz
 fi
 if [ ! -f bash-4.3.tar.gz ]; then
-  wget https://ftp.gnu.org/gnu/bash/bash-4.3.tar.gz
+  curl -O https://ftp.gnu.org/gnu/bash/bash-4.3.tar.gz
 fi
 
 mkdir -p bash_patches
@@ -61,7 +61,7 @@ for (( patch=1; patch <= patches; patch++ )); do
     rm -r bash43-$(printf "%03d" $patch)
   fi
   if [ ! -f bash43-$(printf "%03d" $patch) ]; then
-    wget https://ftp.gnu.org/gnu/bash/bash-4.3-patches/bash43-$(printf "%03d" $patch)
+    curl -O https://ftp.gnu.org/gnu/bash/bash-4.3-patches/bash43-$(printf "%03d" $patch)
   fi
 done
 cd ..

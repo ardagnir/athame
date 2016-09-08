@@ -98,7 +98,7 @@ if [ $redownload = 1 ]; then
   rm -r zsh-5.k.1.tar.gz
 fi
 if [ ! -f zsh-5.1.1.tar.gz ]; then
-  wget http://www.zsh.org/pub/old/zsh-5.1.1.tar.gz
+  curl -O http://www.zsh.org/pub/old/zsh-5.1.1.tar.gz
   if [ "$(md5sum zsh-5.1.1.tar.gz)" != "8ba28a9ef82e40c3a271602f18343b2f  zsh-5.1.1.tar.gz" ]; then
     rm zsh-5.1.1.tar.gz
     echo "FAILED: Incorrect md5 hash" >&2
