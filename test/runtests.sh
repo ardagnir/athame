@@ -70,7 +70,7 @@ function runtest () {
     echo "Test Failed"
     echo "Failed tests:$failures"
     while true; do
-      echo -e "\n\e[1mWhat now?\e[0m\n\e[1mv:\e[0m view failures\n\e[1mC:\e[0m \e[0;31m*DANGEROUS*\e[0;0m continue anyway\n\e[1mx:\e[0m exit"
+      printf "\n\e[1mWhat now?\e[0m\n\e[1mv:\e[0m view failures\n\e[1mC:\e[0m \e[0;31m*DANGEROUS*\e[0;0m continue anyway\n\e[1mx:\e[0m exit\n"
       read -rn 1
       echo ""
       if [[ $REPLY =~ ^[Vv]$ ]]; then
@@ -81,7 +81,7 @@ function runtest () {
       elif [[ $REPLY =~ ^[Xx]$ ]]; then
         exit 1
       else
-        echo -e "Invalid option"
+        echo "Invalid option"
       fi
     done
   fi
