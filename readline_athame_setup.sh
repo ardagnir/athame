@@ -18,6 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with Athame.  If not, see <http://www.gnu.org/licenses/>.
 
+shopt -s extglob
+
 patches=8
 redownload=0
 build=1
@@ -28,7 +30,7 @@ rc=1
 submodule=1
 vimbin=""
 destdir=""
-prefix_flag="prefix=/usr"
+prefix_flag="--prefix=/usr"
 libdir_flag=""
 for arg in "$@"
 do
@@ -151,20 +153,23 @@ if [ $build = 1 ]; then
     rm -rf $(pwd)/../test/build
     mkdir -p $(pwd)/../test/build
     make install DESTDIR=$(pwd)/../test/build || exit 1
+
     cd ../test
+
     export LD_LIBRARY_PATH=$(dirname $(find $(pwd)/build -name libreadline* | head -n 1))
     export ATHAME_VIMBED_LOCATION=$(find $(pwd)/build -name athame_readline | head -n 1)
-
     ldd="ldd"
+
     if [ "$(uname)" == "Darwin" ]; then
       ldd="otool -L"
+      export DYLD_LIBRARY_PATH=$LD_LIBRARY_PATH
     fi
-    $ldd $(which bash) | grep libreadline >/dev/null
 
+    $ldd $(which bash) | grep libreadline >/dev/null
     if [ $? -eq 1 ]; then
       echo "Bash isn't set to use system readline. Setting up local bash for testing."
       cd ..
-      ./bash_readline_setup.sh --destdir=$(pwd)/test/build --with-installed-readline=$(pwd)/test/build
+      ./bash_readline_setup.sh --destdir="$(pwd)/test/build" --with-installed-readline="${LD_LIBRARY_PATH%+(/lib|/lib/*)}"
       cd test
       ./runtests.sh "$(pwd)/build/bin/bash -i" || exit 1
     else
