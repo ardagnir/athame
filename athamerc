@@ -6,7 +6,7 @@
 " If you don't want /etc/athamerc overidden, supply the --norc flag to the setup
 " script.
 
-set nocompatible "You can remove this, but you probably want it.
+set nocompatible
 
 set ttimeoutlen=10 "Otherwise, you have to wait for the escape key.
 
@@ -18,8 +18,8 @@ set textwidth=0 "Don't try to wrap text
 startinsert "Start in insert mode. Most shell vi-modes do this.
 
 " These make arrows more shell like. Feel free to comment them out:
-if &compatible==0 && has("patch928")
-  " This type of map only works in noncompat and these maps can segfault in earlier vim versions.
+if has("patch928")
+  " These maps can segfault in earlier vim versions.
   inoremap <Up> <Up><ESC>A
   inoremap <Down> <Down><ESC>A
 endif
