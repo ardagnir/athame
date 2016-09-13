@@ -172,6 +172,8 @@ You can test your Vim's clientserver support by running:
 
 If you see +clientserver, you can run Athame. (If you're using actual Vim. MacVim, for example, doesn't report this correctly and won't work for Athame.)
 
+**Linux Setup:**
+
 Your distro's full Vim version should have +clientserver support, but if you want to build vim yourself, this is the minimum setup for full Athame functionality:
 
     git clone https://github.com/vim/vim
@@ -179,6 +181,16 @@ Your distro's full Vim version should have +clientserver support, but if you wan
     ./configure --with-features=huge
     make
     sudo make install
+
+**OS X Setup:**
+
+Use MacPorts:
+
+    sudo port install vim +huge +x11
+
+Or Homebrew:
+
+    brew install vim --with-client-server
 
 ##Bugs
 - See [issues](https://github.com/ardagnir/athame/issues)
