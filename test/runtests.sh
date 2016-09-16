@@ -41,7 +41,7 @@ function runtest () {
       echo "Success!"
     else
         echo "Failed at high speed. Retrying at slower speed"
-        script -c "../charread.sh .15 input_text | $1" failure > /dev/null
+        script -c "../charread.sh .1 input_text | $1" failure > /dev/null
         diff ../$2/expected$i out$i >>failure 2>&1
         if [ $? -eq 0 ]; then
           echo "Success!"

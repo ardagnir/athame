@@ -68,7 +68,6 @@ void athame_init(int instream, FILE* outstream)
   slice_file_name = 0;
   contents_file_name = 0;
   update_file_name = 0;
-  meta_file_name = 0;
   messages_file_name = 0;
   vimbed_file_name = 0;
 
@@ -91,7 +90,6 @@ void athame_init(int instream, FILE* outstream)
   asprintf(&slice_file_name, "%s/slice.txt", dir_name);
   asprintf(&contents_file_name, "%s/contents.txt", dir_name);
   asprintf(&update_file_name, "%s/update.txt", dir_name);
-  asprintf(&meta_file_name, "%s/meta.txt", dir_name);
   asprintf(&messages_file_name, "%s/messages.txt", dir_name);
   if (getenv("ATHAME_VIMBED_LOCATION"))
   {
@@ -137,11 +135,6 @@ void athame_cleanup()
   {
     unlink(update_file_name);
     free(update_file_name);
-  }
-  if(meta_file_name)
-  {
-    unlink(meta_file_name);
-    free(meta_file_name);
   }
   if(messages_file_name)
   {

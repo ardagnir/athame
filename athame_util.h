@@ -19,8 +19,9 @@ static int athame_has_clean_quit();
 static int athame_wait_for_file(char* file_name, int sanity, int char_break, int instream);
 static int athame_select(int file_desc1, int file_desc2, int timeout_sec, int timeout_ms, int no_signals);
 static int athame_is_set(char* env, int def);
+char* athame_tok(char** pointer, char delim);
 
-#define DEFAULT_BUFFER_SIZE 1024
+#define DEFAULT_BUFFER_SIZE 2048
 
 static char athame_buffer[DEFAULT_BUFFER_SIZE];
 static char last_vim_command[DEFAULT_BUFFER_SIZE];
@@ -36,7 +37,6 @@ static int updated;
 static char* slice_file_name;
 static char* contents_file_name;
 static char* update_file_name;
-static char* meta_file_name;
 static char* messages_file_name;
 static char* vimbed_file_name;
 static char* dir_name;
@@ -624,17 +624,18 @@ static int athame_draw_line_with_highlight(char* text, int start, int end)
 static void athame_highlight(int start, int end)
 {
   char* highlight_buffer = strdup(ap_get_line_buffer());
+  char* hi_loc = highlight_buffer;
   int cursor = ap_get_cursor();
   ap_set_line_buffer("");
   ap_display();
   ap_set_line_buffer(highlight_buffer);
   ap_set_cursor(cursor);
-  char* new_string = strtok(highlight_buffer, "\n");
+  char* new_string = athame_tok(&hi_loc, '\n');
   while (new_string){
     char* next_string;
     int this_start;
     int this_end;
-    next_string = strtok(NULL, "\n");
+    next_string = athame_tok(&hi_loc, '\n');
 
     if (new_string == highlight_buffer){
       this_start = start;
@@ -661,13 +662,13 @@ static void athame_highlight(int start, int end)
 
 static int athame_has_clean_quit()
 {
-  FILE* metaFile = fopen(meta_file_name, "r");
-  if (!metaFile)
+  FILE* sliceFile = fopen(slice_file_name, "r");
+  if (!sliceFile)
   {
     return 0;
   }
-  int bytes_read = fread(athame_buffer, 1, 4, metaFile);
-  fclose(metaFile);
+  int bytes_read = fread(athame_buffer, 1, 4, sliceFile);
+  fclose(sliceFile);
   return strncmp(athame_buffer, "quit", bytes_read) == 0;
 }
 
@@ -802,16 +803,16 @@ static void athame_get_vim_info(int read, int allow_poll)
 
 static int athame_get_col_row(char* string, int* col, int* row)
 {
-    if(string && strtok(string, ","))
+    if(string && athame_tok(&string, ','))
     {
-      char* colStr = strtok(NULL, ",");
+      char* colStr = athame_tok(&string, ',');
       if(!colStr){
         return 0;
       }
       *col = strtol(colStr, NULL, 10);
       if(row)
       {
-        char* rowStr = strtok(NULL, ",");
+        char* rowStr = athame_tok(&string, ',');
         if(!rowStr){
           return 0;
         }
@@ -836,22 +837,23 @@ static int athame_get_vim_info_inner(int read_pipe)
     return 1;
   }
 
-  FILE* metaFile = fopen(meta_file_name, "r");
-  if (!metaFile)
+  FILE* sliceFile = fopen(slice_file_name, "r");
+  if (!sliceFile)
   {
     return 0;
   }
-  bytes_read = fread(athame_buffer, 1, DEFAULT_BUFFER_SIZE-1, metaFile);
-  fclose(metaFile);
+  bytes_read = fread(athame_buffer, 1, DEFAULT_BUFFER_SIZE-1, sliceFile);
+  fclose(sliceFile);
 
   athame_buffer[bytes_read] = 0;
-  char* mode = strtok(athame_buffer, "\n");
+  char* buffer_loc = athame_buffer;
+  char* mode = athame_tok(&buffer_loc, '\n');
   if(mode)
   {
     if (mode[0] == 'c')
     {
       strncpy(athame_mode, "c", 3);
-      char* command = strtok(NULL, "\n");
+      char* command = athame_tok(&buffer_loc, '\n');
       int cmd_pos = last_cmd_pos;
       if (mode[1] == ',')
       {
@@ -883,10 +885,10 @@ static int athame_get_vim_info_inner(int read_pipe)
       strncpy(athame_mode, mode, 3);
       last_vim_command[0] = '\0';
     }
-    char* location = strtok(NULL, "\n");
+    char* location = athame_tok(&buffer_loc, '\n');
     if(location)
     {
-      char* location2 = strtok(NULL, "\n");
+      char* location2 = athame_tok(&buffer_loc, '\n');
       int col;
       int row;
       if(athame_get_col_row(location, &col, &row))
@@ -919,16 +921,12 @@ static int athame_get_vim_info_inner(int read_pipe)
           changed = 1;
         }
 
-        char* line_text;
-        int subtract_line = (end_row > row && end_col == 0 ? 1 : 0);
-        line_text = athame_get_lines_from_vim(row, end_row - subtract_line);
-
-        if (line_text)
+        if (buffer_loc)
         {
-          if(strcmp(ap_get_line_buffer(), line_text) != 0)
+          if(strcmp(ap_get_line_buffer(), buffer_loc) != 0)
           {
             changed = 1;
-            ap_set_line_buffer(line_text);
+            ap_set_line_buffer(buffer_loc);
           }
           if(ap_get_cursor() != col)
           {
@@ -1010,4 +1008,20 @@ int athame_is_set(char* env, int def)
   else {
     return env_val[0] == '1';
   }
+}
+
+// Unlike normal strtok, this gives the empty strings between consecutive tokens.
+char* athame_tok(char** pointer, char delim) {
+  if (*pointer == 0) {
+    return 0;
+  }
+  char* original = *pointer;
+  char* loc = strchr(original, delim);
+  if (loc == 0) {
+    *pointer = 0;
+  } else {
+    *loc = '\0';
+    *pointer = loc + 1;
+  }
+  return original;
 }
