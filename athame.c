@@ -119,7 +119,10 @@ void athame_cleanup()
   }
   if(vim_pid)
   {
-    kill(vim_pid, 9);
+    kill(vim_pid, SIGTERM);
+    // forkpty will keep vim open on OSX if we don't close the fd
+    close(vim_term);
+    waitpid(vim_pid, NULL, 0);
   }
   if(slice_file_name)
   {
