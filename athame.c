@@ -224,8 +224,7 @@ char athame_loop(int instream)
     else {
       while(selected == 0 && !athame_failure)
       {
-        int timeout_msec = (strcmp(athame_mode, "c") == 0 || needs_poll) ? 500 : -1;
-
+        int timeout_msec = get_timeout_msec();
         selected = athame_select(instream, vim_term, 0, timeout_msec, 0);
         if (waitpid(vim_pid, NULL, WNOHANG) == 0) // Is vim still running?
         {
@@ -236,23 +235,19 @@ char athame_loop(int instream)
           else if (selected == 2)
           {
             received_from_vim = 1;
-            athame_get_vim_info(1, 1);
+            read(vim_term, athame_buffer, DEFAULT_BUFFER_SIZE-1);
+            athame_get_vim_info(1);
           }
-          else
+          else if (selected == -1)
           {
             char sig_result;
             if (sig_result = ap_handle_signals())
             {
               return sig_result;
             }
-            if(needs_poll)
-            {
-              athame_poll_vim(0);
-            }
-            else
-            {
-              athame_get_vim_info(0, 0);
-            }
+          }
+          if (time_to_poll >= 0 && time_to_poll < get_time()) {
+            athame_poll_vim(0);
           }
         }
         else // Vim quit
@@ -293,19 +288,19 @@ char athame_loop(int instream)
         // The user typed really fast before everything finished loading. Slow things down a bit to give vim extra time to catch up. This brings our delay to 400ms, but should be rare unless vim is going really slow.
         athame_sleep(200, 0, 0);
       }
-      athame_get_vim_info(0, 0);
+      athame_get_vim_info(0);
       if(strcmp(athame_mode, "i") != 0)
       {
         // Wait for vim to catch up.
         athame_sleep(200, 0, 0);
-        athame_get_vim_info(0, 0);
+        athame_get_vim_info(0);
       }
       // Check mode again instead of else, in case mode changed. We have to resleep anyway because we're sending a new key.
       if(strcmp(athame_mode, "i") == 0)
       {
         athame_send_to_vim('\x1d'); //<C-]> Finish abbrevs/kill mappings
         athame_sleep(200, 0, 0);
-        athame_get_vim_info(0, 0);
+        athame_get_vim_info(0);
       }
     }
     if (athame_is_set("ATHAME_SHOW_MODE", 1))
