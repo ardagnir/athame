@@ -188,7 +188,6 @@ int athame_enabled()
 
 char athame_loop(int instream)
 {
-  int received_from_vim = 0;
   char returnVal = 0;
   sent_to_vim = 0;
 
@@ -200,6 +199,8 @@ char athame_loop(int instream)
   }
 
   athame_ensure_vim(0, 0);
+
+  long loop_begin_time = get_time();
 
   if(!updated)
   {
@@ -234,7 +235,6 @@ char athame_loop(int instream)
           }
           else if (selected == 2)
           {
-            received_from_vim = 1;
             read(vim_term, athame_buffer, DEFAULT_BUFFER_SIZE-1);
             athame_get_vim_info(1);
           }
@@ -283,25 +283,23 @@ char athame_loop(int instream)
   {
     if(sent_to_vim)
     {
-      if(!received_from_vim)
-      {
-        // The user typed really fast before everything finished loading. Slow things down a bit to give vim extra time to catch up. This brings our delay to 400ms, but should be rare unless vim is going really slow.
-        athame_sleep(200, 0, 0);
+      // If we sent a bunch of keys to Vim as it was starting up and then hit enter,
+      // give Vim time to catch up
+      long remaining_time = loop_begin_time + 200 - get_time();
+      if (remaining_time > 0) {
+        athame_sleep(remaining_time, 0, 0);
       }
+      // Make sure vim is up to date
+      athame_poll_vim(1);
       athame_get_vim_info(0);
-      if(strcmp(athame_mode, "i") != 0)
-      {
-        // Wait for vim to catch up.
-        athame_sleep(200, 0, 0);
-        athame_get_vim_info(0);
-      }
-      // Check mode again instead of else, in case mode changed. We have to resleep anyway because we're sending a new key.
+
       if(strcmp(athame_mode, "i") == 0)
       {
         athame_send_to_vim('\x1d'); //<C-]> Finish abbrevs/kill mappings
-        athame_sleep(200, 0, 0);
+        athame_poll_vim(1);
         athame_get_vim_info(0);
       }
+      //TODO: handle 'c' mode and go back into loop
     }
     if (athame_is_set("ATHAME_SHOW_MODE", 1))
     {
