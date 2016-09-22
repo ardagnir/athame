@@ -1,3 +1,5 @@
+#include <sys/time.h>
+
 static void athame_send_to_vim(char input);
 static void athame_get_vim_info();
 static void athame_set_failure(char* fail_str);
@@ -6,7 +8,7 @@ static char athame_process_char(char instream);
 static int athame_setup_history();
 static char* athame_get_lines_from_vim(int start_row, int end_row);
 static int athame_sleep(int msec, int char_break, int instream);
-static int athame_get_vim_info_inner(int read_pipe);
+static int athame_get_vim_info_inner();
 static void athame_update_vimline(int row, int col);
 static int athame_remote_expr(char* expr, int bock);
 static char athame_get_first_char(int instream);
@@ -19,6 +21,7 @@ static int athame_has_clean_quit();
 static int athame_wait_for_file(char* file_name, int sanity, int char_break, int instream);
 static int athame_select(int file_desc1, int file_desc2, int timeout_sec, int timeout_ms, int no_signals);
 static int athame_is_set(char* env, int def);
+static long get_time();
 
 #define DEFAULT_BUFFER_SIZE 1024
 
@@ -46,7 +49,11 @@ static char* servername;
 #define VIM_RUNNING 3
 static int vim_stage = VIM_NOT_STARTED;
 static int sent_to_vim = 0;
-static int needs_poll = 0;
+// Measured in ms since epoch
+static int time_to_poll = -1;
+// Number of stale polls since last keypress or change
+static int stale_polls = 0;
+static int change_since_key=0;
 static FILE* athame_outstream = 0;
 
 static char athame_mode[3];
@@ -58,7 +65,7 @@ static int athame_dirty;
 
 static int start_vim(int char_break, int instream)
 {
-  if (char_break && athame_select(instream, -1, 0, 0, 0))
+  if (char_break && athame_select(instream, -1, 0, 0, 0) > 0)
   {
     return 2;
   }
@@ -129,6 +136,10 @@ static int start_vim(int char_break, int instream)
 static int confirm_vim_start(int char_break, int instream)
 {
   int selected = athame_select(vim_term, char_break ? instream : -1, char_break ? 5 : 1, 0, 1);
+  if (selected == -1) {
+    athame_set_failure("Select interupted");
+    return 1;
+  }
   if (selected == 0) {
     athame_set_failure("Vim timed out");
     return 1;
@@ -190,7 +201,7 @@ static int athame_wait_for_vim(int char_break, int instream)
     if (athame_mode[0] != 'n' || athame_sleep(10, char_break, instream)) {
       break;
     }
-    athame_get_vim_info(0, 0);
+    athame_get_vim_info(0);
   }
   athame_bottom_mode();
   return 0;
@@ -377,7 +388,7 @@ static int athame_remote_expr(char* expr, int block)
       close(stdout_to_readline[1]);
       close(stderr_to_readline[1]);
       int selected = athame_select(stdout_to_readline[0], stderr_to_readline[0], -1, -1, 0);
-      if(selected)
+      if(selected > 0)
       {
         char error[80];
         if(selected == 2 || read(stdout_to_readline[0], &error, 1) < 1) {
@@ -393,8 +404,8 @@ static int athame_remote_expr(char* expr, int block)
       close(stdout_to_readline[0]);
       close(stderr_to_readline[0]);
     }
-    return 0;
   }
+  return 0;
 }
 
 
@@ -425,10 +436,32 @@ static void athame_update_vimline(int row, int col)
   updated = 1;
 }
 
+static int get_timeout_msec() {
+  if (time_to_poll == -1) {
+    return -1;
+  }
+  return MAX(30, time_to_poll - time(NULL) + 5);
+}
+
+
+static void request_poll() {
+  if (stale_polls > 2) {
+    return;
+  }
+  int request_time = get_time() + (change_since_key || stale_polls > 0 ? 500 : 100);
+  time_to_poll = time_to_poll < 0 ? request_time : MIN(time_to_poll, request_time);
+}
+
 static void athame_poll_vim(int block)
 {
-  //Poll Vim. If we fail, postpone the poll by setting needs_poll to true
-  needs_poll = (athame_remote_expr("Vimbed_Poll()", block) != 0);
+  time_to_poll = -1;
+
+  //Poll Vim. If we fail, postpone the poll by requesting a new poll
+  if (athame_remote_expr("Vimbed_Poll()", block) == 0) {
+    stale_polls++;
+  } else {
+    request_poll();
+  }
 }
 
 int last_bdisplay_top = 0;
@@ -770,6 +803,8 @@ static char athame_process_char(char char_read){
   else
   {
     sent_to_vim = 1;
+    stale_polls = 0;
+    change_since_key = 0;
 
     //Backspace
     if (char_read == '\177'){
@@ -785,15 +820,18 @@ static void athame_send_to_vim(char input)
   write(vim_term, &input, 1);
 }
 
-static void athame_get_vim_info(int read, int allow_poll)
+static void athame_get_vim_info(int allow_poll)
 {
-  if (athame_get_vim_info_inner(read))
+  if (athame_get_vim_info_inner())
   {
+    time_to_poll = -1;
+    stale_polls = 0;
+    change_since_key = 1;
     athame_redisplay();
   }
   else if (allow_poll)
   {
-    athame_poll_vim(0);
+    request_poll();
   }
 }
 
@@ -819,15 +857,10 @@ static int athame_get_col_row(char* string, int* col, int* row)
     return 0;
 }
 
-static int athame_get_vim_info_inner(int read_pipe)
+static int athame_get_vim_info_inner()
 {
   int changed = 0;
   ssize_t bytes_read;
-  if(read_pipe)
-  {
-    read(vim_term, athame_buffer, DEFAULT_BUFFER_SIZE-1);
-  }
-
   if(athame_failure)
   {
     return 1;
@@ -1026,7 +1059,7 @@ static int athame_select(int file_desc1, int file_desc2, int timeout_sec, int ti
          return 2;
       }
     }
-    return 0;
+    return results;
 }
 
 int athame_is_set(char* env, int def)
@@ -1040,4 +1073,22 @@ int athame_is_set(char* env, int def)
   else {
     return env_val[0] == '1';
   }
+}
+
+static long get_time() {
+  // We need to check __MACH__ too because OSX claims it has this functionality
+  // but doesn't.
+  #if _POSIX_MONOTONIC_CLOCK && !__MACH__
+    struct timespec t;
+    #if CLOCK_MONOTONIC_COARSE
+      clock_gettime(CLOCK_MONOTONIC_COARSE, &t);
+    #else
+      clock_gettime(CLOCK_MONOTONIC, &t);
+    #endif
+    return t.tv_sec*1000L + t.tv_nsec/1000/1000;
+  #else
+    struct timeval t;
+    gettimeofday(&t, NULL);
+    return t.tv_sec*1000L + t.tv_usec/1000;
+  #endif
 }
