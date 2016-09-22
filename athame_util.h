@@ -444,7 +444,7 @@ static int get_timeout_msec() {
 }
 
 
-static int request_poll() {
+static void request_poll() {
   if (stale_polls > 2) {
     return;
   }
@@ -1076,11 +1076,19 @@ int athame_is_set(char* env, int def)
 }
 
 static long get_time() {
-  struct timespec t;
-  #if CLOCK_MONOTONIC_COARSE
-    clock_gettime(CLOCK_MONOTONIC_COARSE, &t);
-  #else 
-    clock_gettime(CLOCK_MONOTONIC, &t);
+  // We need to check __MACH__ too because OSX claims it has this functionality
+  // but doesn't.
+  #if _POSIX_MONOTONIC_CLOCK && !__MACH__
+    struct timespec t;
+    #if CLOCK_MONOTONIC_COARSE
+      clock_gettime(CLOCK_MONOTONIC_COARSE, &t);
+    #else
+      clock_gettime(CLOCK_MONOTONIC, &t);
+    #endif
+    return t.tv_sec*1000L + t.tv_nsec/1000/1000;
+  #else
+    struct timeval t;
+    gettimeofday(&t, NULL);
+    return t.tv_sec*1000L + t.tv_usec/1000;
   #endif
-  return t.tv_sec*1000L + t.tv_nsec/1000/1000;
 }
