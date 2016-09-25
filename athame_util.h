@@ -21,7 +21,7 @@ static int athame_has_clean_quit();
 static int athame_wait_for_file(char* file_name, int sanity, int char_break, int instream);
 static int athame_select(int file_desc1, int file_desc2, int timeout_sec, int timeout_ms, int no_signals);
 static int athame_is_set(char* env, int def);
-char* athame_tok(char** pointer, char delim);
+static char* athame_tok(char** pointer, char delim);
 static long get_time();
 
 #define DEFAULT_BUFFER_SIZE 2048
@@ -344,7 +344,7 @@ static int athame_remote_expr(char* expr, int block)
     pipe(stderr_to_readline);
   }
   //wait for last remote_expr to finish
-  if (expr_pid != 0)
+  if (expr_pid > 0)
   {
     if (waitpid(expr_pid, NULL, block?0:WNOHANG) == 0)
     {
@@ -397,6 +397,7 @@ static int athame_remote_expr(char* expr, int block)
     if(block)
     {
       waitpid(expr_pid, NULL, 0);
+      expr_pid = 0;
     }
     if(use_pipe)
     {
@@ -1054,7 +1055,7 @@ int athame_is_set(char* env, int def)
 }
 
 // Unlike normal strtok, this gives the empty strings between consecutive tokens.
-char* athame_tok(char** pointer, char delim) {
+static char* athame_tok(char** pointer, char delim) {
   if (*pointer == 0) {
     return 0;
   }
@@ -1085,4 +1086,18 @@ static long get_time() {
     gettimeofday(&t, NULL);
     return t.tv_sec*1000L + t.tv_usec/1000;
   #endif
+}
+
+static void wait_then_kill(int pid) {
+    int i;
+    for (i = 0; i < 10; i++) {
+      if(waitpid(pid, NULL, WNOHANG) != 0) {
+        break;
+      }
+      athame_sleep(5, 0, 0);
+    }
+    if (waitpid(pid, NULL, WNOHANG) == 0) {
+      kill(pid, SIGKILL);
+      waitpid(pid, NULL, 0);
+    }
 }

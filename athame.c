@@ -113,16 +113,18 @@ void athame_init(int instream, FILE* outstream)
 
 void athame_cleanup()
 {
-  if(dev_null)
-  {
-    fclose(dev_null);
+  if(expr_pid > 0) {
+    kill(expr_pid, SIGTERM);
   }
   if(vim_pid)
   {
-    kill(vim_pid, SIGTERM);
     // forkpty will keep vim open on OSX if we don't close the fd
+    kill(vim_pid, SIGTERM);
     close(vim_term);
-    waitpid(vim_pid, NULL, 0);
+  }
+  if(dev_null)
+  {
+    fclose(dev_null);
   }
   if(slice_file_name)
   {
@@ -165,6 +167,13 @@ void athame_cleanup()
   else if (athame_is_set("ATHAME_SHOW_MODE", 1))
   {
     athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
+  }
+  if(expr_pid > 0) {
+    wait_then_kill(expr_pid);
+  }
+  if(vim_pid)
+  {
+    wait_then_kill(vim_pid);
   }
 }
 
