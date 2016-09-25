@@ -283,23 +283,13 @@ char athame_loop(int instream)
   {
     if(sent_to_vim)
     {
-      // If we sent a bunch of keys to Vim as it was starting up and then hit enter,
-      // give Vim time to catch up
-      long remaining_time = loop_begin_time + 200 - get_time();
-      if (remaining_time > 0) {
-        athame_sleep(remaining_time, 0, 0);
-      }
-      // Make sure vim is up to date
-      athame_poll_vim(1);
-      athame_get_vim_info(0);
-
+      // We know mode is up to date because we did a blocking poll in handle_special_char
       if(strcmp(athame_mode, "i") == 0)
       {
         athame_send_to_vim('\x1d'); //<C-]> Finish abbrevs/kill mappings
         athame_poll_vim(1);
         athame_get_vim_info(0);
       }
-      //TODO: handle 'c' mode and go back into loop
     }
     if (athame_is_set("ATHAME_SHOW_MODE", 1))
     {

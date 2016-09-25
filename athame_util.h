@@ -791,9 +791,19 @@ static char athame_process_input(int instream)
 
 static int athame_handle_special_char(char char_read) {
   //Unless in vim commandline send special chars to readline instead of vim
-  if(athame_failure || (strchr(ap_special, char_read) && strcmp(athame_mode, "c") != 0 ))
-  {
+  if (athame_failure) {
     return 1;
+  }
+  if (strchr(ap_special, char_read)) {
+    if (sent_to_vim) {
+      // Make sure our mode is up to date.
+      athame_poll_vim(1);
+      athame_get_vim_info(0);
+    }
+    if (strcmp(athame_mode, "c") != 0)
+    {
+      return 1;
+    }
   }
   ap_set_nospecial();
   return 0;
