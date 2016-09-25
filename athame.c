@@ -223,7 +223,7 @@ char athame_loop(int instream)
     else {
       while(selected == 0 && !athame_failure)
       {
-        int timeout_msec = get_timeout_msec();
+        long timeout_msec = get_timeout_msec();
         selected = athame_select(instream, vim_term, 0, timeout_msec, 0);
         if (waitpid(vim_pid, NULL, WNOHANG) == 0) // Is vim still running?
         {
