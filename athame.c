@@ -206,7 +206,6 @@ char athame_loop(int instream)
   {
     return first_char;
   }
-
   athame_ensure_vim(0, 0);
 
   long loop_begin_time = get_time();

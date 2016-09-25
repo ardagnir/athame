@@ -210,12 +210,16 @@ static int athame_wait_for_vim(int char_break, int instream)
      return error;
   }
 
-  // Grab the mode now because the program might block (like gdb).
-  int i;
-  for(i = 0; i < 6; i++) {
-    if (athame_mode[0] != 'n' || athame_sleep(10, char_break, instream)) {
-      break;
+  if (char_break) {
+    // Grab the mode now because the program might block (like gdb).
+    int i;
+    for(i = 0; i < 6; i++) {
+      if (athame_mode[0] != 'n' || athame_sleep(10, char_break, instream)) {
+        break;
+      }
+      athame_get_vim_info(0);
     }
+  } else {
     athame_get_vim_info(0);
   }
   athame_bottom_mode();
