@@ -34,34 +34,27 @@ function runtest () {
     i=${t:4:${#t}-7}
     echo "Test $i:"
     cat ../prefix.sh inst$i.sh | grep -v '^\#' > input_text
-    # If we just pipe the text directly, Vim gets behind and athame times it out.
-    # Instead we use charread to simulate typing at 33 char/sec.
-    # This actually ends up being closer to 25-30 char/sec on my crappy laptop because
-    # of overhead in charread, but that is still faster than world-recod human typists.
-    script -c "../charread.sh .03 input_text | $1" failure > /dev/null 2> /dev/null
+
+    start_time=$(date +%s%3N)
+    script -c "cat input_text | $1" failure > /dev/null 2> /dev/null
+    end_time=$(date +%s%3N)
+    keys_typed=$(($(wc -c < inst$i.sh)))
+    speed=$((keys_typed * 1000 / $((end_time-start_time))))
+    # Make sure we can type at least 33 keys per second. This is faster than the world record.
+    if [ $speed -lt 33 ]; then
+      slow=1
+    fi
     if [ $? -ne 0 ]; then
       # Linux version failed. Try bsd version:
-      script failure bash -c "../charread.sh .03 input_text | $1" > /dev/null
+      script failure bash -c "cat input_text | $1" > /dev/null
     fi
     diff ../$2/expected$i out$i >>failure 2>&1
     if [ $? -eq 0 ]; then
       echo "Success!"
     else
-        echo "Failed at high speed. Retrying at slower speed"
-        script -c "../charread.sh .1 input_text | $1" failure > /dev/null 2> /dev/null
-        if [ $? -ne 0 ]; then
-          # Linux version failed. Try bsd version:
-          script failure bash -c "../charread.sh .1 input_text | $1" > /dev/null
-        fi
-        diff ../$2/expected$i out$i >>failure 2>&1
-        if [ $? -eq 0 ]; then
-          echo "Success!"
-          slow=1
-        else
-          echo "Failed at slow speed."
-          cat failure >>failures
-          failures="$failures $i"
-        fi
+      echo "Failed."
+      cat failure >>failures
+      failures="$failures $i"
     fi
     echo ""
   done
@@ -114,7 +107,7 @@ runtest "$1" shell "Shell Fallback without X"
 DISPLAY=$temp
 
 if [ $slow -eq 1 ]; then
-  echo "Test Result: Athame is running slow on this computer."
+  echo "Athame passed all tests but is running slow on this computer. Install anyway?"
   read -p "Install anyway? (y:yes, other:no)? " -rn 1
   if ! [[ $REPLY =~ ^[Yy]$ ]]; then
     echo ""
