@@ -152,8 +152,7 @@ static int ap_needs_to_leave()
   return rl_done || rl_num_chars_to_read > 0 && rl_end >= rl_num_chars_to_read;
 }
 
-//TODO:change to substring
-static char* ap_get_slice(char* text, int start, int end)
+static char* ap_get_substr(char* text, int start, int end)
 {
   int mbchars;
   int pos_s = 0;

@@ -189,7 +189,7 @@ static int ap_needs_to_leave()
   return 0;
 }
 
-static char* ap_get_slice(char* text, int start, int end)
+static char* ap_get_substr(char* text, int start, int end)
 {
   int mbchars;
   int pos_s = 0;

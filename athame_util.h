@@ -652,7 +652,7 @@ static int athame_draw_line_with_highlight(char* text, int start, int end)
   int extra_lines_e = (end + prompt_len - 1) /term_width;
 
   char* with_space = athame_copy_w_space(text);
-  char* highlighted = ap_get_slice(with_space, start, end);
+  char* highlighted = ap_get_substr(with_space, start, end);
   free(with_space);
 
   fprintf(athame_outstream, "\e[%dG%s", prompt_len + 1, text);
