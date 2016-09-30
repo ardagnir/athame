@@ -54,9 +54,13 @@ void athame_init(int instream, FILE* outstream)
   updated = 1;
   athame_mode[0] = 'n';
   athame_mode[1] = '\0';
-  athame_displaying_mode[0] = '\0';
-  last_vim_command[0] = '\0';
-  last_cmd_pos = 0;
+  athame_command[0] = '\0';
+  command_cursor = 0;
+  bottom_display[0] = '\0';
+  last_athame_mode[0] = '\0';
+  bottom_color = 0;
+  bottom_style = 0;
+  bottom_cursor = 0;
   cs_confirmed = 0;
   athame_failure = 0;
 
@@ -161,12 +165,12 @@ void athame_cleanup()
   }
   if(athame_failure)
   {
-    athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
+    athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0, 0);
     free((char*)athame_failure);
   }
   else if (athame_is_set("ATHAME_SHOW_MODE", 1))
   {
-    athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
+    athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0, 0);
   }
   if(expr_pid > 0) {
     wait_then_kill(expr_pid);
@@ -200,6 +204,8 @@ char athame_loop(int instream)
   char returnVal = 0;
   sent_to_vim = 0;
   vim_in_sync = 1;
+  last_athame_mode[0] = '\0';
+  bottom_display[0] = '\0';
 
   // This is a performance step that allows us to bypass starting up vim if we aren't going to talk to it.
   char first_char = (vim_stage != VIM_RUNNING) ? athame_get_first_char(instream) : 0;
@@ -304,8 +310,7 @@ char athame_loop(int instream)
     }
     if (athame_is_set("ATHAME_SHOW_MODE", 1))
     {
-      athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
-      athame_displaying_mode[0] = '\0';
+      athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0, 0);
     }
     updated = 0;
   } else {
@@ -321,7 +326,7 @@ char athame_loop(int instream)
 void athame_after_bypass() {
   if (athame_failure && athame_is_set("ATHAME_SHOW_ERROR", 1))
   {
-    athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
+    athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0, 0);
   }
 }
 
