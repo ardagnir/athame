@@ -326,7 +326,7 @@ void athame_after_bypass() {
 }
 
 void athame_char_handled() {
-  if (!ap_needs_to_leave()) {
+  if (athame_is_set("ATHAME_ENABLED", 1) && !ap_needs_to_leave()) {
     if(athame_failure)
     {
       athame_draw_failure();
