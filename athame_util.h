@@ -6,7 +6,6 @@ static void athame_set_failure(char* fail_str);
 static char athame_process_input(int instream);
 static char athame_process_char(char instream);
 static int athame_setup_history();
-static char* athame_get_lines_from_vim(int start_row, int end_row);
 static int athame_sleep(int msec, int char_break, int instream);
 static int athame_get_vim_info_inner();
 static void athame_update_vimline(int row, int col);
@@ -1001,21 +1000,6 @@ static int athame_get_vim_info_inner()
   }
 
   return changed;
-}
-
-static char* athame_get_lines_from_vim(int start_row, int end_row)
-{
-  FILE* sliceFile = fopen(slice_file_name, "r");
-  int bytes_read = fread(athame_buffer, 1, DEFAULT_BUFFER_SIZE-1, sliceFile);
-  if (bytes_read > 0) {
-    // -1 to remove trailing newline
-    athame_buffer[bytes_read - 1] = '\0';
-  }
-  else {
-    athame_buffer[0] = '\0';
-  }
-  fclose(sliceFile);
-  return athame_buffer;
 }
 
 static int athame_select(int file_desc1, int file_desc2, int timeout_sec, int timeout_ms, int no_signals) {
