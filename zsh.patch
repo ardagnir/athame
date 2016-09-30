@@ -30,7 +30,7 @@ diff -ru a/Src/Makefile.in b/Src/Makefile.in
 -install.bin: install.bin-here
 -uninstall.bin: uninstall.bin-here
 +install.vimbed:
-+	if [ -f $(DESTDIR)$(libdir)/athame_zsh ]; then rm -r $(DESTDIR)$(libdir)/athame_zsh; fi
++	if [ -d $(DESTDIR)$(libdir)/athame_zsh ]; then rm -r $(DESTDIR)$(libdir)/athame_zsh; fi
 +	cp -r $(dir_top)/$(subdir)/vimbed/plugin $(DESTDIR)/$(libdir)/athame_zsh
 +uninstall.vimbed:
 +	rm -r $(DESTDIR)$(libdir)/athame_zsh
