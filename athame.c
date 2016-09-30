@@ -209,7 +209,7 @@ char athame_loop(int instream)
 
   // This is a performance step that allows us to bypass starting up vim if we aren't going to talk to it.
   char first_char = (vim_stage != VIM_RUNNING) ? athame_get_first_char(instream) : 0;
-  if (first_char && athame_is_special_char(first_char))
+  if (first_char && strchr(ap_nl, first_char))
   {
     return first_char;
   }

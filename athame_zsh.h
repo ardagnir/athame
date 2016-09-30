@@ -224,6 +224,7 @@ static char ap_handle_signals()
   return 0;
 }
 
+static char* ap_nl = "\r\n";
 static char* ap_special = "\t\x04\r\n\x0c";
 static char ap_delete = '\x04';
 
