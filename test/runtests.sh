@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Athame.  If not, see <http://www.gnu.org/licenses/>.
 
+first_test=1
 slow=0
 sanity=0
 
@@ -40,8 +41,14 @@ function runtest () {
     end_time=$(date +%s%3N)
     keys_typed=$(($(wc -c < inst$i.sh)))
     speed=$((keys_typed * 1000 / $((end_time-start_time))))
-    # Make sure we can handle at least 27 keys per second. This is about 294 words per minute for English text, faster than world record typists.
-    if [ $speed -lt 27 ]; then
+    # Make sure we can handle at least 27 keys per second. This is about 294
+    # words per minute for English text, faster than world record typists.
+    #
+    # We don't count the first test for speed. We already know that vim can take
+    # a while to load off disk on the first run and we don't want to mark the
+    # test as slow just because the user hasn't run vim yet.
+    echo speed=$speed
+    if [ $first_test -ne 1 ] && [ $speed -lt 27 ]; then
       slow=1
     fi
     if [ $? -ne 0 ]; then
@@ -57,6 +64,7 @@ function runtest () {
       failures="$failures $i"
     fi
     echo ""
+    first_test=0
   done
   cd ..
   if [[ -n $failures ]]; then
