@@ -1,7 +1,7 @@
 #include <sys/time.h>
 
 static void athame_send_to_vim(char input);
-static void athame_get_vim_info();
+static int athame_get_vim_info();
 static void athame_set_failure(char* fail_str);
 static char athame_process_input(int instream);
 static char athame_process_char(char instream);
@@ -23,6 +23,7 @@ static int athame_select(int file_desc1, int file_desc2, int timeout_sec, int ti
 static int athame_is_set(char* env, int def);
 static char* athame_tok(char** pointer, char delim);
 static long get_time();
+static void athame_force_vim_sync();
 
 #define DEFAULT_BUFFER_SIZE 2048
 
@@ -49,11 +50,20 @@ static char* servername;
 #define VIM_CONFIRMED_START 2
 #define VIM_RUNNING 3
 static int vim_stage = VIM_NOT_STARTED;
+
+// Have we sent any keys to vim since readline started.
 static int sent_to_vim = 0;
+
+// 1 if we know Vim has finished handling all keys we sent to it.
+static int vim_in_sync = 1;
+
 // Measured in ms since epoch
 static long time_to_poll = -1;
+static long vim_started = -1;
+
 // Number of stale polls since last keypress or change
 static int stale_polls = 0;
+
 static int change_since_key=0;
 static FILE* athame_outstream = 0;
 
@@ -210,6 +220,8 @@ static int athame_wait_for_vim(int char_break, int instream)
      return error;
   }
 
+  vim_started = get_time();
+
   if (char_break) {
     // Grab the mode now because the program might block (like gdb).
     int i;
@@ -217,10 +229,10 @@ static int athame_wait_for_vim(int char_break, int instream)
       if (athame_mode[0] != 'n' || athame_sleep(10, char_break, instream)) {
         break;
       }
-      athame_get_vim_info(0);
+      athame_get_vim_info();
     }
   } else {
-    athame_get_vim_info(0);
+    athame_get_vim_info();
   }
   athame_bottom_mode();
   return 0;
@@ -794,17 +806,14 @@ static char athame_process_input(int instream)
   }
 }
 
-static int athame_handle_special_char(char char_read) {
-  //Unless in vim commandline send special chars to readline instead of vim
+// Should we send the char to readline?
+static int athame_is_special_char(char char_read) {
   if (athame_failure) {
     return 1;
   }
   if (strchr(ap_special, char_read)) {
-    if (sent_to_vim) {
-      // Make sure our mode is up to date.
-      athame_poll_vim(1);
-      athame_get_vim_info(0);
-    }
+    // Make sure our mode is up to date.
+    athame_force_vim_sync();
     if (strcmp(athame_mode, "c") != 0)
     {
       return 1;
@@ -815,13 +824,14 @@ static int athame_handle_special_char(char char_read) {
 }
 
 static char athame_process_char(char char_read){
-  if (athame_handle_special_char(char_read))
+  if (athame_is_special_char(char_read))
   {
     return char_read;
   }
   else
   {
     sent_to_vim = 1;
+    vim_in_sync = 0;
     stale_polls = 0;
     change_since_key = 0;
 
@@ -839,7 +849,7 @@ static void athame_send_to_vim(char input)
   write(vim_term, &input, 1);
 }
 
-static void athame_get_vim_info(int allow_poll)
+static int athame_get_vim_info()
 {
   if (athame_get_vim_info_inner())
   {
@@ -847,11 +857,9 @@ static void athame_get_vim_info(int allow_poll)
     stale_polls = 0;
     change_since_key = 1;
     athame_redisplay();
+    return 1;
   }
-  else if (allow_poll)
-  {
-    request_poll();
-  }
+  return 0;
 }
 
 static int athame_get_col_row(char* string, int* col, int* row)
@@ -1104,4 +1112,18 @@ static void wait_then_kill(int pid) {
       kill(pid, SIGKILL);
       waitpid(pid, NULL, 0);
     }
+}
+
+static void athame_force_vim_sync() {
+      if (vim_in_sync) {
+        return;
+      }
+      int sanity = 100;
+      while (athame_select(vim_term, -1, 0, 100, 1) != 0 && sanity-- > 0) {
+        athame_sleep(5, 0, 0);
+        read(vim_term, athame_buffer, DEFAULT_BUFFER_SIZE-1);
+      }
+      athame_poll_vim(1);
+      athame_get_vim_info();
+      vim_in_sync = 1;
 }

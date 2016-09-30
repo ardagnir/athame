@@ -40,8 +40,8 @@ function runtest () {
     end_time=$(date +%s%3N)
     keys_typed=$(($(wc -c < inst$i.sh)))
     speed=$((keys_typed * 1000 / $((end_time-start_time))))
-    # Make sure we can type at least 33 keys per second. This is faster than the world record.
-    if [ $speed -lt 33 ]; then
+    # Make sure we can handle at least 27 keys per second. This is about 294 words per minute for English text, faster than world record typists.
+    if [ $speed -lt 27 ]; then
       slow=1
     fi
     if [ $? -ne 0 ]; then

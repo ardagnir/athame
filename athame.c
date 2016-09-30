@@ -199,16 +199,15 @@ char athame_loop(int instream)
 {
   char returnVal = 0;
   sent_to_vim = 0;
+  vim_in_sync = 1;
 
   // This is a performance step that allows us to bypass starting up vim if we aren't going to talk to it.
   char first_char = (vim_stage != VIM_RUNNING) ? athame_get_first_char(instream) : 0;
-  if (first_char && athame_handle_special_char(first_char))
+  if (first_char && athame_is_special_char(first_char))
   {
     return first_char;
   }
   athame_ensure_vim(0, 0);
-
-  long loop_begin_time = get_time();
 
   if(!updated)
   {
@@ -244,7 +243,9 @@ char athame_loop(int instream)
           else if (selected == 2)
           {
             read(vim_term, athame_buffer, DEFAULT_BUFFER_SIZE-1);
-            athame_get_vim_info(1);
+            if (!athame_get_vim_info()) {
+              request_poll();
+            }
           }
           else if (selected == -1)
           {
@@ -291,12 +292,14 @@ char athame_loop(int instream)
   {
     if(sent_to_vim)
     {
-      // We know mode is up to date because we did a blocking poll in handle_special_char
+      // Should already be synced here, but this is a no-op in that case and
+      // it makes the code less fragile to make sure.
+      athame_force_vim_sync();
       if(strcmp(athame_mode, "i") == 0)
       {
         athame_send_to_vim('\x1d'); //<C-]> Finish abbrevs/kill mappings
         athame_poll_vim(1);
-        athame_get_vim_info(0);
+        athame_get_vim_info();
       }
     }
     if (athame_is_set("ATHAME_SHOW_MODE", 1))
