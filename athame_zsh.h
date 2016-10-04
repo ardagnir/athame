@@ -219,6 +219,10 @@ static char* ap_get_substr(char* text, int start, int end)
 
 static char ap_handle_signals()
 {
+  int q = queue_signal_level();
+  // This forces all queued signals to be handled by zsh now.
+  dont_queue_signals();
+  restore_queue_signals(q);
   if (errflag & ERRFLAG_INT)
     return EOF;
   return 0;
