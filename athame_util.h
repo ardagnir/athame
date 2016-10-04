@@ -492,7 +492,9 @@ int last_bdisplay_bottom = 0;
 
 void athame_bottom_display(char* string, int style, int color, int cursor, int force)
 {
-    if (!force) {
+    int term_height, term_width;
+    ap_get_term_size(&term_height, &term_width);
+    if (!force && term_height == last_bdisplay_bottom) {
       int changed = 0;
       changed |= (strcmp(bottom_display, string));
       changed |= (style != bottom_style);
@@ -509,8 +511,6 @@ void athame_bottom_display(char* string, int style, int color, int cursor, int f
     bottom_color = color;
     bottom_cursor = cursor;
 
-    int term_height = ap_get_term_height();
-    int term_width = ap_get_term_width();
     if(!last_bdisplay_bottom)
     {
       last_bdisplay_top = term_height;
@@ -666,7 +666,8 @@ static char* athame_copy_w_space(char* text)
 static int athame_draw_line_with_highlight(char* text, int start, int end)
 {
   int prompt_len = ap_get_prompt_length();
-  int term_width = ap_get_term_width();
+  int term_width;
+  ap_get_term_size(NULL, &term_width);
   //How much more than one line does the text take up (if it wraps)
   int extra_lines = ((int)strlen(text) + prompt_len - 1)/term_width;
   //How far down is the start of the highlight (if text wraps)
@@ -768,7 +769,9 @@ static void athame_bottom_mode()
     return;
   }
   static int text_lines = 0;
-  int new_text_lines = (ap_get_line_char_length() + ap_get_prompt_length())/ap_get_term_width();
+  int term_width;
+  ap_get_term_size(NULL, &term_width);
+  int new_text_lines = (ap_get_line_char_length() + ap_get_prompt_length())/term_width;
   int force_redraw = new_text_lines != text_lines || athame_dirty;
   char* mode_string = athame_get_mode_text(athame_mode);
   if (strcmp(athame_mode, last_athame_mode) != 0)

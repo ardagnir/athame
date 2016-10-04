@@ -259,6 +259,9 @@ char athame_loop(int instream)
             if (sig_result = ap_handle_signals())
             {
               return sig_result;
+            } else {
+              // Make sure we keep the mode drawn on a resize.
+              athame_bottom_mode();
             }
           }
           if (time_to_poll >= 0 && time_to_poll < get_time()) {

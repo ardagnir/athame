@@ -101,20 +101,10 @@ static void ap_display()
   rl_redisplay();
 }
 
-static int ap_get_term_width()
+static void ap_get_term_size(int* height, int* width)
 {
-  int height, width;
   _rl_sigwinch_resize_terminal(); //Incase the terminal changed size while readline wasn't looking.
-  rl_get_screen_size(&height, &width);
-  return width;
-}
-
-static int ap_get_term_height()
-{
-  int height, width;
-  _rl_sigwinch_resize_terminal(); //Incase the terminal changed size while readline wasn't looking.
-  rl_get_screen_size(&height, &width);
-  return height;
+  rl_get_screen_size(height, width);
 }
 
 static int ap_get_prompt_length()
@@ -126,7 +116,7 @@ HISTORY_STATE* hs;
 int hs_counter;
 static void ap_get_history_start()
 {
-  hs = history_get_history_state(); 
+  hs = history_get_history_state();
   hs_counter = 0;
 }
 

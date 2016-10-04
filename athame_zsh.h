@@ -142,16 +142,15 @@ static void ap_display()
   zrefresh();
 }
 
-static int ap_get_term_width()
+static void ap_get_term_size(int* height, int* width)
 {
   adjustwinsize(1);
-  return zterm_columns;
-}
-
-static int ap_get_term_height()
-{
-  adjustwinsize(1);
-  return zterm_lines;
+  if(width) {
+    *width = zterm_columns;
+  }
+  if (height) {
+    *height = zterm_lines;
+  }
 }
 
 static int ap_get_prompt_length()
