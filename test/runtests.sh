@@ -38,6 +38,10 @@ function runtest () {
 
     start_time=$(date +%s%3N)
     script -c "cat input_text | $1" failure > /dev/null 2> /dev/null
+    if [ $? -ne 0 ]; then
+      # Linux version failed. Try bsd version:
+      script failure bash -c "cat input_text | $1" > /dev/null
+    fi
     end_time=$(date +%s%3N)
     keys_typed=$(($(wc -c < inst$i.sh)))
     speed=$((keys_typed * 1000 / $((end_time-start_time))))
@@ -50,10 +54,6 @@ function runtest () {
     echo speed=$speed
     if [ $first_test -ne 1 ] && [ $speed -lt 27 ]; then
       slow=1
-    fi
-    if [ $? -ne 0 ]; then
-      # Linux version failed. Try bsd version:
-      script failure bash -c "cat input_text | $1" > /dev/null
     fi
     diff ../$2/expected$i out$i >>failure 2>&1
     if [ $? -eq 0 ]; then
