@@ -50,7 +50,7 @@ static char* servername;
 static int vim_stage = VIM_NOT_STARTED;
 static int sent_to_vim = 0;
 // Measured in ms since epoch
-static int time_to_poll = -1;
+static long time_to_poll = -1;
 // Number of stale polls since last keypress or change
 static int stale_polls = 0;
 static int change_since_key=0;
@@ -436,11 +436,11 @@ static void athame_update_vimline(int row, int col)
   updated = 1;
 }
 
-static int get_timeout_msec() {
+static long get_timeout_msec() {
   if (time_to_poll == -1) {
     return -1;
   }
-  return MAX(30, time_to_poll - time(NULL) + 5);
+  return MAX(30, time_to_poll - get_time() + 5);
 }
 
 
@@ -448,7 +448,7 @@ static void request_poll() {
   if (stale_polls > 2) {
     return;
   }
-  int request_time = get_time() + (change_since_key || stale_polls > 0 ? 500 : 100);
+  long request_time = get_time() + (change_since_key || stale_polls > 0 ? 500 : 100);
   time_to_poll = time_to_poll < 0 ? request_time : MIN(time_to_poll, request_time);
 }
 
