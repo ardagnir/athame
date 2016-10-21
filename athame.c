@@ -203,7 +203,8 @@ char athame_loop(int instream)
 {
   char returnVal = 0;
   sent_to_vim = 0;
-  vim_in_sync = 1;
+  vim_sync = VIM_SYNC_YES;
+  time_to_sync = get_time();
   last_athame_mode[0] = '\0';
   bottom_display[0] = '\0';
 
@@ -251,6 +252,12 @@ char athame_loop(int instream)
             read(vim_term, athame_buffer, DEFAULT_BUFFER_SIZE-1);
             if (!athame_get_vim_info()) {
               request_poll();
+            }
+          }
+          else if (selected == 0)
+          {
+            if(vim_sync >= VIM_SYNC_CHAR_BEHIND) {
+              vim_sync = VIM_SYNC_NEEDS_POLL;
             }
           }
           else if (selected == -1)
@@ -307,8 +314,7 @@ char athame_loop(int instream)
       if(strcmp(athame_mode, "i") == 0)
       {
         athame_send_to_vim('\x1d'); //<C-]> Finish abbrevs/kill mappings
-        athame_poll_vim(1);
-        athame_get_vim_info();
+        athame_force_vim_sync();
       }
     }
     if (athame_is_set("ATHAME_SHOW_MODE", 1))

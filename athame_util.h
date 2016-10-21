@@ -57,8 +57,15 @@ static int vim_stage = VIM_NOT_STARTED;
 // Have we sent any keys to vim since readline started.
 static int sent_to_vim = 0;
 
-// 1 if we know Vim has finished handling all keys we sent to it.
-static int vim_in_sync = 1;
+// How closely is vim synced with athame?
+#define VIM_SYNC_YES 0
+#define VIM_SYNC_NEEDS_INFO_READ 1
+#define VIM_SYNC_WAITING_POLL_DONE 2
+#define VIM_SYNC_NEEDS_POLL 3
+#define VIM_SYNC_CHAR_BEHIND 4
+#define VIM_SYNC_NO 5
+static int vim_sync = VIM_SYNC_YES;
+static long time_to_sync = 0;
 
 // Measured in ms since epoch
 static long time_to_poll = -1;
@@ -459,6 +466,10 @@ static void athame_update_vimline(int row, int col)
 }
 
 static long get_timeout_msec() {
+  if(vim_sync >= VIM_SYNC_CHAR_BEHIND) {
+    time_to_sync = 100 + get_time();
+    return 100;
+  }
   if (time_to_poll == -1) {
     return -1;
   }
@@ -480,6 +491,15 @@ static void athame_poll_vim(int block)
 
   //Poll Vim. If we fail, postpone the poll by requesting a new poll
   if (athame_remote_expr("Vimbed_Poll()", block) == 0) {
+    if (vim_sync == VIM_SYNC_WAITING_POLL_DONE) {
+      vim_sync = VIM_SYNC_NEEDS_INFO_READ;
+    } else if (vim_sync == VIM_SYNC_NEEDS_POLL) {
+      if (block) {
+        vim_sync = VIM_SYNC_NEEDS_INFO_READ;
+      } else {
+        vim_sync = VIM_SYNC_WAITING_POLL_DONE;
+      }
+    }
     stale_polls++;
   } else {
     request_poll();
@@ -857,7 +877,6 @@ static char athame_process_char(char char_read){
   else
   {
     sent_to_vim = 1;
-    vim_in_sync = 0;
     stale_polls = 0;
     change_since_key = 0;
 
@@ -872,11 +891,19 @@ static char athame_process_char(char char_read){
 
 static void athame_send_to_vim(char input)
 {
+  if (vim_sync < VIM_SYNC_CHAR_BEHIND) {
+    vim_sync = VIM_SYNC_CHAR_BEHIND;
+  } else {
+    vim_sync = VIM_SYNC_NO;
+  }
   write(vim_term, &input, 1);
 }
 
 static int athame_get_vim_info()
 {
+  if (vim_sync == VIM_SYNC_NEEDS_INFO_READ) {
+    vim_sync = VIM_SYNC_YES;
+  }
   if (athame_get_vim_info_inner())
   {
     time_to_poll = -1;
@@ -1120,15 +1147,29 @@ static void wait_then_kill(int pid) {
 }
 
 static void athame_force_vim_sync() {
-      if (vim_in_sync) {
+      if (vim_sync == VIM_SYNC_YES) {
         return;
       }
-      int sanity = 100;
-      while (athame_select(vim_term, -1, 0, 100, 1) != 0 && sanity-- > 0) {
-        athame_sleep(5, 0, 0);
-        read(vim_term, athame_buffer, DEFAULT_BUFFER_SIZE-1);
+      if (vim_sync == VIM_SYNC_CHAR_BEHIND) {
+        athame_sleep(20,0,0);
+        vim_sync = VIM_SYNC_NEEDS_POLL;
       }
-      athame_poll_vim(1);
+      else if (vim_sync == VIM_SYNC_NO) {
+        if (athame_select(vim_term, -1, 0, MAX(1, time_to_sync - get_time()), 1) != 0) {
+          int sanity = 100;
+          while (athame_select(vim_term, -1, 0, 100, 1) != 0 && sanity-- > 0) {
+            athame_sleep(5, 0, 0);
+            read(vim_term, athame_buffer, DEFAULT_BUFFER_SIZE-1);
+          }
+        }
+        vim_sync = VIM_SYNC_NEEDS_POLL;
+      }
+      if (vim_sync == VIM_SYNC_WAITING_POLL_DONE) {
+        waitpid(expr_pid, NULL, 0);
+        vim_sync = VIM_SYNC_NEEDS_INFO_READ;
+      }
+      if (vim_sync >= VIM_SYNC_NEEDS_POLL) {
+        athame_poll_vim(1);
+      }
       athame_get_vim_info();
-      vim_in_sync = 1;
 }
