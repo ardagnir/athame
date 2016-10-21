@@ -83,67 +83,66 @@ static int start_vim(int char_break, int instream)
   {
     return 2;
   }
-  else
-  {
-    char* etcrc = "/etc/athamerc";
-    char homerc[256];
-    char* athamerc;
-    if (!getenv("ATHAME_TEST_RC"))
-    {
-      snprintf(homerc, 255, "%s/.athamerc", getenv("HOME"));
-      if (!access(homerc, R_OK))
-      {
-        athamerc = homerc;
-      }
-      else if (!access(etcrc, R_OK))
-      {
-        athamerc = etcrc;
-      }
-      else
-      {
-        athame_set_failure("No athamerc found.");
-        return 1;
-      }
-    }
 
-    int pid = forkpty(&vim_term, NULL, NULL, NULL);
-    if (pid == 0)
+  char* etcrc = "/etc/athamerc";
+  char homerc[256];
+  char* athamerc = getenv("ATHAME_TEST_RC");
+  int testrc = athamerc != NULL;
+  if (!testrc)
+  {
+    snprintf(homerc, 255, "%s/.athamerc", getenv("HOME"));
+    if (!access(homerc, R_OK))
     {
-      int cursor = ap_get_cursor();
-      snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "+call Vimbed_UpdateText(%d, %d, %d, %d, 1)", athame_row+1, cursor+1, athame_row+1, cursor+1);
-      int vim_error = 0;
-      char* testrc;
-      if (ATHAME_VIM_BIN[0]) {
-        if (testrc = getenv("ATHAME_TEST_RC")) {
-          vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-u", "NONE", "-S", vimbed_file_name, "-S", testrc, "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
-        } else {
-          vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
-        }
-      }
-      else {
-        if (testrc = getenv("ATHAME_TEST_RC")) {
-          vim_error = execlp("vim", "vim", "--servername", servername, "-u", "NONE", "-S", vimbed_file_name, "-S", testrc,  "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
-        } else {
-          vim_error = execlp("vim", "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
-        }
-      }
-      if (vim_error != 0)
-      {
-        printf("Error: %d", errno);
-        exit(EXIT_FAILURE);
-      }
+      athamerc = homerc;
     }
-    else if (pid == -1)
+    else if (!access(etcrc, R_OK))
     {
-      athame_set_failure("Failure starting Vim");
-      return 1;
+      athamerc = etcrc;
     }
     else
     {
-      vim_pid = pid;
-      ap_set_control_chars();
-      return 0;
+      athame_set_failure("No athamerc found.");
+      return 1;
     }
+  }
+
+  int pid = forkpty(&vim_term, NULL, NULL, NULL);
+  if (pid == 0)
+  {
+    int cursor = ap_get_cursor();
+    snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "+call Vimbed_UpdateText(%d, %d, %d, %d, 1)", athame_row+1, cursor+1, athame_row+1, cursor+1);
+    int vim_error = 0;
+    if (ATHAME_VIM_BIN[0]) {
+      if (testrc) {
+        vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-u", "NONE", "-S", vimbed_file_name, "-S", athamerc, "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
+      } else {
+        vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
+      }
+    }
+    else {
+      if (testrc) {
+        vim_error = execlp("vim", "vim", "--servername", servername, "-u", "NONE", "-S", vimbed_file_name, "-S", athamerc,  "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
+      } else {
+        vim_error = execlp("vim", "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
+      }
+    }
+    if (vim_error != 0)
+    {
+      printf("Error: %d", errno);
+      exit(EXIT_FAILURE);
+    }
+    return 1;
+  }
+  else if (pid == -1)
+  {
+    athame_set_failure("Failure starting Vim");
+    return 1;
+  }
+  else
+  {
+    vim_pid = pid;
+    ap_set_control_chars();
+    return 0;
   }
 }
 
@@ -244,7 +243,7 @@ static int athame_wait_for_vim(int char_break, int instream)
 // Make sure vim is running,
 //  or set athame_failure,
 //  or (if char_break) break on char press
-static int athame_ensure_vim(int char_break, int instream)
+static void athame_ensure_vim(int char_break, int instream)
 {
   // These will fallthrough if not interrupted.
   if(vim_stage == VIM_NOT_STARTED) {
