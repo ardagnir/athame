@@ -115,7 +115,7 @@ runtest "$1" shell "Shell Fallback without X"
 DISPLAY=$temp
 
 if [ $slow -eq 1 ]; then
-  echo "Athame passed all tests but is running slow on this computer. Install anyway?"
+  echo "Athame is running slow on this computer. Install anyway?"
   read -p "Install anyway? (y:yes, other:no)? " -rn 1
   if ! [[ $REPLY =~ ^[Yy]$ ]]; then
     echo ""
