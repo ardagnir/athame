@@ -36,13 +36,29 @@ function runtest () {
     echo "Test $i:"
     cat ../prefix.sh inst$i.sh | grep -v '^\#' > input_text
 
-    start_time=$(date +%s%3N)
+    milli=1
+    # Do we have millisecond precision in date?
+    if [ $(date +%s%3N | grep N) ]; then
+      milli=0
+    fi
+    if [ $milli != 0 ]; then
+      start_time=$(date +%s%3N)
+    else
+      start_time=$(date +%s999)
+    fi
     script -c "cat input_text | $1" failure > /dev/null 2> /dev/null
     if [ $? -ne 0 ]; then
       # Linux version failed. Try bsd version:
       script failure bash -c "cat input_text | $1" > /dev/null
     fi
-    end_time=$(date +%s%3N)
+    if [ $milli != 0 ]; then
+      end_time=$(date +%s%3N)
+    else
+      end_time=$(date +%s000)
+      if [ $end_time -lt $start_time ]; then
+        end_time=$((start_time+1))
+      fi
+    fi
     keys_typed=$(($(wc -c < inst$i.sh)))
     speed=$((keys_typed * 1000 / $((end_time-start_time))))
     # Make sure we can handle at least 27 keys per second. This is about 294
@@ -51,9 +67,14 @@ function runtest () {
     # We don't count the first test for speed. We already know that vim can take
     # a while to load off disk on the first run and we don't want to mark the
     # test as slow just because the user hasn't run vim yet.
-    echo speed=$speed
+    if [ $milli != 0 ]; then
+      echo speed=$speed
+    fi
     if [ $first_test -ne 1 ] && [ $speed -lt 27 ]; then
       slow=1
+      if [ $milli == 0 ]; then
+        echo speed=$speed
+      fi
     fi
     diff ../$2/expected$i out$i >>failure 2>&1
     if [ $? -eq 0 ]; then
