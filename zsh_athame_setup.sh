@@ -143,7 +143,6 @@ if [ $build = 1 ]; then
         --enable-zprofile=/etc/zsh/zprofile \
         --enable-zshrc=/etc/zsh/zshrc \
         --enable-maildir-support \
-        --with-term-lib='ncursesw' \
         --enable-multibyte \
         --enable-function-subdirs \
         --enable-fndir=/usr/share/zsh/functions \
@@ -169,7 +168,11 @@ if [ $build = 1 ]; then
     rm -f Src/zshpaths.h && touch Src/Zle/athame.c
 
     cd ../test
-    ./runtests.sh "script -c ../build/usr/bin/zsh" || exit 1
+    if [ "$(uname)" == "Darwin" ]; then
+      ./runtests.sh "script /dev/null ../build/usr/bin/zsh" || exit 1
+    else
+      ./runtests.sh "script -c ../build/usr/bin/zsh" || exit 1
+    fi
     cd -
     make ATHAME_VIM_BIN=$vimbin || exit 1
     echo "Installing Zsh with Athame..."

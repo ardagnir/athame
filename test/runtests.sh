@@ -35,6 +35,7 @@ function runtest () {
     i=${t:4:${#t}-7}
     echo "Test $i:"
     cat ../prefix.sh inst$i.sh | grep -v '^\#' > input_text
+    printf "\x04" >> input_text
 
     milli=1
     # Do we have millisecond precision in date?
