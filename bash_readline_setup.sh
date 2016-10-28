@@ -27,7 +27,7 @@ prefix_flag="--prefix=/"
 installed_flag="--with-installed-readline"
 for arg in "$@"
 do
-  case $arg in
+  case "$arg" in
     "--redownload" ) redownload=1;;
     "--nobuild" ) build=0;;
     "--dirty" ) dirty=1;;
@@ -92,22 +92,22 @@ fi
 if [ $build = 1 ]; then
   if [ ! -f Makefile ]; then
     ac_cv_rl_version=6.3 ./configure \
-                $prefix \
+                "$prefix" \
                 --bindir=/bin \
                 --docdir=/usr/share/doc/bash-4.3 \
                 --without-bash-malloc \
                 --enable-readline \
-                $installed_flag \
+                "$installed_flag" \
                 || exit 1
   fi
   make LOCAL_LIBS=-lutil
   if [ -n "$destdir" ]; then
-    mkdir -p $destdir
+    mkdir -p "$destdir"
   fi
   if [ -w "$destdir" ]; then
-    make install DESTDIR=$destdir
+    make install DESTDIR="$destdir"
   else
-    sudo make install DESTDIR=$destdir
+    sudo make install DESTDIR="$destdir"
   fi
 fi
 

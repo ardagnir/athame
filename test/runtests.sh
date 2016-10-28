@@ -28,7 +28,7 @@ function runtest () {
   echo "Testing Athame $3..."
   mkdir -p testrun
   rm -rf testrun/*
-  cp $2/inst* testrun
+  cp "$2"/inst* testrun
   failures=""
   cd testrun
   for t in inst*.sh; do
@@ -77,7 +77,7 @@ function runtest () {
         echo speed=$speed
       fi
     fi
-    diff ../$2/expected$i out$i >>failure 2>&1
+    diff "../$2/expected$i" out$i >>failure 2>&1
     if [ $? -eq 0 ]; then
       echo "Success!"
     else
@@ -112,7 +112,7 @@ function runtest () {
   return 0
 }
 
-if [ -z $DISPLAY ]; then
+if [ -z "$DISPLAY" ]; then
   echo "X not detected."
   echo "Testing basic shell functions without Vim..."
   runtest "$1" shell "Shell" &&

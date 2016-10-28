@@ -30,7 +30,7 @@ destdir=""
 prefix="/usr"
 for arg in "$@"
 do
-  case $arg in
+  case "$arg" in
     "--redownload" ) redownload=1;;
     "--nobuild" ) build=0;;
     "--noathame" ) athame=0;;
@@ -65,7 +65,7 @@ do
 done
 
 prefix_flag="--prefix=$prefix"
-libdir_flag=${libdir:+"--libdir=$libdir"}
+libdir_flag="${libdir:+"--libdir=$libdir"}"
 docdir_flag="--docdir=${docdir-$prefix/share/doc/zsh}"
 htmldir_flag="--htmldir=${htmldir-$docdir/html}"
 
@@ -133,9 +133,9 @@ fi
 #Build and install zsh
 if [ $build = 1 ]; then
   if [ ! -f Makefile ]; then
-    ./configure $prefix_flag \
-        $docdir_flag \
-        $htmldir_flag \
+    ./configure "$prefix_flag" \
+        "$docdir_flag" \
+        "$htmldir_flag" \
         --enable-etcdir=/etc/zsh \
         --enable-zshenv=/etc/zsh/zshenv \
         --enable-zlogin=/etc/zsh/zlogin \
@@ -154,15 +154,15 @@ if [ $build = 1 ]; then
         || exit 1
   fi
   if [ $runtest = 1 ]; then
-    rm -rf $(pwd)/../test/build
-    mkdir -p $(pwd)/../test/build
+    rm -rf "$(pwd)/../test/build"
+    mkdir -p "$(pwd)/../test/build"
 
     # make sure the files affected by ATHAME_TESTDIR are updated to use test settings
     rm -f Src/zshpaths.h && touch Src/Zle/athame.c
 
-    mkdir -p $(pwd)/../test/build/usr/lib
-    make ATHAME_VIM_BIN=$vimbin ATHAME_TESTDIR=$(pwd)/../test/build || exit 1
-    make install DESTDIR=$(pwd)/../test/build || exit 1
+    mkdir -p "$(pwd)/../test/build/usr/lib"
+    make ATHAME_VIM_BIN="$vimbin" ATHAME_TESTDIR="$(pwd)/../test/build" || exit 1
+    make install DESTDIR="$(pwd)/../test/build" || exit 1
 
     # make sure the files affected by ATHAME_TESTDIR are updated to not use test settings
     rm -f Src/zshpaths.h && touch Src/Zle/athame.c
@@ -174,26 +174,26 @@ if [ $build = 1 ]; then
       ./runtests.sh "script -c ../build/usr/bin/zsh" || exit 1
     fi
     cd -
-    make ATHAME_VIM_BIN=$vimbin || exit 1
+    make ATHAME_VIM_BIN="$vimbin" || exit 1
     echo "Installing Zsh with Athame..."
     if [ -n "$destdir" ]; then
-      mkdir -p $destdir
+      mkdir -p "$destdir"
     fi
     if [ -w "$destdir" ]; then
-      make install DESTDIR=$destdir || exit 1
+      make install DESTDIR="$destdir" || exit 1
     else
-      sudo make install DESTDIR=$destdir || exit 1
+      sudo make install DESTDIR="$destdir" || exit 1
     fi
   else
     make ATHAME_VIM_BIN=$vimbin || exit 1
     echo "Installing Zsh with Athame..."
     if [ -n "$destdir" ]; then
-      mkdir -p $destdir
+      mkdir -p "$destdir"
     fi
     if [ -w "$destdir" ]; then
-      make install DESTDIR=$destdir || exit 1
+      make install DESTDIR="$destdir" || exit 1
     else
-      sudo make install DESTDIR=$destdir || exit 1
+      sudo make install DESTDIR="$destdir" || exit 1
     fi
   fi
 fi
