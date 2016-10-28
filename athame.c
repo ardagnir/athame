@@ -228,8 +228,6 @@ char athame_loop(int instream)
 
   while(!returnVal && !athame_failure)
   {
-    athame_bottom_mode();
-
     struct timeval timeout;
     int selected = 0;
     if(first_char){
@@ -339,6 +337,8 @@ void athame_after_bypass() {
   }
 }
 
+// Redraw bottom stuff before handing off to a process that might block,
+// like python.
 void athame_char_handled() {
   if (athame_is_set("ATHAME_ENABLED", 1) && !ap_needs_to_leave()) {
     if(athame_failure)

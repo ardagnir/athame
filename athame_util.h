@@ -12,6 +12,7 @@ static void athame_update_vimline(int row, int col);
 static int athame_remote_expr(char* expr, int bock);
 static char athame_get_first_char(int instream);
 static void athame_highlight(int start, int end);
+static void athame_redisplay();
 static void athame_bottom_display(char* string, int style, int color, int cursor, int force);
 static void athame_bottom_mode();
 static void athame_poll_vim(int block);
@@ -243,7 +244,7 @@ static int athame_wait_for_vim(int char_break, int instream)
   } else {
     athame_get_vim_info();
   }
-  athame_bottom_mode();
+  athame_redisplay();
   return 0;
 }
 
@@ -508,21 +509,29 @@ static void athame_poll_vim(int block)
 
 int last_bdisplay_top = 0;
 int last_bdisplay_bottom = 0;
+int text_lines_for_bdisplay = 0;
 
 void athame_bottom_display(char* string, int style, int color, int cursor, int force)
 {
     int term_height, term_width;
     ap_get_term_size(&term_height, &term_width);
+
+    int new_text_lines = (ap_get_line_char_length() + ap_get_prompt_length())/term_width;
+
     if (!force && term_height == last_bdisplay_bottom) {
       int changed = 0;
       changed |= (strcmp(bottom_display, string));
-      changed |= (style != bottom_style);
-      changed |= (color != bottom_color);
-      changed |= (cursor != bottom_cursor);
+      if (string[0] != '\0') {
+        changed |= (style != bottom_style);
+        changed |= (color != bottom_color);
+        changed |= (cursor != bottom_cursor);
+        changed |= (new_text_lines != text_lines_for_bdisplay);
+      }
       if (!changed) {
         return;
       }
     }
+    text_lines_for_bdisplay = new_text_lines;
 
     strncpy(bottom_display, string, DEFAULT_BUFFER_SIZE-1);
     bottom_display[DEFAULT_BUFFER_SIZE-1]='\0';
@@ -657,7 +666,6 @@ static void athame_redisplay()
       ap_set_cursor(temp);
     }
     athame_highlight(ap_get_cursor(), end_col);
-    athame_bottom_mode();
   }
   else
   {
@@ -671,6 +679,7 @@ static void athame_redisplay()
       ap_display();
     }
   }
+  athame_bottom_mode();
 }
 
 static char* athame_copy_w_space(char* text)
@@ -781,45 +790,42 @@ static char* athame_get_mode_text(char* mode)
     }
 }
 
+static void athame_set_mode(char* mode)
+{
+  if (strcmp(athame_mode, mode) != 0)
+  {
+    char* mode_string = athame_get_mode_text(mode);
+    strcpy(athame_mode, mode);
+    setenv("ATHAME_VIM_MODE", mode_string, 1);
+    ap_redraw_prompt();
+  }
+}
+
 static void athame_bottom_mode()
 {
   if(athame_failure)
   {
     return;
   }
-  static int text_lines = 0;
-  int term_width;
-  ap_get_term_size(NULL, &term_width);
-  int new_text_lines = (ap_get_line_char_length() + ap_get_prompt_length())/term_width;
-  int force_redraw = new_text_lines != text_lines || athame_dirty;
   char* mode_string = athame_get_mode_text(athame_mode);
-  if (strcmp(athame_mode, last_athame_mode) != 0)
   {
-    strcpy(last_athame_mode, athame_mode);
-    setenv("ATHAME_VIM_MODE", mode_string, 1);
-    ap_redraw_prompt();
-    // Redraw can hide the vim command, so we have to redraw it.
-    if (athame_mode[0] == 'c' && athame_is_set("ATHAME_SHOW_COMMAND", 1))
+    if(athame_mode[0] == 'c' && athame_is_set("ATHAME_SHOW_COMMAND", 1))
     {
-      force_redraw = 1;
+      athame_bottom_display(athame_command, ATHAME_NORMAL, ATHAME_DEFAULT, command_cursor, 0);
+    }
+    else if (athame_is_set("ATHAME_SHOW_MODE", 1))
+    {
+      if (athame_mode[0] == 'n')
+      {
+        athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0, 0);
+      }
+      else if(mode_string[0])
+      {
+        sprintf(athame_buffer, "-- %s --", mode_string);
+        athame_bottom_display(athame_buffer, ATHAME_BOLD, ATHAME_DEFAULT, 0, 0);
+      }
     }
   }
-  if (athame_is_set("ATHAME_SHOW_MODE", 1))
-  {
-    if (athame_mode[0] == 'n')
-    {
-      athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0, force_redraw);
-    } else if (athame_mode[0] == 'c')
-    {
-      athame_bottom_display(athame_command, ATHAME_NORMAL, ATHAME_DEFAULT, command_cursor, force_redraw);
-    }
-    else if(mode_string[0])
-    {
-      sprintf(athame_buffer, "-- %s --", mode_string);
-      athame_bottom_display(athame_buffer, ATHAME_BOLD, ATHAME_DEFAULT, 0, force_redraw);
-    }
-  }
-  text_lines = new_text_lines;
 }
 
 static void athame_draw_failure()
@@ -961,7 +967,7 @@ static int athame_get_vim_info_inner()
   {
     if (mode[0] == 'c')
     {
-      strncpy(athame_mode, "c", 3);
+      athame_set_mode("c");
       char* command = athame_tok(&buffer_loc, '\n');
       int cmd_pos = 0;
       if (mode[1] == ',')
@@ -986,7 +992,7 @@ static int athame_get_vim_info_inner()
         // Don't do work if we're quitting.
         return 0;
       }
-      strncpy(athame_mode, mode, 3);
+      athame_set_mode(mode);
     }
     char* location = athame_tok(&buffer_loc, '\n');
     if(location)
