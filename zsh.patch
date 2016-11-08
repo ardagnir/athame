@@ -23,7 +23,7 @@ diff -ru a/Config/defs.mk.in
 diff -ru a/Src/Makefile.in b/Src/Makefile.in
 --- a/Src/Makefile.in	2014-12-13 18:55:54.000000000 -0500
 +++ b/Src/Makefile.in	2015-07-15 22:06:56.455125410 -0400
-@@ -142,8 +142,14 @@
+@@ -142,8 +142,15 @@
  uninstall: uninstall.bin uninstall.modules
  .PHONY: install uninstall
  
@@ -31,6 +31,7 @@ diff -ru a/Src/Makefile.in b/Src/Makefile.in
 -uninstall.bin: uninstall.bin-here
 +install.vimbed:
 +	if [ -d $(DESTDIR)$(libdir)/athame_zsh ]; then rm -r $(DESTDIR)$(libdir)/athame_zsh; fi
++	mkdir -p $(DESTDIR)/$(libdir)
 +	cp -r $(dir_top)/$(subdir)/vimbed/plugin $(DESTDIR)/$(libdir)/athame_zsh
 +uninstall.vimbed:
 +	rm -r $(DESTDIR)$(libdir)/athame_zsh

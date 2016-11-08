@@ -30,6 +30,7 @@ rc=1
 submodule=1
 vimbin=""
 destdir=""
+sudo="sudo "
 prefix_flag="--prefix=/usr"
 libdir_flag=""
 for arg in "$@"
@@ -42,6 +43,7 @@ do
     "--dirty" ) dirty=1;;
     "--norc" ) rc=0;;
     "--nosubmodule" ) submodule=0;;
+    "--nosudo" ) sudo="";;
     --vimbin=*) vimbin="${arg#*=}";;
     --destdir=*) destdir="${arg#*=}";;
     --prefix=*) prefix_flag='--prefix='"${arg#*=}";;
@@ -184,10 +186,14 @@ if [ $build = 1 ]; then
   if [ -w "$destdir" ]; then
     make install DESTDIR="$destdir" || exit 1
   else
-    sudo make install DESTDIR="$destdir" || exit 1
+    ${sudo}make install DESTDIR="$destdir" || exit 1
   fi
 fi
 
 if [ $rc = 1 ]; then
-  sudo cp ../athamerc /etc/athamerc
+  if [ -z "$sudo" ]; then
+    printf "\e[0;31mThe athamerc was not copied. You should copy athamerc to /etc/athamerc or ~/.athamerc.\e[0;0m\n"
+  else
+    sudo cp ../athamerc /etc/athamerc
+  fi
 fi

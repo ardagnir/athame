@@ -25,8 +25,11 @@ athame=1
 dirty=0
 rc=1
 submodule=1
+sudo="sudo "
 vimbin=""
 destdir=""
+docdir=""
+htmldir=""
 prefix="/usr"
 for arg in "$@"
 do
@@ -38,6 +41,7 @@ do
     "--dirty" ) dirty=1;;
     "--norc" ) rc=0;;
     "--nosubmodule" ) submodule=0;;
+    "--nosudo" ) sudo="";;
     --vimbin=*) vimbin="${arg#*=}";;
     --destdir=*) destdir="${arg#*=}";;
     --prefix=*) prefix="${arg#*=}";;
@@ -65,9 +69,9 @@ do
 done
 
 prefix_flag="--prefix=$prefix"
-libdir_flag="${libdir:+"--libdir=$libdir"}"
-docdir_flag="--docdir=${docdir-$prefix/share/doc/zsh}"
-htmldir_flag="--htmldir=${htmldir-$docdir/html}"
+libdir_flag="${libdir:+--libdir=$libdir}"
+docdir_flag="--docdir=${docdir:-$prefix/share/doc/zsh}"
+htmldir_flag="--htmldir=${htmldir:-$docdir/html}"
 
 #Get vim binary
 if [ -z $vimbin ]; then
@@ -134,6 +138,7 @@ fi
 if [ $build = 1 ]; then
   if [ ! -f Makefile ]; then
     ./configure "$prefix_flag" \
+        "$libdir_flag" \
         "$docdir_flag" \
         "$htmldir_flag" \
         --enable-etcdir=/etc/zsh \
@@ -145,8 +150,8 @@ if [ $build = 1 ]; then
         --enable-maildir-support \
         --enable-multibyte \
         --enable-function-subdirs \
-        --enable-fndir=/usr/share/zsh/functions \
-        --enable-scriptdir=/usr/share/zsh/scripts \
+        --enable-fndir="$prefix/share/zsh/functions" \
+        --enable-scriptdir="$prefix/share/zsh/scripts" \
         --with-tcsetpgrp \
         --enable-pcre \
         --enable-cap \
@@ -160,7 +165,6 @@ if [ $build = 1 ]; then
     # make sure the files affected by ATHAME_TESTDIR are updated to use test settings
     rm -f Src/zshpaths.h && touch Src/Zle/athame.c
 
-    mkdir -p "$(pwd)/../test/build/usr/lib"
     make ATHAME_VIM_BIN="$vimbin" ATHAME_TESTDIR="$(pwd)/../test/build" || exit 1
     make install DESTDIR="$(pwd)/../test/build" || exit 1
 
@@ -168,10 +172,11 @@ if [ $build = 1 ]; then
     rm -f Src/zshpaths.h && touch Src/Zle/athame.c
 
     cd ../test
+    zsh_bin="$(find $(pwd)/build -name zsh -type f | head -n 1)"
     if [ "$(uname)" == "Darwin" ]; then
-      ./runtests.sh "script /dev/null ../build/usr/bin/zsh" || exit 1
+      ./runtests.sh "script /dev/null $zsh_bin" || exit 1
     else
-      ./runtests.sh "script -c ../build/usr/bin/zsh" || exit 1
+      ./runtests.sh "script -c $zsh_bin" || exit 1
     fi
     cd -
     make ATHAME_VIM_BIN="$vimbin" || exit 1
@@ -182,7 +187,7 @@ if [ $build = 1 ]; then
     if [ -w "$destdir" ]; then
       make install DESTDIR="$destdir" || exit 1
     else
-      sudo make install DESTDIR="$destdir" || exit 1
+      ${sudo}make install DESTDIR="$destdir" || exit 1
     fi
   else
     make ATHAME_VIM_BIN=$vimbin || exit 1
@@ -193,11 +198,15 @@ if [ $build = 1 ]; then
     if [ -w "$destdir" ]; then
       make install DESTDIR="$destdir" || exit 1
     else
-      sudo make install DESTDIR="$destdir" || exit 1
+      ${sudo}make install DESTDIR="$destdir" || exit 1
     fi
   fi
 fi
 
 if [ $rc = 1 ]; then
-  sudo cp ../athamerc /etc/athamerc
+  if [ -z "$sudo" ]; then
+    printf "\e[0;31mThe athamerc was not copied. You should copy athamerc to /etc/athamerc or ~/.athamerc.\e[0;0m\n"
+  else
+    sudo cp ../athamerc /etc/athamerc
+  fi
 fi

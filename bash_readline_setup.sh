@@ -22,6 +22,7 @@ patches=42
 redownload=0
 build=1
 dirty=0
+sudo="sudo "
 destdir=""
 prefix_flag="--prefix=/"
 installed_flag="--with-installed-readline"
@@ -31,6 +32,7 @@ do
     "--redownload" ) redownload=1;;
     "--nobuild" ) build=0;;
     "--dirty" ) dirty=1;;
+    "--nosudo" ) sudo="";;
     --destdir=*) destdir="${arg#*=}";;
     --prefix=*) prefix_flag='--prefix='"${arg#*=}";;
     --with-installed-readline=*) installed_flag='--with-installed-readline='"${arg#*=}";;
@@ -92,8 +94,7 @@ fi
 if [ $build = 1 ]; then
   if [ ! -f Makefile ]; then
     ac_cv_rl_version=6.3 ./configure \
-                "$prefix" \
-                --bindir=/bin \
+                "$prefix_flag" \
                 --docdir=/usr/share/doc/bash-4.3 \
                 --without-bash-malloc \
                 --enable-readline \
@@ -107,7 +108,7 @@ if [ $build = 1 ]; then
   if [ -w "$destdir" ]; then
     make install DESTDIR="$destdir"
   else
-    sudo make install DESTDIR="$destdir"
+    ${sudo}make install DESTDIR="$destdir"
   fi
 fi
 
