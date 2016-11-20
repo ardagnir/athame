@@ -1,19 +1,19 @@
 #include <sys/time.h>
 
 static void athame_send_to_vim(char input);
-static void athame_get_vim_info();
+static int athame_get_vim_info();
 static void athame_set_failure(char* fail_str);
 static char athame_process_input(int instream);
 static char athame_process_char(char instream);
 static int athame_setup_history();
-static char* athame_get_lines_from_vim(int start_row, int end_row);
 static int athame_sleep(int msec, int char_break, int instream);
 static int athame_get_vim_info_inner();
 static void athame_update_vimline(int row, int col);
 static int athame_remote_expr(char* expr, int bock);
 static char athame_get_first_char(int instream);
 static void athame_highlight(int start, int end);
-static void athame_bottom_display(char* string, int style, int color, int cursor);
+static void athame_redisplay();
+static void athame_bottom_display(char* string, int style, int color, int cursor, int force);
 static void athame_bottom_mode();
 static void athame_poll_vim(int block);
 static void athame_draw_failure();
@@ -21,13 +21,19 @@ static int athame_has_clean_quit();
 static int athame_wait_for_file(char* file_name, int sanity, int char_break, int instream);
 static int athame_select(int file_desc1, int file_desc2, int timeout_sec, int timeout_ms, int no_signals);
 static int athame_is_set(char* env, int def);
+static char* athame_tok(char** pointer, char delim);
 static long get_time();
+static void athame_force_vim_sync();
 
-#define DEFAULT_BUFFER_SIZE 1024
+#define DEFAULT_BUFFER_SIZE 2048
 
 static char athame_buffer[DEFAULT_BUFFER_SIZE];
-static char last_vim_command[DEFAULT_BUFFER_SIZE];
-static int last_cmd_pos;
+static char bottom_display[DEFAULT_BUFFER_SIZE];
+static char athame_command[DEFAULT_BUFFER_SIZE];
+static int command_cursor;
+static int bottom_color;
+static int bottom_style;
+static int bottom_cursor;
 static const char* athame_failure;
 static int vim_pid;
 static int expr_pid;
@@ -36,9 +42,9 @@ static int cs_confirmed;
 static FILE* dev_null;
 static int athame_row;
 static int updated;
+static char* slice_file_name;
 static char* contents_file_name;
 static char* update_file_name;
-static char* meta_file_name;
 static char* messages_file_name;
 static char* vimbed_file_name;
 static char* dir_name;
@@ -48,16 +54,32 @@ static char* servername;
 #define VIM_CONFIRMED_START 2
 #define VIM_RUNNING 3
 static int vim_stage = VIM_NOT_STARTED;
+
+// Have we sent any keys to vim since readline started.
 static int sent_to_vim = 0;
+
+// How closely is vim synced with athame?
+#define VIM_SYNC_YES 0
+#define VIM_SYNC_NEEDS_INFO_READ 1
+#define VIM_SYNC_WAITING_POLL_DONE 2
+#define VIM_SYNC_NEEDS_POLL 3
+#define VIM_SYNC_CHAR_BEHIND 4
+#define VIM_SYNC_NO 5
+static int vim_sync = VIM_SYNC_YES;
+static long time_to_sync = 0;
+
 // Measured in ms since epoch
 static long time_to_poll = -1;
+static long vim_started = -1;
+
 // Number of stale polls since last keypress or change
 static int stale_polls = 0;
+
 static int change_since_key=0;
 static FILE* athame_outstream = 0;
 
 static char athame_mode[3];
-static char athame_displaying_mode[3];
+static char last_athame_mode[3];
 static int end_col; //For visual mode
 static int end_row; //For visual mode
 
@@ -69,67 +91,66 @@ static int start_vim(int char_break, int instream)
   {
     return 2;
   }
-  else
-  {
-    char* etcrc = "/etc/athamerc";
-    char homerc[256];
-    char* athamerc;
-    if (!getenv("ATHAME_TEST_RC"))
-    {
-      snprintf(homerc, 255, "%s/.athamerc", getenv("HOME"));
-      if (!access(homerc, R_OK))
-      {
-        athamerc = homerc;
-      }
-      else if (!access(etcrc, R_OK))
-      {
-        athamerc = etcrc;
-      }
-      else
-      {
-        athame_set_failure("No athamerc found.");
-        return 1;
-      }
-    }
 
-    int pid = forkpty(&vim_term, NULL, NULL, NULL);
-    if (pid == 0)
+  char* etcrc = "/etc/athamerc";
+  char homerc[256];
+  char* athamerc = getenv("ATHAME_TEST_RC");
+  int testrc = athamerc != NULL;
+  if (!testrc)
+  {
+    snprintf(homerc, 255, "%s/.athamerc", getenv("HOME"));
+    if (!access(homerc, R_OK))
     {
-      int cursor = ap_get_cursor();
-      snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "+call Vimbed_UpdateText(%d, %d, %d, %d, 1)", athame_row+1, cursor+1, athame_row+1, cursor+1);
-      int vim_error = 0;
-      char* testrc;
-      if (ATHAME_VIM_BIN[0]) {
-        if (testrc = getenv("ATHAME_TEST_RC")) {
-          vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-u", "NONE", "-S", vimbed_file_name, "-S", testrc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
-        } else {
-          vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
-        }
-      }
-      else {
-        if (testrc = getenv("ATHAME_TEST_RC")) {
-          vim_error = execlp("vim", "vim", "--servername", servername, "-u", "NONE", "-S", vimbed_file_name, "-S", testrc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
-        } else {
-          vim_error = execlp("vim", "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "-s", "/dev/null", "+call Vimbed_SetupVimbed('', '')", athame_buffer, NULL);
-        }
-      }
-      if (vim_error != 0)
-      {
-        printf("Error: %d", errno);
-        exit(EXIT_FAILURE);
-      }
+      athamerc = homerc;
     }
-    else if (pid == -1)
+    else if (!access(etcrc, R_OK))
     {
-      athame_set_failure("Failure starting Vim");
-      return 1;
+      athamerc = etcrc;
     }
     else
     {
-      vim_pid = pid;
-      ap_set_control_chars();
-      return 0;
+      athame_set_failure("No athamerc found.");
+      return 1;
     }
+  }
+
+  int pid = forkpty(&vim_term, NULL, NULL, NULL);
+  if (pid == 0)
+  {
+    int cursor = ap_get_cursor();
+    snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "+call Vimbed_UpdateText(%d, %d, %d, %d, 1)", athame_row+1, cursor+1, athame_row+1, cursor+1);
+    int vim_error = 0;
+    if (ATHAME_VIM_BIN[0]) {
+      if (testrc) {
+        vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-u", "NONE", "-S", vimbed_file_name, "-S", athamerc, "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
+      } else {
+        vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
+      }
+    }
+    else {
+      if (testrc) {
+        vim_error = execlp("vim", "vim", "--servername", servername, "-u", "NONE", "-S", vimbed_file_name, "-S", athamerc,  "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
+      } else {
+        vim_error = execlp("vim", "vim", "--servername", servername, "-S", vimbed_file_name, "-S", athamerc, "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
+      }
+    }
+    if (vim_error != 0)
+    {
+      printf("Error: %d", errno);
+      exit(EXIT_FAILURE);
+    }
+    return 1;
+  }
+  else if (pid == -1)
+  {
+    athame_set_failure("Failure starting Vim");
+    return 1;
+  }
+  else
+  {
+    vim_pid = pid;
+    ap_set_control_chars();
+    return 0;
   }
 }
 
@@ -148,7 +169,7 @@ static int confirm_vim_start(int char_break, int instream)
     return 2;
   }
 
-  int amount = read(vim_term, athame_buffer, 200);
+  int amount = read(vim_term, athame_buffer, 5);
   athame_buffer[amount] = '\0';
   if(strncmp(athame_buffer, "Error", 5) == 0)
   {
@@ -165,52 +186,72 @@ static int confirm_vim_start(int char_break, int instream)
     }
     return 1;
   }
-  else if(strstr(athame_buffer, "--servername"))
+  else if(strncmp(athame_buffer, "VIM", 3) == 0)
+    // Vim should dump termcap stuff before this if things are working, so only bother checking for errors if we start with VIM.
+    // If Vim changes to not start errors with "VIM", we will still catch the error later with the vague "Vimbed failure" label
   {
-    if (ATHAME_VIM_BIN[0])
+    athame_sleep(20, 0, 0);
+    amount = read(vim_term, athame_buffer, 200);
+    athame_buffer[amount] = '\0';
+    if(strstr(athame_buffer, "--servername"))
     {
-      char* error;
-      asprintf(&error, "%s was not compiled with clientserver support.", ATHAME_VIM_BIN);
-      athame_set_failure(error);
-      free(error);
-    }
-    else
-    {
-      athame_set_failure("Tried running vim without clientserver support.");
-    }
-    return 1;
-  }
+      if (ATHAME_VIM_BIN[0])
+      {
+        char* error;
+        asprintf(&error, "%s was not compiled with clientserver support.", ATHAME_VIM_BIN);
+
+        athame_set_failure(error);
+        free(error);
+      }
+      else
+      {
+        athame_set_failure("Tried running vim without clientserver support.");
+      }
+      return 1;
+    } //--servername
+  } //VIM
   return 0;
 }
 
 static int athame_wait_for_vim(int char_break, int instream)
 {
-  int error = athame_wait_for_file(contents_file_name, 50, char_break, instream);
+  int error = athame_wait_for_file(slice_file_name, 50, char_break, instream);
   if (error == 1)
   {
-    athame_set_failure("Vimbed failure.");
+    if (athame_wait_for_file(contents_file_name, 1, 0, 0) == 0) {
+      athame_set_failure("Using incompatible vimbed version.");
+    }
+    else {
+      athame_set_failure("Vimbed failure.");
+    }
   }
   if (error > 0)
   {
      return error;
   }
 
-  // Grab the mode now because the program might block (like gdb).
-  int i;
-  for(i = 0; i < 6; i++) {
-    if (athame_mode[0] != 'n' || athame_sleep(10, char_break, instream)) {
-      break;
+  vim_started = get_time();
+
+  if (char_break) {
+    // Grab the mode now because the program might block (like gdb).
+    int i;
+    for(i = 0; i < 6; i++) {
+      if (athame_mode[0] != 'n' || athame_sleep(10, char_break, instream)) {
+        break;
+      }
+      athame_get_vim_info();
     }
-    athame_get_vim_info(0);
+  } else {
+    athame_get_vim_info();
   }
-  athame_bottom_mode();
+  athame_redisplay();
   return 0;
 }
 
 // Make sure vim is running,
 //  or set athame_failure,
 //  or (if char_break) break on char press
-static int athame_ensure_vim(int char_break, int instream)
+static void athame_ensure_vim(int char_break, int instream)
 {
   // These will fallthrough if not interrupted.
   if(vim_stage == VIM_NOT_STARTED) {
@@ -329,7 +370,7 @@ static int athame_remote_expr(char* expr, int block)
     pipe(stderr_to_readline);
   }
   //wait for last remote_expr to finish
-  if (expr_pid != 0)
+  if (expr_pid > 0)
   {
     if (waitpid(expr_pid, NULL, block?0:WNOHANG) == 0)
     {
@@ -382,6 +423,7 @@ static int athame_remote_expr(char* expr, int block)
     if(block)
     {
       waitpid(expr_pid, NULL, 0);
+      expr_pid = 0;
     }
     if(use_pipe)
     {
@@ -411,25 +453,13 @@ static int athame_remote_expr(char* expr, int block)
 
 static void athame_update_vimline(int row, int col)
 {
-  FILE* contentsFile = fopen(contents_file_name, "r");
   FILE* updateFile = fopen(update_file_name, "w+");
 
-  int reading_row = 0;
-  while (fgets(athame_buffer, DEFAULT_BUFFER_SIZE, contentsFile))
-  {
-    if(row != reading_row)
-    {
-      fwrite(athame_buffer, 1, strlen(athame_buffer), updateFile);
-    }
-    else
-    {
-      fwrite(ap_get_line_buffer(), 1, ap_get_line_buffer_length(), updateFile);
-      fwrite("\n", 1, 1, updateFile);
-    }
-    reading_row++;
-  }
-  fclose(contentsFile);
+  fwrite(ap_get_line_buffer(), 1, ap_get_line_buffer_length(), updateFile);
+  fwrite("\n", 1, 1, updateFile);
+
   fclose(updateFile);
+
   snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 0)", row+1, col+1, row+1, col+1);
 
   athame_remote_expr(athame_buffer, 1);
@@ -437,6 +467,10 @@ static void athame_update_vimline(int row, int col)
 }
 
 static long get_timeout_msec() {
+  if(vim_sync >= VIM_SYNC_CHAR_BEHIND) {
+    time_to_sync = 100 + get_time();
+    return 100;
+  }
   if (time_to_poll == -1) {
     return -1;
   }
@@ -458,6 +492,15 @@ static void athame_poll_vim(int block)
 
   //Poll Vim. If we fail, postpone the poll by requesting a new poll
   if (athame_remote_expr("Vimbed_Poll()", block) == 0) {
+    if (vim_sync == VIM_SYNC_WAITING_POLL_DONE) {
+      vim_sync = VIM_SYNC_NEEDS_INFO_READ;
+    } else if (vim_sync == VIM_SYNC_NEEDS_POLL) {
+      if (block) {
+        vim_sync = VIM_SYNC_NEEDS_INFO_READ;
+      } else {
+        vim_sync = VIM_SYNC_WAITING_POLL_DONE;
+      }
+    }
     stale_polls++;
   } else {
     request_poll();
@@ -466,11 +509,36 @@ static void athame_poll_vim(int block)
 
 int last_bdisplay_top = 0;
 int last_bdisplay_bottom = 0;
+int text_lines_for_bdisplay = 0;
 
-void athame_bottom_display(char* string, int style, int color, int cursor)
+void athame_bottom_display(char* string, int style, int color, int cursor, int force)
 {
-    int term_height = ap_get_term_height();
-    int term_width = ap_get_term_width();
+    int term_height, term_width;
+    ap_get_term_size(&term_height, &term_width);
+
+    int new_text_lines = (ap_get_line_char_length() + ap_get_prompt_length())/term_width;
+
+    if (!force && term_height == last_bdisplay_bottom) {
+      int changed = 0;
+      changed |= (strcmp(bottom_display, string));
+      if (string[0] != '\0') {
+        changed |= (style != bottom_style);
+        changed |= (color != bottom_color);
+        changed |= (cursor != bottom_cursor);
+        changed |= (new_text_lines != text_lines_for_bdisplay);
+      }
+      if (!changed) {
+        return;
+      }
+    }
+    text_lines_for_bdisplay = new_text_lines;
+
+    strncpy(bottom_display, string, DEFAULT_BUFFER_SIZE-1);
+    bottom_display[DEFAULT_BUFFER_SIZE-1]='\0';
+    bottom_style = style;
+    bottom_color = color;
+    bottom_cursor = cursor;
+
     if(!last_bdisplay_bottom)
     {
       last_bdisplay_top = term_height;
@@ -586,6 +654,8 @@ static void athame_redisplay()
 {
   if (strcmp(athame_mode, "v") == 0 || strcmp(athame_mode, "V") == 0 || strcmp(athame_mode, "s") == 0 || strcmp(athame_mode, "c") == 0)
   {
+    athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0, 0);
+
     // Athame_highlight assumes the cursor is on the current terminal row. If we came
     // from normal readline display, that might not be the case
     if(!athame_clear_dirty())
@@ -609,6 +679,7 @@ static void athame_redisplay()
       ap_display();
     }
   }
+  athame_bottom_mode();
 }
 
 static char* athame_copy_w_space(char* text)
@@ -623,7 +694,8 @@ static char* athame_copy_w_space(char* text)
 static int athame_draw_line_with_highlight(char* text, int start, int end)
 {
   int prompt_len = ap_get_prompt_length();
-  int term_width = ap_get_term_width();
+  int term_width;
+  ap_get_term_size(NULL, &term_width);
   //How much more than one line does the text take up (if it wraps)
   int extra_lines = ((int)strlen(text) + prompt_len - 1)/term_width;
   //How far down is the start of the highlight (if text wraps)
@@ -632,7 +704,7 @@ static int athame_draw_line_with_highlight(char* text, int start, int end)
   int extra_lines_e = (end + prompt_len - 1) /term_width;
 
   char* with_space = athame_copy_w_space(text);
-  char* highlighted = ap_get_slice(with_space, start, end);
+  char* highlighted = ap_get_substr(with_space, start, end);
   free(with_space);
 
   fprintf(athame_outstream, "\e[%dG%s", prompt_len + 1, text);
@@ -654,17 +726,18 @@ static int athame_draw_line_with_highlight(char* text, int start, int end)
 static void athame_highlight(int start, int end)
 {
   char* highlight_buffer = strdup(ap_get_line_buffer());
+  char* hi_loc = highlight_buffer;
   int cursor = ap_get_cursor();
   ap_set_line_buffer("");
   ap_display();
   ap_set_line_buffer(highlight_buffer);
   ap_set_cursor(cursor);
-  char* new_string = strtok(highlight_buffer, "\n");
+  char* new_string = athame_tok(&hi_loc, '\n');
   while (new_string){
     char* next_string;
     int this_start;
     int this_end;
-    next_string = strtok(NULL, "\n");
+    next_string = athame_tok(&hi_loc, '\n');
 
     if (new_string == highlight_buffer){
       this_start = start;
@@ -691,13 +764,13 @@ static void athame_highlight(int start, int end)
 
 static int athame_has_clean_quit()
 {
-  FILE* metaFile = fopen(meta_file_name, "r");
-  if (!metaFile)
+  FILE* sliceFile = fopen(slice_file_name, "r");
+  if (!sliceFile)
   {
     return 0;
   }
-  int bytes_read = fread(athame_buffer, 1, 4, metaFile);
-  fclose(metaFile);
+  int bytes_read = fread(athame_buffer, 1, 4, sliceFile);
+  fclose(sliceFile);
   return strncmp(athame_buffer, "quit", bytes_read) == 0;
 }
 
@@ -717,42 +790,42 @@ static char* athame_get_mode_text(char* mode)
     }
 }
 
+static void athame_set_mode(char* mode)
+{
+  if (strcmp(athame_mode, mode) != 0)
+  {
+    char* mode_string = athame_get_mode_text(mode);
+    strcpy(athame_mode, mode);
+    setenv("ATHAME_VIM_MODE", mode_string, 1);
+    ap_redraw_prompt();
+  }
+}
+
 static void athame_bottom_mode()
 {
   if(athame_failure)
   {
     return;
   }
-  static int text_lines = 0;
-  int new_text_lines = (ap_get_line_char_length() + ap_get_prompt_length())/ap_get_term_width();
-  int force_redraw = new_text_lines != text_lines || athame_dirty;
-  if (strcmp(athame_mode, athame_displaying_mode) != 0 || force_redraw) {
-    char* mode_string = athame_get_mode_text(athame_mode);
-    setenv("ATHAME_VIM_MODE", mode_string, 1);
-    if (strcmp(athame_mode, athame_displaying_mode) != 0)
+  char* mode_string = athame_get_mode_text(athame_mode);
+  {
+    if(athame_mode[0] == 'c' && athame_is_set("ATHAME_SHOW_COMMAND", 1))
     {
-      strcpy(athame_displaying_mode, athame_mode);
-      ap_redraw_prompt();
-      // Redraw can hide the vim command, so we have to redraw it.
-      if (athame_mode[0] == 'c' && athame_is_set("ATHAME_SHOW_COMMAND", 1))
-      {
-        athame_bottom_display(last_vim_command, ATHAME_NORMAL, ATHAME_DEFAULT, last_cmd_pos);
-      }
+      athame_bottom_display(athame_command, ATHAME_NORMAL, ATHAME_DEFAULT, command_cursor, 0);
     }
-    if (athame_is_set("ATHAME_SHOW_MODE", 1))
+    else if (athame_is_set("ATHAME_SHOW_MODE", 1))
     {
       if (athame_mode[0] == 'n')
       {
-        athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0);
+        athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0, 0);
       }
-      else if(athame_mode[0] != 'c' && mode_string[0])
+      else if(mode_string[0])
       {
         sprintf(athame_buffer, "-- %s --", mode_string);
-        athame_bottom_display(athame_buffer, ATHAME_BOLD, ATHAME_DEFAULT, 0);
+        athame_bottom_display(athame_buffer, ATHAME_BOLD, ATHAME_DEFAULT, 0, 0);
       }
     }
   }
-  text_lines = new_text_lines;
 }
 
 static void athame_draw_failure()
@@ -761,7 +834,7 @@ static void athame_draw_failure()
   if (athame_is_set("ATHAME_SHOW_ERROR", 1))
   {
     snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Athame Failure: %s", athame_failure);
-    athame_bottom_display(athame_buffer, ATHAME_BOLD, ATHAME_RED, 0);
+    athame_bottom_display(athame_buffer, ATHAME_BOLD, ATHAME_RED, 0, 0);
   }
 }
 
@@ -785,18 +858,25 @@ static char athame_process_input(int instream)
   }
 }
 
-static int athame_handle_special_char(char char_read) {
-  //Unless in vim commandline send special chars to readline instead of vim
-  if(athame_failure || (strchr(ap_special, char_read) && strcmp(athame_mode, "c") != 0 ))
-  {
+// Should we send the char to readline?
+static int athame_is_special_char(char char_read) {
+  if (athame_failure) {
     return 1;
+  }
+  if (strchr(ap_special, char_read)) {
+    // Make sure our mode is up to date.
+    athame_force_vim_sync();
+    if (strcmp(athame_mode, "c") != 0)
+    {
+      return 1;
+    }
   }
   ap_set_nospecial();
   return 0;
 }
 
 static char athame_process_char(char char_read){
-  if (athame_handle_special_char(char_read))
+  if (athame_is_special_char(char_read))
   {
     return char_read;
   }
@@ -817,36 +897,42 @@ static char athame_process_char(char char_read){
 
 static void athame_send_to_vim(char input)
 {
+  if (vim_sync < VIM_SYNC_CHAR_BEHIND) {
+    vim_sync = VIM_SYNC_CHAR_BEHIND;
+  } else {
+    vim_sync = VIM_SYNC_NO;
+  }
   write(vim_term, &input, 1);
 }
 
-static void athame_get_vim_info(int allow_poll)
+static int athame_get_vim_info()
 {
+  if (vim_sync == VIM_SYNC_NEEDS_INFO_READ) {
+    vim_sync = VIM_SYNC_YES;
+  }
   if (athame_get_vim_info_inner())
   {
     time_to_poll = -1;
     stale_polls = 0;
     change_since_key = 1;
     athame_redisplay();
+    return 1;
   }
-  else if (allow_poll)
-  {
-    request_poll();
-  }
+  return 0;
 }
 
 static int athame_get_col_row(char* string, int* col, int* row)
 {
-    if(string && strtok(string, ","))
+    if(string && athame_tok(&string, ','))
     {
-      char* colStr = strtok(NULL, ",");
+      char* colStr = athame_tok(&string, ',');
       if(!colStr){
         return 0;
       }
       *col = strtol(colStr, NULL, 10);
       if(row)
       {
-        char* rowStr = strtok(NULL, ",");
+        char* rowStr = athame_tok(&string, ',');
         if(!rowStr){
           return 0;
         }
@@ -866,57 +952,52 @@ static int athame_get_vim_info_inner()
     return 1;
   }
 
-  FILE* metaFile = fopen(meta_file_name, "r");
-  if (!metaFile)
+  FILE* sliceFile = fopen(slice_file_name, "r");
+  if (!sliceFile)
   {
     return 0;
   }
-  bytes_read = fread(athame_buffer, 1, DEFAULT_BUFFER_SIZE-1, metaFile);
-  fclose(metaFile);
+  bytes_read = fread(athame_buffer, 1, DEFAULT_BUFFER_SIZE-1, sliceFile);
+  fclose(sliceFile);
 
   athame_buffer[bytes_read] = 0;
-  char* mode = strtok(athame_buffer, "\n");
-  if(mode)
+  char* buffer_loc = athame_buffer;
+  char* mode = athame_tok(&buffer_loc, '\n');
+  if(mode && *mode)
   {
     if (mode[0] == 'c')
     {
-      strncpy(athame_mode, "c", 3);
-      char* command = strtok(NULL, "\n");
-      int cmd_pos = last_cmd_pos;
+      athame_set_mode("c");
+      char* command = athame_tok(&buffer_loc, '\n');
+      int cmd_pos = 0;
       if (mode[1] == ',')
       {
         cmd_pos = strtol(mode+2, NULL, 10);
       }
-      if (command && (strcmp(command, last_vim_command) != 0 || cmd_pos != last_cmd_pos))
+      if (command)
       {
-        last_cmd_pos = cmd_pos;
-        strncpy(last_vim_command, command, DEFAULT_BUFFER_SIZE-1);
-        last_vim_command[DEFAULT_BUFFER_SIZE-1] = '\0';
         setenv("ATHAME_VIM_COMMAND", command, 1);
-        if (athame_is_set("ATHAME_SHOW_COMMAND", 1))
-        {
-          athame_bottom_display(command, ATHAME_NORMAL, ATHAME_DEFAULT, cmd_pos);
-        }
-        //Don't record a change because the highlight for incsearch might not have changed yet.
+        strcpy(athame_command, command);
+        command_cursor = cmd_pos;
+        // Don't record a change because the highlight for incsearch might not have changed yet.
       }
     }
     else
     {
       if(athame_mode[0] == 'c' && athame_is_set("ATHAME_SHOW_COMMAND", 1))
       {
-        athame_bottom_display("", ATHAME_NORMAL, ATHAME_DEFAULT, 0);
+        athame_bottom_display("", ATHAME_NORMAL, ATHAME_DEFAULT, 0, 0);
       }
       if(strcmp(mode, "quit") == 0) {
         // Don't do work if we're quitting.
         return 0;
       }
-      strncpy(athame_mode, mode, 3);
-      last_vim_command[0] = '\0';
+      athame_set_mode(mode);
     }
-    char* location = strtok(NULL, "\n");
+    char* location = athame_tok(&buffer_loc, '\n');
     if(location)
     {
-      char* location2 = strtok(NULL, "\n");
+      char* location2 = athame_tok(&buffer_loc, '\n');
       int col;
       int row;
       if(athame_get_col_row(location, &col, &row))
@@ -949,16 +1030,12 @@ static int athame_get_vim_info_inner()
           changed = 1;
         }
 
-        char* line_text;
-        int subtract_line = (end_row > row && end_col == 0 ? 1 : 0);
-        line_text = athame_get_lines_from_vim(row, end_row - subtract_line);
-
-        if (line_text)
+        if (buffer_loc)
         {
-          if(strcmp(ap_get_line_buffer(), line_text) != 0)
+          if(strcmp(ap_get_line_buffer(), buffer_loc) != 0)
           {
             changed = 1;
-            ap_set_line_buffer(line_text);
+            ap_set_line_buffer(buffer_loc);
           }
           if(ap_get_cursor() != col)
           {
@@ -977,54 +1054,6 @@ static int athame_get_vim_info_inner()
   }
 
   return changed;
-}
-
-static char* athame_get_lines_from_vim(int start_row, int end_row)
-{
-  FILE* contentsFile = fopen(contents_file_name, "r");
-  int bytes_read = fread(athame_buffer, 1, DEFAULT_BUFFER_SIZE-1, contentsFile);
-  athame_buffer[bytes_read] = 0;
-
-  int current_line = 0;
-  char* line_text = athame_buffer;
-  while (current_line < start_row )
-  {
-    line_text = strchr(line_text, '\n');
-    while(!line_text)
-    {
-      int bytes_read = fread(athame_buffer, 1, DEFAULT_BUFFER_SIZE-1, contentsFile);
-      if (!bytes_read)
-      {
-        return 0;
-      }
-      athame_buffer[bytes_read] = 0;
-      line_text = strchr(athame_buffer, '\n');
-    }
-    line_text++;
-    current_line++;
-  }
-  int len = strlen(line_text);
-  memmove(athame_buffer, line_text, len + 1);
-
-  len += fread(athame_buffer + len, 1, DEFAULT_BUFFER_SIZE - 1 - len, contentsFile);
-  athame_buffer[len] = 0;
-  char* next_line = athame_buffer;
-  for(current_line = start_row; current_line <= end_row; current_line++)
-  {
-    next_line = strchr(next_line, '\n');
-    if(!next_line){
-      break;
-    }
-    next_line++;
-  }
-
-  if(next_line)
-  {
-    *(next_line - 1) = '\0';
-  }
-  fclose(contentsFile);
-
-  return athame_buffer;
 }
 
 static int athame_select(int file_desc1, int file_desc2, int timeout_sec, int timeout_ms, int no_signals) {
@@ -1075,6 +1104,22 @@ int athame_is_set(char* env, int def)
   }
 }
 
+// Unlike normal strtok, this gives the empty strings between consecutive tokens.
+static char* athame_tok(char** pointer, char delim) {
+  if (*pointer == 0) {
+    return 0;
+  }
+  char* original = *pointer;
+  char* loc = strchr(original, delim);
+  if (loc == 0) {
+    *pointer = 0;
+  } else {
+    *loc = '\0';
+    *pointer = loc + 1;
+  }
+  return original;
+}
+
 static long get_time() {
   // We need to check __MACH__ too because OSX claims it has this functionality
   // but doesn't.
@@ -1091,4 +1136,46 @@ static long get_time() {
     gettimeofday(&t, NULL);
     return t.tv_sec*1000L + t.tv_usec/1000;
   #endif
+}
+
+static void wait_then_kill(int pid) {
+    int i;
+    for (i = 0; i < 10; i++) {
+      if(waitpid(pid, NULL, WNOHANG) != 0) {
+        break;
+      }
+      athame_sleep(5, 0, 0);
+    }
+    if (waitpid(pid, NULL, WNOHANG) == 0) {
+      kill(pid, SIGKILL);
+      waitpid(pid, NULL, 0);
+    }
+}
+
+static void athame_force_vim_sync() {
+      if (vim_sync == VIM_SYNC_YES) {
+        return;
+      }
+      if (vim_sync == VIM_SYNC_CHAR_BEHIND) {
+        athame_sleep(20,0,0);
+        vim_sync = VIM_SYNC_NEEDS_POLL;
+      }
+      else if (vim_sync == VIM_SYNC_NO) {
+        if (athame_select(vim_term, -1, 0, MAX(1, time_to_sync - get_time()), 1) != 0) {
+          int sanity = 100;
+          while (athame_select(vim_term, -1, 0, 100, 1) != 0 && sanity-- > 0) {
+            athame_sleep(5, 0, 0);
+            read(vim_term, athame_buffer, DEFAULT_BUFFER_SIZE-1);
+          }
+        }
+        vim_sync = VIM_SYNC_NEEDS_POLL;
+      }
+      if (vim_sync == VIM_SYNC_WAITING_POLL_DONE) {
+        waitpid(expr_pid, NULL, 0);
+        vim_sync = VIM_SYNC_NEEDS_INFO_READ;
+      }
+      if (vim_sync >= VIM_SYNC_NEEDS_POLL) {
+        athame_poll_vim(1);
+      }
+      athame_get_vim_info();
 }

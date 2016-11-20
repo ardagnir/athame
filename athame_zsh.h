@@ -142,16 +142,15 @@ static void ap_display()
   zrefresh();
 }
 
-static int ap_get_term_width()
+static void ap_get_term_size(int* height, int* width)
 {
   adjustwinsize(1);
-  return zterm_columns;
-}
-
-static int ap_get_term_height()
-{
-  adjustwinsize(1);
-  return zterm_lines;
+  if(width) {
+    *width = zterm_columns;
+  }
+  if (height) {
+    *height = zterm_lines;
+  }
 }
 
 static int ap_get_prompt_length()
@@ -189,7 +188,7 @@ static int ap_needs_to_leave()
   return 0;
 }
 
-static char* ap_get_slice(char* text, int start, int end)
+static char* ap_get_substr(char* text, int start, int end)
 {
   int mbchars;
   int pos_s = 0;
@@ -219,11 +218,16 @@ static char* ap_get_slice(char* text, int start, int end)
 
 static char ap_handle_signals()
 {
+  int q = queue_signal_level();
+  // This forces all queued signals to be handled by zsh now.
+  dont_queue_signals();
+  restore_queue_signals(q);
   if (errflag & ERRFLAG_INT)
     return EOF;
   return 0;
 }
 
+static char* ap_nl = "\r\n";
 static char* ap_special = "\t\x04\r\n\x0c";
 static char ap_delete = '\x04';
 

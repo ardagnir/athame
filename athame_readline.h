@@ -101,20 +101,10 @@ static void ap_display()
   rl_redisplay();
 }
 
-static int ap_get_term_width()
+static void ap_get_term_size(int* height, int* width)
 {
-  int height, width;
   _rl_sigwinch_resize_terminal(); //Incase the terminal changed size while readline wasn't looking.
-  rl_get_screen_size(&height, &width);
-  return width;
-}
-
-static int ap_get_term_height()
-{
-  int height, width;
-  _rl_sigwinch_resize_terminal(); //Incase the terminal changed size while readline wasn't looking.
-  rl_get_screen_size(&height, &width);
-  return height;
+  rl_get_screen_size(height, width);
 }
 
 static int ap_get_prompt_length()
@@ -126,7 +116,7 @@ HISTORY_STATE* hs;
 int hs_counter;
 static void ap_get_history_start()
 {
-  hs = history_get_history_state(); 
+  hs = history_get_history_state();
   hs_counter = 0;
 }
 
@@ -152,7 +142,7 @@ static int ap_needs_to_leave()
   return rl_done || rl_num_chars_to_read > 0 && rl_end >= rl_num_chars_to_read;
 }
 
-static char* ap_get_slice(char* text, int start, int end)
+static char* ap_get_substr(char* text, int start, int end)
 {
   int mbchars;
   int pos_s = 0;
@@ -197,11 +187,13 @@ static char ap_handle_signals()
 
 static char ap_delete;
 static char ap_special[KEYMAP_SIZE];
+static char ap_nl[KEYMAP_SIZE];
 
 static void ap_set_control_chars()
 {
   // In default readline these are: tab, <C-D>, <C-L>, and all the newline keys.
   int specialLen = 0;
+  int nlLen = 0;
   ap_delete = '\x04';
   for(int key = 0; key < KEYMAP_SIZE; key++)
   {
@@ -212,8 +204,12 @@ static void ap_set_control_chars()
           ap_delete = key;
           ap_special[specialLen++] = key;
       }
-      else if (_rl_keymap[key].function == rl_newline
-            || _rl_keymap[key].function == rl_complete
+      else if (_rl_keymap[key].function == rl_newline)
+      {
+          ap_special[specialLen++] = key;
+          ap_nl[nlLen++] = key;
+      }
+      else if (_rl_keymap[key].function == rl_complete
             || _rl_keymap[key].function == rl_clear_screen)
       {
           ap_special[specialLen++] = key;

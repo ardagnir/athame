@@ -30,11 +30,12 @@ rc=1
 submodule=1
 vimbin=""
 destdir=""
+sudo="sudo "
 prefix_flag="--prefix=/usr"
 libdir_flag=""
 for arg in "$@"
 do
-  case $arg in
+  case "$arg" in
     "--redownload" ) redownload=1;;
     "--nobuild" ) build=0;;
     "--notest" ) runtest=0;;
@@ -42,6 +43,7 @@ do
     "--dirty" ) dirty=1;;
     "--norc" ) rc=0;;
     "--nosubmodule" ) submodule=0;;
+    "--nosudo" ) sudo="";;
     --vimbin=*) vimbin="${arg#*=}";;
     --destdir=*) destdir="${arg#*=}";;
     --prefix=*) prefix_flag='--prefix='"${arg#*=}";;
@@ -64,17 +66,17 @@ do
 done
 
 #Get vim binary
-if [ -z $vimbin ]; then
+if [ -z "$vimbin" ]; then
   vimmsg="Please provide a vim binary by running this script with --vimbin=/path/to/vim at the end. (replace with the actual path to vim)"
-  testvim=$(which vim)
-  if [ -z $testvim ]; then
+  testvim="$(which vim)"
+  if [ -z "$testvim" ]; then
     echo "Could not find a vim binary using 'which'"
     echo $vimmsg
     exit
   fi
   echo "No vim binary provided. Trying $testvim"
   if [ "$($testvim --version | grep +clientserver)" ]; then
-    vimbin=$testvim
+    vimbin="$testvim"
     echo "$vimbin probably has clientserver support. Using $vimbin as vim binary."
   else
     echo "$testvim does not appear to have clientserver support."
@@ -148,7 +150,7 @@ if [ $build = 1 ]; then
   if [ ! -f Makefile ]; then
     ./configure "$prefix_flag" "$libdir_flag" || exit 1
   fi
-  make SHLIB_LIBS="-lncurses -lutil" ATHAME_VIM_BIN=$vimbin || exit 1
+  make SHLIB_LIBS="-lncurses -lutil" ATHAME_VIM_BIN="$vimbin" || exit 1
   if [ $runtest = 1 ]; then
     rm -rf $(pwd)/../test/build
     mkdir -p $(pwd)/../test/build
@@ -156,16 +158,16 @@ if [ $build = 1 ]; then
 
     cd ../test
 
-    export LD_LIBRARY_PATH=$(dirname $(find $(pwd)/build -name libreadline* | head -n 1))
-    export ATHAME_VIMBED_LOCATION=$(find $(pwd)/build -name athame_readline | head -n 1)
+    export LD_LIBRARY_PATH="$(dirname $(find $(pwd)/build -name libreadline* | head -n 1))"
+    export ATHAME_VIMBED_LOCATION="$(find $(pwd)/build -name athame_readline | head -n 1)"
     ldd="ldd"
 
     if [ "$(uname)" == "Darwin" ]; then
       ldd="otool -L"
-      export DYLD_LIBRARY_PATH=$LD_LIBRARY_PATH
+      export DYLD_LIBRARY_PATH="$LD_LIBRARY_PATH"
     fi
 
-    $ldd $(which bash) | grep libreadline >/dev/null
+    $ldd "$(which bash)" | grep libreadline >/dev/null
     if [ $? -eq 1 ]; then
       echo "Bash isn't set to use system readline. Setting up local bash for testing."
       cd ..
@@ -179,15 +181,19 @@ if [ $build = 1 ]; then
   fi
   echo "Installing Readline with Athame..."
   if [ -n "$destdir" ]; then
-    mkdir -p $destdir
+    mkdir -p "$destdir"
   fi
   if [ -w "$destdir" ]; then
-    make install DESTDIR=$destdir || exit 1
+    make install DESTDIR="$destdir" || exit 1
   else
-    sudo make install DESTDIR=$destdir || exit 1
+    ${sudo}make install DESTDIR="$destdir" || exit 1
   fi
 fi
 
 if [ $rc = 1 ]; then
-  sudo cp ../athamerc /etc/athamerc
+  if [ -z "$sudo" ]; then
+    printf "\e[0;31mThe athamerc was not copied. You should copy athamerc to /etc/athamerc or ~/.athamerc.\e[0;0m\n"
+  else
+    sudo cp ../athamerc /etc/athamerc
+  fi
 fi

@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Athame.  If not, see <http://www.gnu.org/licenses/>.
 
+first_test=1
 slow=0
 sanity=0
 
@@ -27,43 +28,65 @@ function runtest () {
   echo "Testing Athame $3..."
   mkdir -p testrun
   rm -rf testrun/*
-  cp $2/inst* testrun
+  cp "$2"/inst* testrun
   failures=""
   cd testrun
   for t in inst*.sh; do
     i=${t:4:${#t}-7}
     echo "Test $i:"
     cat ../prefix.sh inst$i.sh | grep -v '^\#' > input_text
-    # If we just pipe the text directly, Vim gets behind and athame times it out.
-    # Instead we use charread to simulate typing at 33 char/sec.
-    # This actually ends up being closer to 25-30 char/sec on my crappy laptop because
-    # of overhead in charread, but that is still faster than world-recod human typists.
-    script -c "../charread.sh .03 input_text | $1" failure > /dev/null 2> /dev/null
+    printf "\x04" >> input_text
+
+    milli=1
+    # Do we have millisecond precision in date?
+    if [ $(date +%s%3N | grep N) ]; then
+      milli=0
+    fi
+    if [ $milli != 0 ]; then
+      start_time=$(date +%s%3N)
+    else
+      start_time=$(date +%s999)
+    fi
+    script -c "cat input_text | $1" failure > /dev/null 2> /dev/null
     if [ $? -ne 0 ]; then
       # Linux version failed. Try bsd version:
-      script failure bash -c "../charread.sh .03 input_text | $1" > /dev/null
+      script failure bash -c "cat input_text | $1" > /dev/null
     fi
-    diff ../$2/expected$i out$i >>failure 2>&1
+    if [ $milli != 0 ]; then
+      end_time=$(date +%s%3N)
+    else
+      end_time=$(date +%s000)
+      if [ $end_time -lt $start_time ]; then
+        end_time=$((start_time+1))
+      fi
+    fi
+    keys_typed=$(($(wc -c < inst$i.sh)))
+    speed=$((keys_typed * 1000 / $((end_time-start_time))))
+    # Make sure we can handle at least 27 keys per second. This is about 294
+    # words per minute for English text, faster than world record typists.
+    #
+    # We don't count the first test for speed. We already know that vim can take
+    # a while to load off disk on the first run and we don't want to mark the
+    # test as slow just because the user hasn't run vim yet.
+    if [ $milli != 0 ]; then
+      echo speed=$speed
+    fi
+    if [ $first_test -ne 1 ] && [ $speed -lt 27 ]; then
+      slow=1
+      if [ $milli == 0 ]; then
+        echo speed=$speed
+      fi
+    fi
+    diff "../$2/expected$i" out$i >>failure 2>&1
     if [ $? -eq 0 ]; then
       echo "Success!"
     else
-        echo "Failed at high speed. Retrying at slower speed"
-        script -c "../charread.sh .15 input_text | $1" failure > /dev/null 2> /dev/null
-        if [ $? -ne 0 ]; then
-          # Linux version failed. Try bsd version:
-          script failure bash -c "../charread.sh .15 input_text | $1" > /dev/null
-        fi
-        diff ../$2/expected$i out$i >>failure 2>&1
-        if [ $? -eq 0 ]; then
-          echo "Success!"
-          slow=1
-        else
-          echo "Failed at slow speed."
-          cat failure >>failures
-          failures="$failures $i"
-        fi
+      echo "Failed."
+      cat failure >>failures
+      failures="$failures $i"
     fi
     echo ""
+    first_test=0
   done
   cd ..
   if [[ -n $failures ]]; then
@@ -89,7 +112,7 @@ function runtest () {
   return 0
 }
 
-if [ -z $DISPLAY ]; then
+if [ -z "$DISPLAY" ]; then
   echo "X not detected."
   echo "Testing basic shell functions without Vim..."
   runtest "$1" shell "Shell" &&
@@ -114,7 +137,7 @@ runtest "$1" shell "Shell Fallback without X"
 DISPLAY=$temp
 
 if [ $slow -eq 1 ]; then
-  echo "Test Result: Athame is running slow on this computer."
+  echo "Athame is running slow on this computer. Install anyway?"
   read -p "Install anyway? (y:yes, other:no)? " -rn 1
   if ! [[ $REPLY =~ ^[Yy]$ ]]; then
     echo ""
