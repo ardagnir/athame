@@ -61,6 +61,7 @@ To build bash so that it uses the system readline:
 **Additional Notes**
 - You can add the --nobuild flag to the setup script if you want to configure/build/install yourself.
 - You can change what Vim binary is used by passing --vimbin=/path/to/vim to the setup script.
+- You can install Athame locally by passing --nosudo --prefix=$HOME/local/ to the setup script for readline and bash.
 
 
 ##Setting up Athame Zsh
@@ -74,13 +75,14 @@ To build bash so that it uses the system readline:
     ./zsh_athame_setup.sh
 
 **Additional Notes**
-- You can add the --nobuild flag to the setup script if you want to configure/build/install yourself
-- You can change what Vim binary is used by passing --vimbin=/path/to/vim to the setup script
+- You can add the --nobuild flag to the setup script if you want to configure/build/install yourself.
+- You can change what Vim binary is used by passing --vimbin=/path/to/vim to the setup script.
+- You can install Athame locally by passing --nosudo --prefix=$HOME/local/ to the setup script.
 
 ##FAQ
 ####How do I use this?
 It's just like Vim. Imagine your history is stored inside a Vim buffer (because it is!) with a blank line at the bottom. Your cursor starts on that blank line each time readline is called.
-Unless you're in command mode, tabs and carriage returns are handled by readline/zsh.
+Unless you're in command mode, some special chars (such as carriage return) are handled by readline/zsh.
 
 Some commands (there's no specific code for these, it's just Vim):
 
@@ -112,6 +114,13 @@ Type:
 This should include libreadline. If it doesn't, you need to build bash to use the system readline. You can do this by running:
 
     ./bash_readline_setup.sh
+
+####Which chars are sent to vim and which to readline/zsh?
+
+Control-C usually sends a SIGNINT signal that is handled by zsh, readline, or the program that calls readline. For other keys:
+
+- In readline, chars marked as rl_delete (usually Control-D), rl_newline (usually return), rl_complete (usually tab), and rl_clear_screen (usually Control-L) are sent to readline. All other keys are sent to vim.
+- In zsh, Athame is hardcoded to send tab, Control-D, carriage return, new line, and Control-L to zsh. All other keys are sent to vim. This behavior will likely change in the future.
 
 ####I got the error "Couldn't load vim path"
 Is Vim at the correct path? You can change the path Athame looks at with the --vimbin flag.
@@ -162,7 +171,7 @@ The best way to help is to look at the issue section and submit patches to fix b
 If you have a shell that I'm missing, you can also try making a patch to communicate between it and Athame (see athame_readline.h and athame_zsh.h for the functions you need to implement).
 
 ####What about donations?
-I'm not accepting any currently, but thanks.
+I'm not accepting donations, but you should consider donating to the [EFF](https://supporters.eff.org/donate/) so that we don't end up living in a scary distopian future where everyone is forced to use emacs.
 
 
 ##Setting up Vim with clientserver
