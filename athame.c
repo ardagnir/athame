@@ -340,12 +340,14 @@ void athame_after_bypass() {
 // Redraw bottom stuff before handing off to a process that might block,
 // like python.
 void athame_char_handled() {
-  if(athame_failure)
-  {
-    athame_draw_failure();
-  }
-  else
-  {
-    athame_bottom_mode();
+  if (athame_is_set("ATHAME_ENABLED", 1) && !ap_needs_to_leave()) {
+    if(athame_failure)
+    {
+      athame_draw_failure();
+    }
+    else
+    {
+      athame_bottom_mode();
+    }
   }
 }
