@@ -138,12 +138,13 @@ diff -ru a/readline.c b/readline.c
    /* Restore the original of this history line, iff the line that we
       are editing was originally in the history, AND the line has changed. */
    entry = current_history ();
-@@ -561,7 +566,14 @@
+@@ -561,7 +566,16 @@
  	}
  
        RL_SETSTATE(RL_STATE_READCMD);
 -      c = rl_read_key ();
-+      if (athame_enabled())
++      int use_athame = athame_enabled();
++      if (use_athame)
 +      {
 +        c = athame_loop(fileno(rl_instream));
 +      }
@@ -151,6 +152,7 @@ diff -ru a/readline.c b/readline.c
 +        c = rl_read_key();
 +        athame_after_bypass();
 +      }
++      if (!use_athame || c) {
        RL_UNSETSTATE(RL_STATE_READCMD);
  
        /* look at input.c:rl_getc() for the circumstances under which this will
@@ -162,6 +164,14 @@ diff -ru a/readline.c b/readline.c
        RL_CHECK_SIGNALS ();
  
        /* If there was no change in _rl_last_command_was_kill, then no kill
+@@ -608,6 +623,7 @@
+       if (rl_pending_input == 0 && lk == _rl_last_command_was_kill)
+ 	_rl_last_command_was_kill = 0;
+ 
++}
+       _rl_internal_char_cleanup ();
+ 
+ #if defined (READLINE_CALLBACKS)
 diff -ru a/shlib/Makefile.in b/shlib/Makefile.in
 --- a/shlib/Makefile.in	2015-07-15 00:03:32.898231038 -0400
 +++ b/shlib/Makefile.in	2015-07-14 23:37:04.674826478 -0400
