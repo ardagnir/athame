@@ -976,10 +976,12 @@ static int athame_get_vim_info_inner()
       }
       if (command)
       {
-        setenv("ATHAME_VIM_COMMAND", command, 1);
-        strcpy(athame_command, command);
-        command_cursor = cmd_pos;
-        // Don't record a change because the highlight for incsearch might not have changed yet.
+        if(strcmp(athame_command, command) !=0 || command_cursor != cmd_pos) {
+          setenv("ATHAME_VIM_COMMAND", command, 1);
+          strcpy(athame_command, command);
+          command_cursor = cmd_pos;
+          changed =1;
+        }
       }
     }
     else

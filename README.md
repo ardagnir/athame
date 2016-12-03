@@ -119,7 +119,7 @@ This should include libreadline. If it doesn't, you need to build bash to use th
 
 Control-C usually sends a SIGNINT signal that is handled by zsh, readline, or the program that calls readline. For other keys:
 
-- In readline, chars marked as rl_delete (usually Control-D), rl_newline (usually return), rl_complete (usually tab), and rl_clear_screen (usually Control-L) are sent to readline. All other keys are sent to vim.
+- In readline, chars marked as rl_delete (usually Control-D), rl_newline (usually return), rl_complete (usually tab), and rl_clear_screen (usually Control-L) are sent to readline. All other keys are sent to vim. This means that if you use readline's built-in vi-mode, Control-L and Control-D probably won't be sent to the shell.
 - In zsh, Athame is hardcoded to send tab, Control-D, carriage return, new line, and Control-L to zsh. All other keys are sent to vim. This behavior will likely change in the future.
 
 ####I got the error "Couldn't load vim path"
