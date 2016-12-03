@@ -18,7 +18,7 @@ set textwidth=0 "Don't try to wrap text
 startinsert "Start in insert mode. Most shell vi-modes do this.
 
 " These make arrows more shell like. Feel free to comment them out:
-if has("patch928")
+if v:version>=800 || has("patch928")
   " These maps can segfault in earlier vim versions.
   inoremap <Up> <Up><ESC>A
   inoremap <Down> <Down><ESC>A
