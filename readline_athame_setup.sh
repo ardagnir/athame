@@ -20,7 +20,7 @@
 
 shopt -s extglob
 
-patches=8
+patches=1
 redownload=0
 build=1
 runtest=1
@@ -91,43 +91,43 @@ fi
 
 #Download Readline
 if [ $redownload = 1 ]; then
-  rm -r readline-6.3.tar.gz
+  rm -r readline-7.0.tar.gz
 fi
-if [ ! -f readline-6.3.tar.gz ]; then
-  curl -O https://ftp.gnu.org/gnu/readline/readline-6.3.tar.gz
+if [ ! -f readline-7.0.tar.gz ]; then
+  curl -O https://ftp.gnu.org/gnu/readline/readline-7.0.tar.gz
 fi
 
 mkdir -p readline_patches
 cd readline_patches
 for (( patch=1; patch <= patches; patch++ )); do
   if [ $redownload = 1 ]; then
-    rm -r readline63-$(printf "%03d" $patch)
+    rm -r readline70-$(printf "%03d" $patch)
   fi
-  if [ ! -f readline63-$(printf "%03d" $patch) ]; then
-    curl -O https://ftp.gnu.org/gnu/readline/readline-6.3-patches/readline63-$(printf "%03d" $patch)
+  if [ ! -f readline70-$(printf "%03d" $patch) ]; then
+    curl -O https://ftp.gnu.org/gnu/readline/readline-7.0-patches/readline70-$(printf "%03d" $patch)
   fi
 done
 cd ..
 
-if [ ! -d readline-6.3_tmp ]; then
+if [ ! -d readline-7.0_tmp ]; then
   dirty=0
 fi
 
 #Unpack readline dir
 if [ $dirty = 0 ]; then
-  rm -rf readline-6.3_tmp
-  tar -xf readline-6.3.tar.gz
-  mv readline-6.3 readline-6.3_tmp
+  rm -rf readline-7.0_tmp
+  tar -xf readline-7.0.tar.gz
+  mv readline-7.0 readline-7.0_tmp
 fi
 
 #Move into readline directory
-cd readline-6.3_tmp
+cd readline-7.0_tmp
 
 if [ $dirty = 0 ]; then
   #Patch readline with readline patches
   for (( patch=1; patch <= patches; patch++ )); do
     echo Patching with standard readline patch $patch
-    patch -p0 < ../readline_patches/readline63-$(printf "%03d" $patch)
+    patch -p0 < ../readline_patches/readline70-$(printf "%03d" $patch)
   done
 fi
 
@@ -177,7 +177,7 @@ if [ $build = 1 ]; then
     else
       ./runtests.sh "bash -i" || exit 1
     fi
-    cd ../readline-6.3_tmp
+    cd ../readline-7.0_tmp
   fi
   echo "Installing Readline with Athame..."
   if [ -n "$destdir" ]; then

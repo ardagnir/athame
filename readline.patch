@@ -1,7 +1,7 @@
 diff -ru a/display.c b/display.c
 --- a/display.c 2015-10-28 00:00:00.000000000 - 0400
 --- b/display.c 2015-10-28 00:00:00.000000000 - 0400
-@@ -221,6 +221,11 @@
+@@ -241,6 +241,11 @@
  static int prompt_last_screen_line;
  
  static int prompt_physical_chars;
@@ -16,7 +16,7 @@ diff -ru a/display.c b/display.c
 diff -ru a/Makefile.in b/Makefile.in
 --- a/Makefile.in	2015-07-15 00:03:32.894897704 -0400
 +++ b/Makefile.in	2015-07-14 23:36:13.208157503 -0400
-@@ -76,7 +76,7 @@
+@@ -74,7 +74,7 @@
  CTAGS = ctags -tw
  
  CFLAGS = @CFLAGS@
@@ -25,16 +25,16 @@ diff -ru a/Makefile.in b/Makefile.in
  CPPFLAGS = @CPPFLAGS@
  
  DEFS = @DEFS@ @CROSS_COMPILE@
-@@ -116,7 +116,7 @@
+@@ -114,7 +114,7 @@
  	   $(srcdir)/histfile.c $(srcdir)/nls.c $(srcdir)/search.c \
  	   $(srcdir)/shell.c $(srcdir)/savestring.c $(srcdir)/tilde.c \
  	   $(srcdir)/text.c $(srcdir)/misc.c $(srcdir)/compat.c \
--	   $(srcdir)/mbutil.c $(srcdir)/xfree.c
-+	   $(srcdir)/mbutil.c $(srcdir)/xfree.c $(srcdir)/athame.c
+-	   $(srcdir)/mbutil.c
++	   $(srcdir)/mbutil.c $(srcdir)/athame.c
  
  # The header files for this library.
  HSOURCES = $(srcdir)/readline.h $(srcdir)/rldefs.h $(srcdir)/chardefs.h \
-@@ -126,7 +126,7 @@
+@@ -124,7 +124,7 @@
  	   $(srcdir)/ansi_stdlib.h $(srcdir)/tcap.h $(srcdir)/rlstdc.h \
  	   $(srcdir)/xmalloc.h $(srcdir)/rlprivate.h $(srcdir)/rlshell.h \
  	   $(srcdir)/rltypedefs.h $(srcdir)/rlmbutil.h \
@@ -43,7 +43,7 @@ diff -ru a/Makefile.in b/Makefile.in
  
  HISTOBJ = history.o histexpand.o histfile.o histsearch.o shell.o mbutil.o
  TILDEOBJ = tilde.o
-@@ -149,7 +149,7 @@
+@@ -147,7 +147,7 @@
  CREATED_TAGS = TAGS tags
  
  INSTALLED_HEADERS = readline.h chardefs.h keymaps.h history.h tilde.h \
@@ -52,7 +52,7 @@ diff -ru a/Makefile.in b/Makefile.in
  
  OTHER_DOCS = $(srcdir)/CHANGES $(srcdir)/INSTALL $(srcdir)/README
  OTHER_INSTALLED_DOCS = CHANGES INSTALL README
-@@ -223,6 +223,13 @@
+@@ -221,6 +221,13 @@
  
  install:	$(INSTALL_TARGETS)
  
@@ -66,7 +66,7 @@ diff -ru a/Makefile.in b/Makefile.in
  install-headers: installdirs ${INSTALLED_HEADERS}
  	for f in ${INSTALLED_HEADERS}; do \
  		$(INSTALL_DATA) $(srcdir)/$$f $(DESTDIR)$(includedir)/readline ; \
-@@ -234,7 +241,7 @@
+@@ -232,7 +239,7 @@
  
  maybe-uninstall-headers: uninstall-headers
  
@@ -75,7 +75,7 @@ diff -ru a/Makefile.in b/Makefile.in
  	-$(MV) $(DESTDIR)$(libdir)/libreadline.a $(DESTDIR)$(libdir)/libreadline.old
  	$(INSTALL_DATA) libreadline.a $(DESTDIR)$(libdir)/libreadline.a
  	-test -n "$(RANLIB)" && $(RANLIB) $(DESTDIR)$(libdir)/libreadline.a
-@@ -247,7 +254,7 @@
+@@ -245,7 +252,7 @@
  		$(DESTDIR)$(includedir)/readline $(DESTDIR)$(libdir) \
  		$(DESTDIR)$(infodir) $(DESTDIR)$(man3dir) $(DESTDIR)$(docdir)
  
@@ -84,7 +84,7 @@ diff -ru a/Makefile.in b/Makefile.in
  	-test -n "$(DESTDIR)$(libdir)" && cd $(DESTDIR)$(libdir) && \
  		${RM} libreadline.a libreadline.old libhistory.a libhistory.old $(SHARED_LIBS)
  	-( cd shlib; ${MAKE} ${MFLAGS} DESTDIR=${DESTDIR} uninstall )
-@@ -391,7 +398,7 @@
+@@ -393,7 +400,7 @@
  readline.o: readline.h keymaps.h rltypedefs.h chardefs.h tilde.h
  readline.o: rldefs.h ${BUILD_DIR}/config.h rlconf.h
  readline.o: history.h rlstdc.h
@@ -93,7 +93,7 @@ diff -ru a/Makefile.in b/Makefile.in
  rltty.o: rldefs.h ${BUILD_DIR}/config.h rlconf.h
  rltty.o: rltty.h
  rltty.o: readline.h keymaps.h rltypedefs.h chardefs.h tilde.h rlstdc.h
-@@ -510,6 +517,7 @@
+@@ -513,6 +520,7 @@
  text.o: rlmbutil.h
  vi_mode.o: rlmbutil.h
  
@@ -101,7 +101,7 @@ diff -ru a/Makefile.in b/Makefile.in
  bind.o: $(srcdir)/bind.c
  callback.o: $(srcdir)/callback.c
  compat.o: $(srcdir)/compat.c
-@@ -548,6 +556,7 @@
+@@ -551,6 +559,7 @@
  history.o: $(srcdir)/history.c
  histsearch.o: $(srcdir)/histsearch.c
  
@@ -120,7 +120,7 @@ diff -ru a/readline.c b/readline.c
  
  #include "rlprivate.h"
  #include "rlshell.h"
-@@ -439,6 +440,8 @@
+@@ -446,6 +447,8 @@
    if (rl_pre_input_hook)
      (*rl_pre_input_hook) ();
  
@@ -129,7 +129,7 @@ diff -ru a/readline.c b/readline.c
    RL_CHECK_SIGNALS ();
  }
  
-@@ -451,6 +454,8 @@
+@@ -458,6 +461,8 @@
  
    RL_CHECK_SIGNALS ();
  
@@ -138,7 +138,7 @@ diff -ru a/readline.c b/readline.c
    /* Restore the original of this history line, iff the line that we
       are editing was originally in the history, AND the line has changed. */
    entry = current_history ();
-@@ -561,7 +566,16 @@
+@@ -567,7 +572,16 @@
  	}
  
        RL_SETSTATE(RL_STATE_READCMD);
@@ -156,7 +156,7 @@ diff -ru a/readline.c b/readline.c
        RL_UNSETSTATE(RL_STATE_READCMD);
  
        /* look at input.c:rl_getc() for the circumstances under which this will
-@@ -600,6 +612,7 @@
+@@ -627,6 +641,7 @@
  
        lastc = c;
        _rl_dispatch ((unsigned char)c, _rl_keymap);
@@ -164,7 +164,7 @@ diff -ru a/readline.c b/readline.c
        RL_CHECK_SIGNALS ();
  
        /* If there was no change in _rl_last_command_was_kill, then no kill
-@@ -608,6 +623,7 @@
+@@ -635,6 +650,7 @@
        if (rl_pending_input == 0 && lk == _rl_last_command_was_kill)
  	_rl_last_command_was_kill = 0;
  
@@ -188,8 +188,8 @@ diff -ru a/shlib/Makefile.in b/shlib/Makefile.in
  	   $(topdir)/shell.c $(topdir)/savestring.c $(topdir)/tilde.c \
  	   $(topdir)/text.c $(topdir)/misc.c $(topdir)/compat.c \
  	   $(topdir)/colors.c $(topdir)/parse-colors.c \
--	   $(topdir)/mbutil.c $(topdir)/xfree.c
-+	   $(topdir)/mbutil.c $(topdir)/xfree.c $(topdir)/athame.c
+-	   $(topdir)/mbutil.c
++	   $(topdir)/mbutil.c $(topdir)/athame.c
  
  # The header files for this library.
  HSOURCES = $(topdir)/readline.h $(topdir)/rldefs.h $(topdir)/chardefs.h \
@@ -236,7 +236,7 @@ diff -ru a/shlib/Makefile.in b/shlib/Makefile.in
  	$(SHELL) $(topdir)/support/shlib-install -O $(host_os) -V $(host_vendor) -d $(DESTDIR)$(libdir) -b $(DESTDIR)$(bindir) -U $(SHARED_HISTORY)
  	$(SHELL) $(topdir)/support/shlib-install -O $(host_os) -V $(host_vendor) -d $(DESTDIR)$(libdir) -b $(DESTDIR)$(bindir) -U $(SHARED_READLINE)
  	@echo uninstall: you may need to run ldconfig
-@@ -339,6 +346,8 @@
+@@ -341,6 +348,8 @@
  xmalloc.so: ${BUILD_DIR}/config.h
  xmalloc.so: $(topdir)/ansi_stdlib.h
  
@@ -245,7 +245,7 @@ diff -ru a/shlib/Makefile.in b/shlib/Makefile.in
  bind.so: $(topdir)/rlshell.h
  histfile.so: $(topdir)/rlshell.h
  nls.so: $(topdir)/rlshell.h
-@@ -425,6 +434,7 @@
+@@ -427,6 +436,7 @@
  colors.so: $(topdir)/rlmbutil.h
  parse-colors.so: $(topdir)/rlmbutil.h
  
@@ -253,7 +253,7 @@ diff -ru a/shlib/Makefile.in b/shlib/Makefile.in
  bind.so: $(topdir)/bind.c
  callback.so: $(topdir)/callback.c
  compat.so: $(topdir)/compat.c
-@@ -460,6 +470,7 @@
+@@ -462,6 +472,7 @@
  history.so: $(topdir)/history.c
  histsearch.so: $(topdir)/histsearch.c
  
@@ -264,7 +264,7 @@ diff -ru a/shlib/Makefile.in b/shlib/Makefile.in
 diff -ru a/readline.h b/readline.h
 --- a/readline.h	2015-10-29 00:00:00.000000000 -0400
 +++ b/readline.h	2015-10-29 00:00:00.000000000 -0400
-@@ -288,6 +288,7 @@
+@@ -292,6 +292,7 @@
  
  extern int rl_set_prompt PARAMS((const char *));
  extern int rl_expand_prompt PARAMS((char *));

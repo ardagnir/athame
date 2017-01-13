@@ -93,7 +93,7 @@ fi
 #Build and install bash
 if [ $build = 1 ]; then
   if [ ! -f Makefile ]; then
-    ac_cv_rl_version=6.3 ./configure \
+    ac_cv_rl_version=7.0 ./configure \
                 "$prefix_flag" \
                 --docdir=/usr/share/doc/bash-4.3 \
                 --without-bash-malloc \
