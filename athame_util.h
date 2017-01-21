@@ -433,11 +433,11 @@ static int athame_remote_expr(char* expr, int block)
       if(selected > 0)
       {
         char error[80];
-        if(selected == 2 || read(stdout_to_readline[0], &error, 1) < 1) {
+        if(selected == 2 || read(stdout_to_readline[0], error, 1) < 1) {
           char* prefix = "Clientserver error: ";
           int prelen = strlen(prefix);
           strcpy(error, prefix);
-          error[read(stderr_to_readline[0], &error+prelen, 80-prelen) + prelen] = '\0';
+          error[read(stderr_to_readline[0], error+prelen, 80-prelen) + prelen] = '\0';
           athame_set_failure(error);
           return -1;
         }
