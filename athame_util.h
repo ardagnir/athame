@@ -433,11 +433,11 @@ static int athame_remote_expr(char* expr, int block)
       if(selected > 0)
       {
         char error[80];
-        if(selected == 2 || read(stdout_to_readline[0], &error, 1) < 1) {
+        if(selected == 2 || read(stdout_to_readline[0], error, 1) < 1) {
           char* prefix = "Clientserver error: ";
           int prelen = strlen(prefix);
           strcpy(error, prefix);
-          error[read(stderr_to_readline[0], &error+prelen, 80-prelen) + prelen] = '\0';
+          error[read(stderr_to_readline[0], error+prelen, 80-prelen) + prelen] = '\0';
           athame_set_failure(error);
           return -1;
         }
@@ -790,7 +790,7 @@ static char* athame_get_mode_text(char* mode)
     }
 }
 
-static void athame_set_mode(char* mode)
+static int athame_set_mode(char* mode)
 {
   if (strcmp(athame_mode, mode) != 0)
   {
@@ -798,7 +798,9 @@ static void athame_set_mode(char* mode)
     strcpy(athame_mode, mode);
     setenv("ATHAME_VIM_MODE", mode_string, 1);
     ap_redraw_prompt();
+    return 1;
   }
+  return 0;
 }
 
 static void athame_bottom_mode()
@@ -967,7 +969,7 @@ static int athame_get_vim_info_inner()
   {
     if (mode[0] == 'c')
     {
-      athame_set_mode("c");
+      changed |= athame_set_mode("c");
       char* command = athame_tok(&buffer_loc, '\n');
       int cmd_pos = 0;
       if (mode[1] == ',')
@@ -994,7 +996,7 @@ static int athame_get_vim_info_inner()
         // Don't do work if we're quitting.
         return 0;
       }
-      athame_set_mode(mode);
+      changed |= athame_set_mode(mode);
     }
     char* location = athame_tok(&buffer_loc, '\n');
     if(location)
