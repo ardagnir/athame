@@ -173,9 +173,9 @@ if [ $build = 1 ]; then
       cd ..
       ./bash_readline_setup.sh --destdir="$(pwd)/test/build" --with-installed-readline="${LD_LIBRARY_PATH%+(/lib|/lib/*)}"
       cd test
-      ./runtests.sh "$(pwd)/build/bin/bash -i" || exit 1
+      ./runtests.sh "$(pwd)/build/bin/bash -i" bash || exit 1
     else
-      ./runtests.sh "bash -i" || exit 1
+      ./runtests.sh "bash -i" bash || exit 1
     fi
     cd ../readline-7.0_tmp
   fi
