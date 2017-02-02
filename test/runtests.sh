@@ -130,10 +130,16 @@ if [ -z "$DISPLAY" ]; then
 fi
 
 runtest "$1" shell "Shell"
+if [ "$2" == "bash" ]; then
+  runtest "$1" bash "Bash Shell"
+fi
 runtest "$1" vim "Vim Integration"
 temp=$DISPLAY
 unset DISPLAY
 runtest "$1" shell "Shell Fallback without X"
+if [ "$2" == "bash" ]; then
+  runtest "$1" bash "Bash Shell Fallback without X"
+fi
 DISPLAY=$temp
 
 if [ $slow -eq 1 ]; then
