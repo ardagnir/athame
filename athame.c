@@ -48,7 +48,6 @@
 void athame_init(int instream, FILE* outstream)
 {
   athame_outstream = outstream ? outstream : stderr;
-  vim_stage = VIM_NOT_STARTED;
   expr_pid = 0;
   athame_dirty = 0;
   updated = 1;
@@ -65,7 +64,6 @@ void athame_init(int instream, FILE* outstream)
   athame_failure = 0;
 
   dev_null = 0;
-  vim_pid = 0;
 
   servername = 0;
   dir_name = 0;
@@ -86,10 +84,7 @@ void athame_init(int instream, FILE* outstream)
     return;
   }
 
-  //Note that this rand() is not seeded.by athame.
-  //It only establishes uniqueness within a single process using readline.
-  //The pid establishes uniqueness between processes and makes debugging easier.
-  asprintf(&servername, "athame_%d_%d", getpid(), rand() % (1000000000));
+  asprintf(&servername, "athame_%d", getpid());
   asprintf(&dir_name, "/tmp/vimbed/%s", servername);
   asprintf(&slice_file_name, "%s/slice.txt", dir_name);
   asprintf(&contents_file_name, "%s/contents.txt", dir_name);
@@ -112,15 +107,28 @@ void athame_init(int instream, FILE* outstream)
   {
     return;
   }
+
+  if (is_vim_alive()) {
+    athame_remote_expr("Vimbed_Reset()", 1);
+    int cursor = ap_get_cursor();
+    snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 1)", athame_row+1, cursor+1, athame_row+1, cursor+1);
+    athame_remote_expr(athame_buffer, 1);
+    athame_poll_vim(1);
+  } else {
+    vim_stage = VIM_NOT_STARTED;
+  }
+
   athame_ensure_vim(1, instream);
 }
 
 void athame_cleanup()
 {
+  int persist = athame_is_set("ATHAME_VIM_PERSIST", 0) && vim_stage == VIM_RUNNING && is_vim_alive();
+
   if(expr_pid > 0) {
     kill(expr_pid, SIGTERM);
   }
-  if(vim_pid)
+  if(vim_pid && !persist)
   {
     // forkpty will keep vim open on OSX if we don't close the fd
     kill(vim_pid, SIGTERM);
@@ -175,9 +183,10 @@ void athame_cleanup()
   if(expr_pid > 0) {
     wait_then_kill(expr_pid);
   }
-  if(vim_pid)
+  if(vim_pid && !persist)
   {
     wait_then_kill(vim_pid);
+    vim_pid = 0;
   }
 }
 
@@ -239,7 +248,7 @@ char athame_loop(int instream)
       {
         long timeout_msec = get_timeout_msec();
         selected = athame_select(instream, vim_term, 0, timeout_msec, 0);
-        if (waitpid(vim_pid, NULL, WNOHANG) == 0) // Is vim still running?
+        if (is_vim_alive()) // Is vim still running?
         {
           if (selected == 1)
           {

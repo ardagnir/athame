@@ -35,7 +35,7 @@ static int bottom_color;
 static int bottom_style;
 static int bottom_cursor;
 static const char* athame_failure;
-static int vim_pid;
+static int vim_pid = 0;
 static int expr_pid;
 static int vim_term;
 static int cs_confirmed;
@@ -434,11 +434,9 @@ static int athame_remote_expr(char* expr, int block)
       {
         char error[80];
         if(selected == 2 || read(stdout_to_readline[0], error, 1) < 1) {
-          char* prefix = "Clientserver error: ";
-          int prelen = strlen(prefix);
-          strcpy(error, prefix);
-          error[read(stderr_to_readline[0], error+prelen, 80-prelen) + prelen] = '\0';
-          athame_set_failure(error);
+          error[read(stderr_to_readline[0], error, sizeof(error)/sizeof(char))] = '\0';
+          snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Clientserver error for %s:%s", expr, error);
+          athame_set_failure(athame_buffer);
           return -1;
         }
         cs_confirmed = 1;
@@ -1182,4 +1180,8 @@ static void athame_force_vim_sync() {
         athame_poll_vim(1);
       }
       athame_get_vim_info();
+}
+
+static int is_vim_alive() {
+  return vim_pid && waitpid(vim_pid, NULL, WNOHANG) == 0;
 }
