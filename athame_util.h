@@ -118,7 +118,7 @@ static int start_vim(int char_break, int instream)
   if (pid == 0)
   {
     int cursor = ap_get_cursor();
-    snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "+call Vimbed_UpdateText(%d, %d, %d, %d, 1)", athame_row+1, cursor+1, athame_row+1, cursor+1);
+    snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "+call Vimbed_UpdateText(%d, %d, %d, %d, 1, 'StartLine')", athame_row+1, cursor+1, athame_row+1, cursor+1);
     int vim_error = 0;
     if (ATHAME_VIM_BIN[0]) {
       if (testrc) {
@@ -458,7 +458,7 @@ static void athame_update_vimline(int row, int col)
 
   fclose(updateFile);
 
-  snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 0)", row+1, col+1, row+1, col+1);
+  snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 0, '')", row+1, col+1, row+1, col+1);
 
   athame_remote_expr(athame_buffer, 1);
   updated = 1;

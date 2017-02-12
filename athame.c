@@ -111,7 +111,7 @@ void athame_init(int instream, FILE* outstream)
   if (is_vim_alive()) {
     athame_remote_expr("Vimbed_Reset()", 1);
     int cursor = ap_get_cursor();
-    snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 1)", athame_row+1, cursor+1, athame_row+1, cursor+1);
+    snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 1, 'StartLine')", athame_row+1, cursor+1, athame_row+1, cursor+1);
     athame_remote_expr(athame_buffer, 1);
     athame_poll_vim(1);
   } else {
