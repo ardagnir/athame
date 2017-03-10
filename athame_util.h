@@ -866,9 +866,16 @@ static int athame_is_special_char(char char_read) {
   if (strchr(ap_special, char_read)) {
     // Make sure our mode is up to date.
     athame_force_vim_sync();
-    if (strcmp(athame_mode, "c") != 0)
+    // Most specials trigger only on inserty modes.
+    if (strchr("iR", athame_mode[0]))
     {
       return 1;
+    }
+    // Newlines trigger on all non command modes.
+    if (strchr(ap_nl, char_read)) {
+      if (athame_mode[0] != 'c') {
+        return 1;
+      }
     }
   }
   ap_set_nospecial();
