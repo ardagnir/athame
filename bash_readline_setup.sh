@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Athame.  If not, see <http://www.gnu.org/licenses/>.
 
-patches=42
+patches=12
 redownload=0
 build=1
 dirty=0
@@ -50,43 +50,43 @@ done
 
 #Download bash
 if [ $redownload = 1 ]; then
-  rm -r bash-4.3.tar.gz
+  rm -r bash-4.4.tar.gz
 fi
-if [ ! -f bash-4.3.tar.gz ]; then
-  curl -O https://ftp.gnu.org/gnu/bash/bash-4.3.tar.gz
+if [ ! -f bash-4.4.tar.gz ]; then
+  curl -O https://ftp.gnu.org/gnu/bash/bash-4.4.tar.gz
 fi
 
 mkdir -p bash_patches
 cd bash_patches
 for (( patch=1; patch <= patches; patch++ )); do
   if [ $redownload = 1 ]; then
-    rm -r bash43-$(printf "%03d" $patch)
+    rm -r bash44-$(printf "%03d" $patch)
   fi
-  if [ ! -f bash43-$(printf "%03d" $patch) ]; then
-    curl -O https://ftp.gnu.org/gnu/bash/bash-4.3-patches/bash43-$(printf "%03d" $patch)
+  if [ ! -f bash44-$(printf "%03d" $patch) ]; then
+    curl -O https://ftp.gnu.org/gnu/bash/bash-4.4-patches/bash44-$(printf "%03d" $patch)
   fi
 done
 cd ..
 
-if [ ! -d bash-4.3_tmp ]; then
+if [ ! -d bash-4.4_tmp ]; then
   dirty=0
 fi
 
 #Unpack bash dir
 if [ $dirty = 0 ]; then
-  rm -rf bash-4.3_tmp
-  tar -xf bash-4.3.tar.gz
-  mv bash-4.3 bash-4.3_tmp
+  rm -rf bash-4.4_tmp
+  tar -xf bash-4.4.tar.gz
+  mv bash-4.4 bash-4.4_tmp
 fi
 
 #Move into bash directory
-cd bash-4.3_tmp
+cd bash-4.4_tmp
 
 if [ $dirty = 0 ]; then
   #Patch bash with bash patches
   for (( patch=1; patch <= patches; patch++ )); do
     echo Patching with standard bash patch $patch
-    patch -p0 < ../bash_patches/bash43-$(printf "%03d" $patch)
+    patch -p0 < ../bash_patches/bash44-$(printf "%03d" $patch)
   done
 fi
 
@@ -95,13 +95,17 @@ if [ $build = 1 ]; then
   if [ ! -f Makefile ]; then
     ac_cv_rl_version=7.0 ./configure \
                 "$prefix_flag" \
-                --docdir=/usr/share/doc/bash-4.3 \
+                --docdir=/usr/share/doc/bash-4.4 \
                 --without-bash-malloc \
                 --enable-readline \
                 "$installed_flag" \
                 || exit 1
   fi
   make LOCAL_LIBS=-lutil
+  if [ $? != 0 ]; then
+    printf "\n\e[1;31mMake failed:\e[0m Are you sure you have readline 7 installed? readline_athame_setup.sh installs readline 7 patched with athame. You may want to run it first.\nThis may also fail if you have a versionless libreadline.so symlinked to libreadline.so.6\n"
+    exit 1
+  fi
   if [ -n "$destdir" ]; then
     mkdir -p "$destdir"
   fi
