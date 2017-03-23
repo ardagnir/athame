@@ -17,7 +17,7 @@ The setup script will also run tests, locally on your computer, to make sure Ath
 
 ...but there are no guarantees. You probably shouldn't install Athame on production systems.
 
-##Requirements
+## equirements
 - Athame works best in GNU/Linux.
 - Athame also works on OSX.
 
@@ -28,12 +28,12 @@ For vim-mode (Athame will act similarly to a normal shell if these are missing):
 
  - X (For linux, you probably have this already. For OSX, install XQuartz)
 
-##Download
+## Download
 Clone this repo recursively:
 
     git clone --recursive http://github.com/ardagnir/athame
 
-##Setting up Athame Readline
+## Setting up Athame Readline
 **Arch Linux**
 
     ./readline_athame_setup.sh
@@ -64,7 +64,7 @@ To build bash so that it uses the system readline:
 - You can install Athame locally by passing --nosudo --prefix=$HOME/local/ to the setup script for readline and bash.
 
 
-##Setting up Athame Zsh
+## Setting up Athame Zsh
 **Arch Linux**
 
     ./zsh_athame_setup.sh
@@ -79,8 +79,8 @@ To build bash so that it uses the system readline:
 - You can change what Vim binary is used by passing --vimbin=/path/to/vim to the setup script.
 - You can install Athame locally by passing --nosudo --prefix=$HOME/local/ to the setup script.
 
-##FAQ
-####How do I use this?
+## FAQ
+#### How do I use this?
 It's just like Vim. Imagine your history is stored inside a Vim buffer (because it is!) with a blank line at the bottom. Your cursor starts on that blank line each time readline is called.
 Unless you're in command mode, some special chars (such as carriage return) are handled by readline/zsh.
 
