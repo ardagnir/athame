@@ -17,7 +17,7 @@ The setup script will also run tests, locally on your computer, to make sure Ath
 
 ...but there are no guarantees. You probably shouldn't install Athame on production systems.
 
-##Requirements
+## Requirements
 - Athame works best in GNU/Linux.
 - Athame also works on OSX.
 
@@ -28,12 +28,12 @@ For vim-mode (Athame will act similarly to a normal shell if these are missing):
 
  - X (For linux, you probably have this already. For OSX, install XQuartz)
 
-##Download
+## Download
 Clone this repo recursively:
 
     git clone --recursive http://github.com/ardagnir/athame
 
-##Setting up Athame Readline
+## Setting up Athame Readline
 **Arch Linux**
 
     ./readline_athame_setup.sh
@@ -64,7 +64,7 @@ To build bash so that it uses the system readline:
 - You can install Athame locally by passing --nosudo --prefix=$HOME/local/ to the setup script for readline and bash.
 
 
-##Setting up Athame Zsh
+## Setting up Athame Zsh
 **Arch Linux**
 
     ./zsh_athame_setup.sh
@@ -79,8 +79,8 @@ To build bash so that it uses the system readline:
 - You can change what Vim binary is used by passing --vimbin=/path/to/vim to the setup script.
 - You can install Athame locally by passing --nosudo --prefix=$HOME/local/ to the setup script.
 
-##FAQ
-####How do I use this?
+## FAQ
+#### How do I use this?
 It's just like Vim. Imagine your history is stored inside a Vim buffer (because it is!) with a blank line at the bottom. Your cursor starts on that blank line each time readline is called.
 Unless you're in command mode, some special chars (such as carriage return) are handled by readline/zsh.
 
@@ -97,16 +97,16 @@ The default athamerc modifies up/down arrows in insert mode to jump to the end o
 You can also enable history searching arrows in the athamerc. (If you enable this and you use arrows, it searches for text that begins with what you've typed. It's like Vim's command mode.)
 
 
-####? and / are reversed from bash's vi-mode. Why?
+#### ? and / are reversed from bash's vi-mode. Why?
 Bash's vi-mode has ? go down and / go up. In actual Vim (and thus, Athame) they go the other way.
 
-####Why does Athame start in insert/normal mode?
+#### Why does Athame start in insert/normal mode?
 The default athamerc includes "startinsert" to make Athame start in insert mode. If you remove that line, it will start in normal mode.
 
-####Why is my Athame slow?
+#### Why is my Athame slow?
 Athame should be very fast, but it will slow down if your Vim setup is slow or if you have invalid vimscript in either your athamerc or vimrc. Try using a clean vimrc or athamerc and see if it speeds up. If not, file an issue.
 
-####I installed Athame for Readline, but it isn't doing anything!
+#### I installed Athame for Readline, but it isn't doing anything!
 Are you using the system readline?
 Type:
 
@@ -115,17 +115,17 @@ This should include libreadline. If it doesn't, you need to build bash to use th
 
     ./bash_readline_setup.sh
 
-####Which chars are sent to vim and which to readline/zsh?
+#### Which chars are sent to vim and which to readline/zsh?
 
 Control-C usually sends a SIGNINT signal that is handled by zsh, readline, or the program that calls readline. For other keys:
 
 - In readline, chars marked as rl_delete (usually Control-D), rl_newline (usually return), rl_complete (usually tab), and rl_clear_screen (usually Control-L) are sent to readline. All other keys are sent to vim. This means that if you use readline's built-in vi-mode, Control-L and Control-D probably won't be sent to the shell.
 - In zsh, Athame is hardcoded to send tab, Control-D, carriage return, new line, and Control-L to zsh. All other keys are sent to vim. This behavior will likely change in the future.
 
-####I got the error "Couldn't load vim path"
+#### I got the error "Couldn't load vim path"
 Is Vim at the correct path? You can change the path Athame looks at with the --vimbin flag.
 
-####How do I disable/uninstall Athame?
+#### How do I disable/uninstall Athame?
 To temporarily disable Athame, `export ATHAME_ENABLED=0`
 
 To compile readline/zsh without the Athame patches, run the setup script with a `--noathame` flag.
@@ -136,17 +136,17 @@ Or, if you're cool with not having a shell, you can uninstall it by cding into t
 
 Depending on your approach, you may want to manually remove `/usr/lib/athame*` and `/etc/athamerc` as well.
 
-####Why do the Up/Down arrows make the cursor jump to the end of the line?
+#### Why do the Up/Down arrows make the cursor jump to the end of the line?
 This is done through vimscript in the athamerc to make Athame more like a normal shell. Feel free to comment it out.
 
-####How do I disable/change the way Athame shows Vim's mode?
+#### How do I disable/change the way Athame shows Vim's mode?
 By default Athame shows the Vim mode at the bottom of the screen. This can be disabled using `export ATHAME_SHOW_MODE=0`
 
 Athame stores the current mode in the `ATHAME_VIM_MODE` environment variable. You can use this to display the Vim mode yourself. See https://github.com/ardagnir/athame/issues/21 for an example using powerline.
 
 Similarly, Vim commands are displayed at the bottom of the screen by default. These can be disabled using `export ATHAME_SHOW_COMMAND=0` and accessed using `ATHAME_VIM_COMMAND`
 
-####Why don't arrow keys work when I add Athame to my convoluted Zsh setup?
+#### Why don't arrow keys work when I add Athame to my convoluted Zsh setup?
 Because arrow keys are evil! Just kidding. :P
 
 Ohmyzsh and some other zsh setups put your terminal into application mode to help their keymaps. Athame doesn't like this, and besides, you're using Vim as your keymap. You can override this by adding the following to the end of your ~/.zshrc:
@@ -156,25 +156,25 @@ Ohmyzsh and some other zsh setups put your terminal into application mode to hel
     }
     zle -N zle-line-init
 
-####Does Athame work with Neovim?
+#### Does Athame work with Neovim?
 Neovim doesn't support vim-style remote communication yet. The Neovim devs are documenting this in [Neovim issue 1750](https://github.com/neovim/neovim/issues/1750). If you want to use Neovim with Athame, you should consider helping them out. It sounds like most of the functionality is already there and just needs to be exposed in a backwards-compatible manner.
 
-####Why isn't there an Athame package for my favorite distro?
+#### Why isn't there an Athame package for my favorite distro?
 ...because you haven't made one yet. The Athame setup script comes with a --nobuild flag so that you can build it however you want or your package can just apply the Athame patches itself.
 
-####Does Athame work on windows? I have Cygwin!
+#### Does Athame work on windows? I have Cygwin!
 Haha, no.
 
-####This is awesome! Can I help?
+#### This is awesome! Can I help?
 The best way to help is to look at the issue section and submit patches to fix bugs.
 
 If you have a shell that I'm missing, you can also try making a patch to communicate between it and Athame (see athame_readline.h and athame_zsh.h for the functions you need to implement).
 
-####What about donations?
+#### What about donations?
 I'm not accepting donations, but you should consider donating to the [EFF](https://supporters.eff.org/donate/) so that we don't end up living in a scary distopian future where everyone is forced to use emacs.
 
 
-##Setting up Vim with clientserver
+## Setting up Vim with clientserver
 You can test your Vim's clientserver support by running:
 
     vim --version | grep clientserver
@@ -201,9 +201,9 @@ Or Homebrew:
 
     brew install vim --with-client-server
 
-##Bugs
+## Bugs
 - See [issues](https://github.com/ardagnir/athame/issues)
 - If you see a bug without an issue, please create one.
 
-##License
+## License
 GPL v3
