@@ -34,7 +34,7 @@
 #include <unistd.h>
 
 #ifdef BSD
-//Includes OSX
+// Includes OSX
 #include <util.h>
 #else
 #include <pty.h>
@@ -45,8 +45,7 @@
 #include "athame_util.h"
 
 /* Forward declarations used in this file. */
-void athame_init(int instream, FILE* outstream)
-{
+void athame_init(int instream, FILE* outstream) {
   athame_outstream = outstream ? outstream : stderr;
   expr_pid = 0;
   athame_dirty = 0;
@@ -73,13 +72,11 @@ void athame_init(int instream, FILE* outstream)
   messages_file_name = 0;
   vimbed_file_name = 0;
 
-  if (!athame_is_set("ATHAME_ENABLED", 1))
-  {
+  if (!athame_is_set("ATHAME_ENABLED", 1)) {
     athame_failure = strdup("Athame was disabled on init.");
     return;
   }
-  if (!getenv("DISPLAY"))
-  {
+  if (!getenv("DISPLAY")) {
     athame_set_failure("No X display found.");
     return;
   }
@@ -90,12 +87,10 @@ void athame_init(int instream, FILE* outstream)
   asprintf(&contents_file_name, "%s/contents.txt", dir_name);
   asprintf(&update_file_name, "%s/update.txt", dir_name);
   asprintf(&messages_file_name, "%s/messages.txt", dir_name);
-  if (getenv("ATHAME_VIMBED_LOCATION"))
-  {
-    asprintf(&vimbed_file_name, "%s/vimbed.vim", getenv("ATHAME_VIMBED_LOCATION"));
-  }
-  else
-  {
+  if (getenv("ATHAME_VIMBED_LOCATION")) {
+    asprintf(&vimbed_file_name, "%s/vimbed.vim",
+             getenv("ATHAME_VIMBED_LOCATION"));
+  } else {
     asprintf(&vimbed_file_name, "%s/vimbed.vim", VIMBED_LOCATION);
   }
 
@@ -103,15 +98,16 @@ void athame_init(int instream, FILE* outstream)
   mkdir("/tmp/vimbed", S_IRWXU);
   mkdir(dir_name, S_IRWXU);
 
-  if (athame_setup_history())
-  {
+  if (athame_setup_history()) {
     return;
   }
 
   if (is_vim_alive()) {
     athame_remote_expr("Vimbed_Reset()", 1);
     int cursor = ap_get_cursor();
-    snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "Vimbed_UpdateText(%d, %d, %d, %d, 1, 'StartLine')", athame_row+1, cursor+1, athame_row+1, cursor+1);
+    snprintf(athame_buffer, DEFAULT_BUFFER_SIZE - 1,
+             "Vimbed_UpdateText(%d, %d, %d, %d, 1, 'StartLine')",
+             athame_row + 1, cursor + 1, athame_row + 1, cursor + 1);
     athame_remote_expr(athame_buffer, 1);
     athame_poll_vim(1);
   } else {
@@ -121,95 +117,76 @@ void athame_init(int instream, FILE* outstream)
   athame_ensure_vim(1, instream);
 }
 
-void athame_cleanup()
-{
-  int persist = athame_is_set("ATHAME_VIM_PERSIST", 0) && vim_stage == VIM_RUNNING && is_vim_alive();
+void athame_cleanup() {
+  int persist = athame_is_set("ATHAME_VIM_PERSIST", 0) &&
+                vim_stage == VIM_RUNNING && is_vim_alive();
 
-  if(expr_pid > 0) {
+  if (expr_pid > 0) {
     kill(expr_pid, SIGTERM);
   }
-  if(vim_pid && !persist)
-  {
+  if (vim_pid && !persist) {
     // forkpty will keep vim open on OSX if we don't close the fd
     kill(vim_pid, SIGTERM);
     close(vim_term);
   }
-  if(dev_null)
-  {
+  if (dev_null) {
     fclose(dev_null);
   }
-  if(slice_file_name)
-  {
+  if (slice_file_name) {
     unlink(slice_file_name);
     free(slice_file_name);
   }
-  if(contents_file_name)
-  {
+  if (contents_file_name) {
     unlink(contents_file_name);
     free(contents_file_name);
   }
-  if(update_file_name)
-  {
+  if (update_file_name) {
     unlink(update_file_name);
     free(update_file_name);
   }
-  if(messages_file_name)
-  {
+  if (messages_file_name) {
     unlink(messages_file_name);
     free(messages_file_name);
   }
-  if(dir_name)
-  {
+  if (dir_name) {
     rmdir(dir_name);
     free(dir_name);
   }
-  if(vimbed_file_name)
-  {
+  if (vimbed_file_name) {
     free(vimbed_file_name);
   }
-  if(servername)
-  {
+  if (servername) {
     free(servername);
   }
-  if(athame_failure)
-  {
+  if (athame_failure) {
     athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0, 0);
     free((char*)athame_failure);
-  }
-  else if (athame_is_set("ATHAME_SHOW_MODE", 1))
-  {
+  } else if (athame_is_set("ATHAME_SHOW_MODE", 1)) {
     athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0, 0);
   }
-  if(expr_pid > 0) {
+  if (expr_pid > 0) {
     wait_then_kill(expr_pid);
   }
-  if(vim_pid && !persist)
-  {
+  if (vim_pid && !persist) {
     wait_then_kill(vim_pid);
     vim_pid = 0;
   }
 }
 
-int athame_enabled()
-{
-  if (athame_is_set("ATHAME_ENABLED", 1))
-  {
-    if(athame_failure)
-    {
+int athame_enabled() {
+  if (athame_is_set("ATHAME_ENABLED", 1)) {
+    if (athame_failure) {
       athame_draw_failure();
       return 0;
     }
     unsetenv("ATHAME_ERROR");
     return !ap_temp_novim();
-  }
-  else
-  {
+  } else {
     return 0;
   }
 }
 
-char athame_loop(int instream)
-{
+char athame_loop(int instream) {
   char returnVal = 0;
   sent_to_vim = 0;
   vim_sync = VIM_SYNC_YES;
@@ -217,61 +194,47 @@ char athame_loop(int instream)
   last_athame_mode[0] = '\0';
   bottom_display[0] = '\0';
 
-  // This is a performance step that allows us to bypass starting up vim if we aren't going to talk to it.
-  char first_char = (vim_stage != VIM_RUNNING) ? athame_get_first_char(instream) : 0;
-  if (first_char && strchr(ap_nl, first_char))
-  {
+  // This is a performance step that allows us to bypass starting up vim if we
+  // aren't going to talk to it.
+  char first_char =
+      (vim_stage != VIM_RUNNING) ? athame_get_first_char(instream) : 0;
+  if (first_char && strchr(ap_nl, first_char)) {
     return first_char;
   }
   athame_ensure_vim(0, 0);
 
-  if(!updated)
-  {
+  if (!updated) {
     athame_update_vimline(athame_row, ap_get_cursor());
-  }
-  else
-  {
+  } else {
     athame_redisplay();
   }
 
-
-  while(!returnVal && !athame_failure)
-  {
+  while (!returnVal && !athame_failure) {
     struct timeval timeout;
     int selected = 0;
-    if(first_char){
+    if (first_char) {
       returnVal = athame_process_char(first_char);
       first_char = 0;
-    }
-    else {
-      while(selected == 0 && !athame_failure)
-      {
+    } else {
+      while (selected == 0 && !athame_failure) {
         long timeout_msec = get_timeout_msec();
         selected = athame_select(instream, vim_term, 0, timeout_msec, 0);
-        if (is_vim_alive()) // Is vim still running?
+        if (is_vim_alive())  // Is vim still running?
         {
-          if (selected == 1)
-          {
+          if (selected == 1) {
             returnVal = athame_process_input(instream);
-          }
-          else if (selected == 2)
-          {
-            read(vim_term, athame_buffer, DEFAULT_BUFFER_SIZE-1);
+          } else if (selected == 2) {
+            read(vim_term, athame_buffer, DEFAULT_BUFFER_SIZE - 1);
             if (!athame_get_vim_info()) {
               request_poll();
             }
-          }
-          else if (selected == 0)
-          {
-            if(vim_sync >= VIM_SYNC_CHAR_BEHIND) {
+          } else if (selected == 0) {
+            if (vim_sync >= VIM_SYNC_CHAR_BEHIND) {
               vim_sync = VIM_SYNC_NEEDS_POLL;
             }
-          }
-          else if (selected == -1)
-          {
+          } else if (selected == -1) {
             char sig_result;
-            if (sig_result = ap_handle_signals())
-            {
+            if (sig_result = ap_handle_signals()) {
               return sig_result;
             } else {
               // Make sure we keep the mode drawn on a resize.
@@ -281,57 +244,50 @@ char athame_loop(int instream)
           if (time_to_poll >= 0 && time_to_poll < get_time()) {
             athame_poll_vim(0);
           }
-        }
-        else // Vim quit
+        } else  // Vim quit
         {
           if (!athame_has_clean_quit()) {
             athame_set_failure("Vim quit unexpectedly");
-          }
-          else if (sent_to_vim)
-          {
+          } else if (sent_to_vim) {
             ap_set_line_buffer("");
-            if(athame_dirty) {
-              fprintf(athame_outstream, "\e[%dG\e[K", ap_get_prompt_length() + 1);
+            if (athame_dirty) {
+              fprintf(athame_outstream, "\e[%dG\e[K",
+                      ap_get_prompt_length() + 1);
             }
             ap_display();
             return ap_delete;
-          }
-          else
-          {
-            // If we didn't send anything to vim, it shouldn't have quit.
-            // We never want to kill the user's shell without giving them a chance
-            // to type anything.
+          } else {
+            // If we didn't send anything to vim, it shouldn't have
+            // quit.
+            // We never want to kill the user's shell without giving
+            // them a to type anything.
             athame_set_failure("Vim quit");
           }
         }
       }
     }
-    if (ap_needs_to_leave()) //We need to leave now
+    if (ap_needs_to_leave())  // We need to leave now
     {
-       return '\0';
+      return '\0';
     }
   }
-  if(!athame_failure)
-  {
-    if(sent_to_vim)
-    {
-      // Should already be synced here, but this is a no-op in that case and
-      // it makes the code less fragile to make sure.
+  if (!athame_failure) {
+    if (sent_to_vim) {
+      // Should already be synced here, but this is a no-op in that case
+      // and it makes the code less fragile to make sure.
       athame_force_vim_sync();
-      if(strcmp(athame_mode, "i") == 0)
-      {
-        athame_send_to_vim('\x1d'); //<C-]> Finish abbrevs/kill mappings
+      if (strcmp(athame_mode, "i") == 0) {
+        athame_send_to_vim('\x1d');  //<C-]> Finish abbrevs/kill mappings
         athame_force_vim_sync();
       }
     }
-    if (athame_is_set("ATHAME_SHOW_MODE", 1))
-    {
+    if (athame_is_set("ATHAME_SHOW_MODE", 1)) {
       athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0, 0);
     }
     updated = 0;
   } else {
     // If we ate the first_char, we should return it.
-    if(returnVal == 0) {
+    if (returnVal == 0) {
       returnVal = first_char;
     }
   }
@@ -340,8 +296,7 @@ char athame_loop(int instream)
 }
 
 void athame_after_bypass() {
-  if (athame_failure && athame_is_set("ATHAME_SHOW_ERROR", 1))
-  {
+  if (athame_failure && athame_is_set("ATHAME_SHOW_ERROR", 1)) {
     athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0, 0);
   }
 }
@@ -350,12 +305,9 @@ void athame_after_bypass() {
 // like python.
 void athame_char_handled() {
   if (athame_is_set("ATHAME_ENABLED", 1) && !ap_needs_to_leave()) {
-    if(athame_failure)
-    {
+    if (athame_failure) {
       athame_draw_failure();
-    }
-    else
-    {
+    } else {
       athame_bottom_mode();
     }
   }
