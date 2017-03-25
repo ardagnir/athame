@@ -15,7 +15,8 @@ set backspace+=start "Without this, you can't delete shell completions
 
 set textwidth=0 "Don't try to wrap text
 
-startinsert "Start in insert mode. Most shell vi-modes do this.
+"Start each line in insert mode. Most shell vi-modes do this:
+autocmd User Vimbed_StartLine call feedkeys("\<C-\>\<C-N>i","n")
 
 " These make arrows more shell like. Feel free to comment them out:
 if v:version>=800 || has("patch928")
