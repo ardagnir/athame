@@ -22,9 +22,9 @@ The setup script will also run tests, locally on your computer, to make sure Ath
 - Athame also works on OSX.
 
 For vim-mode (Athame will act similarly to a normal shell if these are missing):
- - Vim 7.4
+ - Vim 7.4 (or greater)
    - Your version needs to have [+clientserver](#setting-up-vim-with-clientserver)
-   - Athame may expose bugs in older versions of Vim. I recommend using a version that includes patches 1-928 at the minimum.
+   - Athame may expose bugs in older versions of Vim. If you use 7.4, I recommend using a version that includes patches 1-928 at the minimum.
 
  - X (For linux, you probably have this already. For OSX, install XQuartz)
 
