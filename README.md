@@ -63,21 +63,33 @@ To build bash so that it uses the system readline:
 - You can change what Vim binary is used by passing --vimbin=/path/to/vim to the setup script.
 - You can install Athame locally by passing --nosudo --prefix=$HOME/local/ to the setup script for readline and bash.
 
-
 ##Setting up Athame Zsh
 **Arch Linux**
 
     ./zsh_athame_setup.sh
+
+Add "unset zle_bracketed_paste" to the end of your ~/.zshrc (Athame doesn't currently support bracketed paste, so we don't want zsh to tell the shell that it does.)
 
 **Debian or Ubuntu**
 
     apt-get build-dep zsh
     ./zsh_athame_setup.sh
 
+Add "unset zle_bracketed_paste" to the end of your ~/.zshrc (Athame doesn't currently support bracketed paste, so we don't want zsh to tell the shell that it does.)
+
 **Additional Notes**
 - You can add the --nobuild flag to the setup script if you want to configure/build/install yourself.
 - You can change what Vim binary is used by passing --vimbin=/path/to/vim to the setup script.
 - You can install Athame locally by passing --nosudo --prefix=$HOME/local/ to the setup script.
+
+## Configuration
+Athame can be configured through the following environment variables. They can be set on the fly or you can add them to your ~/.bashrc or ~/.zshrc. Make sure you use `export` if you add them to your ~/.zshrc.
+
+- **ATHAME_ENABLED:** Set to 0 to disable Athame.
+- **ATHAME_SHOW_MODE:** Set to 0 to hide mode display at the bottom of the screen. To display it yourself, read the ATHAME_VIM_MODE variable.
+- **ATHAME_SHOW_COMMAND:** Set to 0 to hide :, /, and ? commands at the bottom of the screen. To display them yourself, read the ATHAME_VIM_COMMAND variable.
+- **ATHAME_SHOW_ERROR:** Set to 0 to hide athame errors. If you want to display these yourself, read the ATHAME_ERROR variable.
+- **ATHAME_VIM_PERSIST:** Normally Athame spawns a new short-lived Vim instance for each readline/zle usage (in practice, a separate Vim instance each line). If you set this to 1, you will get 1 Vim instance per shell instead, so your iabbrevs, etc, are preserved from line to line. The tradeoff is that it will keep Vim open until the shell closes, whether or not it is using readline. For example: if you open your terminal and type bash 10 times, with the default ATHAME_VIM_PERSIST of 0 you will have one instance of Vim running, because only the inner shell is using readline, but with ATHAME_VIM_PERSIST set to 1, you will have 10.
 
 ##FAQ
 ####How do I use this?
