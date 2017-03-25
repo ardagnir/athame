@@ -167,9 +167,9 @@ if [ $build = 1 ]; then
       export DYLD_LIBRARY_PATH="$LD_LIBRARY_PATH"
     fi
 
-    $ldd "$(which bash)" | grep libreadline >/dev/null
+    $ldd "$(which bash)" | grep libreadline.so.7 >/dev/null
     if [ $? -eq 1 ]; then
-      echo "Bash isn't set to use system readline. Setting up local bash for testing."
+      echo "Bash isn't set to use system readline or is not using readline 7. Setting up local bash for testing."
       cd ..
       ./bash_readline_setup.sh --destdir="$(pwd)/test/build" --with-installed-readline="${LD_LIBRARY_PATH%+(/lib|/lib/*)}"
       cd test

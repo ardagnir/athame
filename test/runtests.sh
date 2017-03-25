@@ -35,7 +35,7 @@ function runtest () {
     i=${t:4:${#t}-7}
     echo "Test $i:"
     cat ../prefix.sh inst$i.sh | grep -v '^\#' > input_text
-    printf "\x04" >> input_text
+    printf "exit\n\x04" >> input_text
 
     milli=1
     # Do we have millisecond precision in date?
@@ -60,7 +60,7 @@ function runtest () {
         end_time=$((start_time+1))
       fi
     fi
-    keys_typed=$(($(wc -c < inst$i.sh)))
+    keys_typed=$(($(wc -c < input_text)))
     speed=$((keys_typed * 1000 / $((end_time-start_time))))
     # Make sure we can handle at least 27 keys per second. This is about 294
     # words per minute for English text, faster than world record typists.
