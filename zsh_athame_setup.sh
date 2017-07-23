@@ -65,6 +65,7 @@ do
                         "    --docdir=\n" \
                         "    --htmldir=\n" \
                         "--help: display this message"; exit;;
+    * ) echo Unknown flag "$arg" >&2; exit 1;;
   esac
 done
 

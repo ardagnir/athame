@@ -62,6 +62,7 @@ do
                         "--norc: don't copy the rc file to /etc/athamerc\n" \
                         "--nosubmodule: don't update submodules\n" \
                         "--help: display this message"; exit;;
+    * ) echo Unknown flag "$arg" >&2; exit 1;;
   esac
 done
 

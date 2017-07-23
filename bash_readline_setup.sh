@@ -45,6 +45,7 @@ do
                         "         just make and install changes\n" \
                         "         (only use after a successful build)\n" \
                         "--help: display this message"; exit;;
+    * ) echo Unknown flag "$arg" >&2; exit 1;;
   esac
 done
 
