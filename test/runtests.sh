@@ -136,9 +136,9 @@ fi
 runtest "$1" vim "Vim Integration"
 temp=$DISPLAY
 unset DISPLAY
-runtest "$1" shell "Shell Fallback without X"
+runtest "$1" shell "Shell without X"
 if [ "$2" == "bash" ]; then
-  runtest "$1" bash "Bash Shell Fallback without X"
+  runtest "$1" bash "Bash Shell without X"
 fi
 DISPLAY=$temp
 

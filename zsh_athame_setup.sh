@@ -84,13 +84,24 @@ if [ -z $vimbin ]; then
     exit
   fi
   echo "No vim binary provided. Trying $testvim"
-  if [ "$($testvim --version | grep +clientserver)" ]; then
+  if [ "$($testvim --version | grep +job)" ]; then
+    vimbin="$testvim"
+    echo "$vimbin probably has job support. Using $vimbin as vim binary."
+    ATHAME_USE_JOBS_DEFAULT=1
+  elif [ "$($testvim --version | grep +clientserver)" ]; then
     vimbin=$testvim
     echo "$vimbin probably has clientserver support. Using $vimbin as vim binary."
+    ATHAME_USE_JOBS_DEFAULT=0
   else
     echo "$testvim does not appear to have clientserver support."
     echo $vimmsg
     exit
+  fi
+else
+  if [ "$($vimbin --version | grep +job)" ]; then
+    ATHAME_USE_JOBS_DEFAULT=1
+  else
+    ATHAME_USE_JOBS_DEFAULT=0
   fi
 fi
 
@@ -135,73 +146,64 @@ if [ $athame = 1 ]; then
   cp ../athame_zsh.h Src/Zle/athame_intermediary.h
 fi
 
+if [ $build != 1 ]; then
+  exit 0
+fi
+
 #Build and install zsh
-if [ $build = 1 ]; then
-  if [ ! -f Makefile ]; then
-    ./configure "$prefix_flag" \
-        "$libdir_flag" \
-        "$docdir_flag" \
-        "$htmldir_flag" \
-        --enable-etcdir=/etc/zsh \
-        --enable-zshenv=/etc/zsh/zshenv \
-        --enable-zlogin=/etc/zsh/zlogin \
-        --enable-zlogout=/etc/zsh/zlogout \
-        --enable-zprofile=/etc/zsh/zprofile \
-        --enable-zshrc=/etc/zsh/zshrc \
-        --enable-maildir-support \
-        --enable-multibyte \
-        --enable-function-subdirs \
-        --enable-fndir="$prefix/share/zsh/functions" \
-        --enable-scriptdir="$prefix/share/zsh/scripts" \
-        --with-tcsetpgrp \
-        --enable-pcre \
-        --enable-cap \
-        --enable-zsh-secure-free \
-        || exit 1
-  fi
-  if [ $runtest = 1 ]; then
-    rm -rf "$(pwd)/../test/build"
-    mkdir -p "$(pwd)/../test/build"
+if [ ! -f Makefile ]; then
+  ./configure "$prefix_flag" \
+      "$libdir_flag" \
+      "$docdir_flag" \
+      "$htmldir_flag" \
+      --enable-etcdir=/etc/zsh \
+      --enable-zshenv=/etc/zsh/zshenv \
+      --enable-zlogin=/etc/zsh/zlogin \
+      --enable-zlogout=/etc/zsh/zlogout \
+      --enable-zprofile=/etc/zsh/zprofile \
+      --enable-zshrc=/etc/zsh/zshrc \
+      --enable-maildir-support \
+      --enable-multibyte \
+      --enable-function-subdirs \
+      --enable-fndir="$prefix/share/zsh/functions" \
+      --enable-scriptdir="$prefix/share/zsh/scripts" \
+      --with-tcsetpgrp \
+      --enable-pcre \
+      --enable-cap \
+      --enable-zsh-secure-free \
+      || exit 1
+fi
+if [ $runtest = 1 ]; then
+  rm -rf "$(pwd)/../test/build"
+  mkdir -p "$(pwd)/../test/build"
 
-    # make sure the files affected by ATHAME_TESTDIR are updated to use test settings
-    rm -f Src/zshpaths.h && touch Src/Zle/athame.c
+  # make sure the files affected by ATHAME_TESTDIR are updated to use test settings
+  rm -f Src/zshpaths.h && touch Src/Zle/athame.c
 
-    make ATHAME_VIM_BIN="$vimbin" ATHAME_TESTDIR="$(pwd)/../test/build" || exit 1
-    make install DESTDIR="$(pwd)/../test/build" || exit 1
+  make ATHAME_VIM_BIN="$vimbin" ATHAME_USE_JOBS_DEFAULT="$ATHAME_USE_JOBS_DEFAULT" ATHAME_TESTDIR="$(pwd)/../test/build" || exit 1
+  make install DESTDIR="$(pwd)/../test/build" || exit 1
 
-    # make sure the files affected by ATHAME_TESTDIR are updated to not use test settings
-    rm -f Src/zshpaths.h && touch Src/Zle/athame.c
+  # make sure the files affected by ATHAME_TESTDIR are updated to not use test settings
+  rm -f Src/zshpaths.h && touch Src/Zle/athame.c
 
-    cd ../test
-    zsh_bin="$(find $(pwd)/build -name zsh -type f | head -n 1)"
-    if [ "$(uname)" == "Darwin" ]; then
-      ./runtests.sh "script /dev/null $zsh_bin" || exit 1
-    else
-      ./runtests.sh "script -c $zsh_bin" || exit 1
-    fi
-    cd -
-    make ATHAME_VIM_BIN="$vimbin" || exit 1
-    echo "Installing Zsh with Athame..."
-    if [ -n "$destdir" ]; then
-      mkdir -p "$destdir"
-    fi
-    if [ -w "$destdir" ]; then
-      make install DESTDIR="$destdir" || exit 1
-    else
-      ${sudo}make install DESTDIR="$destdir" || exit 1
-    fi
+  cd ../test
+  zsh_bin="$(find $(pwd)/build -name zsh -type f | head -n 1)"
+  if [ "$(uname)" == "Darwin" ]; then
+    ./runtests.sh "script /dev/null $zsh_bin" || exit 1
   else
-    make ATHAME_VIM_BIN=$vimbin || exit 1
-    echo "Installing Zsh with Athame..."
-    if [ -n "$destdir" ]; then
-      mkdir -p "$destdir"
-    fi
-    if [ -w "$destdir" ]; then
-      make install DESTDIR="$destdir" || exit 1
-    else
-      ${sudo}make install DESTDIR="$destdir" || exit 1
-    fi
+    ./runtests.sh "script -c $zsh_bin" || exit 1
   fi
+  cd -
+fi
+make ATHAME_VIM_BIN="$vimbin" ATHAME_USE_JOBS_DEFAULT="$ATHAME_USE_JOBS_DEFAULT" || exit 1
+echo "Installing Zsh with Athame..."
+if [ -n "$destdir" ]; then
+  mkdir -p "$destdir"
+fi
+if [ -w "$destdir" ]; then
+  make install DESTDIR="$destdir" || exit 1
+else
+  ${sudo}make install DESTDIR="$destdir" || exit 1
 fi
 
 if [ $rc = 1 ]; then

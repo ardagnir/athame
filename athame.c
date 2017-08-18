@@ -61,8 +61,10 @@ void athame_init(int instream, FILE* outstream) {
   bottom_cursor = 0;
   cs_confirmed = 0;
   athame_failure = 0;
+  msg_sent = 0;
 
   dev_null = 0;
+  fifo = 0;
 
   servername = 0;
   dir_name = 0;
@@ -71,13 +73,15 @@ void athame_init(int instream, FILE* outstream) {
   update_file_name = 0;
   messages_file_name = 0;
   vimbed_file_name = 0;
+  fifo_name = 0;
+  msg_count_file_name = 0;
 
   if (!athame_is_set("ATHAME_ENABLED", 1)) {
     athame_failure = strdup("Athame was disabled on init.");
     return;
   }
-  if (!getenv("DISPLAY")) {
-    athame_set_failure("No X display found.");
+  if (!athame_is_set("ATHAME_USE_JOBS", ATHAME_USE_JOBS_DEFAULT) && !getenv("DISPLAY")) {
+    athame_set_failure("Vim with +job required to use Athame without X.");
     return;
   }
 
@@ -87,6 +91,8 @@ void athame_init(int instream, FILE* outstream) {
   asprintf(&contents_file_name, "%s/contents.txt", dir_name);
   asprintf(&update_file_name, "%s/update.txt", dir_name);
   asprintf(&messages_file_name, "%s/messages.txt", dir_name);
+  asprintf(&fifo_name, "%s/exprPipe", dir_name);
+  asprintf(&msg_count_file_name, "%s/messageCount.txt", dir_name);
   if (getenv("ATHAME_VIMBED_LOCATION")) {
     asprintf(&vimbed_file_name, "%s/vimbed.vim",
              getenv("ATHAME_VIMBED_LOCATION"));
@@ -97,6 +103,7 @@ void athame_init(int instream, FILE* outstream) {
   dev_null = fopen("/dev/null", "w");
   mkdir("/tmp/vimbed", S_IRWXU);
   mkdir(dir_name, S_IRWXU);
+  mkfifo(fifo_name, S_IRWXU);
 
   if (athame_setup_history()) {
     return;
@@ -132,26 +139,6 @@ void athame_cleanup() {
   if (dev_null) {
     fclose(dev_null);
   }
-  if (slice_file_name) {
-    unlink(slice_file_name);
-    free(slice_file_name);
-  }
-  if (contents_file_name) {
-    unlink(contents_file_name);
-    free(contents_file_name);
-  }
-  if (update_file_name) {
-    unlink(update_file_name);
-    free(update_file_name);
-  }
-  if (messages_file_name) {
-    unlink(messages_file_name);
-    free(messages_file_name);
-  }
-  if (dir_name) {
-    rmdir(dir_name);
-    free(dir_name);
-  }
   if (vimbed_file_name) {
     free(vimbed_file_name);
   }
@@ -170,6 +157,37 @@ void athame_cleanup() {
   if (vim_pid && !persist) {
     wait_then_kill(vim_pid);
     vim_pid = 0;
+  }
+  if (fifo) {
+    close(fifo);
+  }
+  if (fifo_name) {
+    unlink(fifo_name);
+    free(fifo_name);
+  }
+  if (slice_file_name) {
+    unlink(slice_file_name);
+    free(slice_file_name);
+  }
+  if (contents_file_name) {
+    unlink(contents_file_name);
+    free(contents_file_name);
+  }
+  if (update_file_name) {
+    unlink(update_file_name);
+    free(update_file_name);
+  }
+  if (messages_file_name) {
+    unlink(messages_file_name);
+    free(messages_file_name);
+  }
+  if (msg_count_file_name) {
+    unlink(msg_count_file_name);
+    free(msg_count_file_name);
+  }
+  if (dir_name) {
+    rmdir(dir_name);
+    free(dir_name);
   }
 }
 
