@@ -460,11 +460,17 @@ static int athame_remote_expr_v8(char* expr, int block) {
   }
 
   msg_sent++;
-  if (fifo == 0) {
-    fifo = open(fifo_name, O_WRONLY);
-    if (fifo < 0) {
+
+  int sanity = 40;
+  while (fifo <= 0) {
+    sanity--;
+    if (sanity < 1) {
       athame_set_failure("Couldn't create fifo");
       return 1;
+    }
+    fifo = open(fifo_name, O_WRONLY | O_NONBLOCK);
+    if (fifo < 0) {
+      athame_sleep(25, 0, 0);
     }
   }
   snprintf(fifo_buffer, DEFAULT_BUFFER_SIZE-1, "%d:%s\n", msg_sent, expr);

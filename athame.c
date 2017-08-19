@@ -228,7 +228,6 @@ char athame_loop(int instream) {
   }
 
   while (!returnVal && !athame_failure) {
-    struct timeval timeout;
     int selected = 0;
     if (first_char) {
       returnVal = athame_process_char(first_char);
