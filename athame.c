@@ -263,7 +263,7 @@ char athame_loop(int instream) {
           }
         } else  // Vim quit
         {
-          if (!athame_has_clean_quit()) {
+          if (!athame_has_clean_quit() && !athame_failure) {
             athame_set_failure("Vim quit unexpectedly");
           } else if (sent_to_vim) {
             ap_set_line_buffer("");

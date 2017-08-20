@@ -334,6 +334,10 @@ static int athame_setup_history() {
 }
 
 static int athame_remote_expr(char* expr, int block) {
+  if (athame_failure) {
+    return 1;
+  }
+
   if (athame_is_set("ATHAME_USE_JOBS", ATHAME_USE_JOBS_DEFAULT)){
     return athame_remote_expr_v8(expr, block);
   } else {
@@ -420,7 +424,7 @@ static int athame_remote_expr_cs(char* expr, int block) {
 }
 
 
-//If block, blocks while an expr is in flight (gives up after ~5 sec for safety)
+//If block, blocks while an expr is in flight (gives up after ~3 sec for safety)
 //Otherwise returns 1 if an expr is in flight.
 static int check_expr_in_flight(int block) {
   char msgCount[256];
@@ -839,6 +843,9 @@ static void athame_draw_failure() {
 }
 
 static void athame_set_failure(char* fail_str) {
+  if (athame_failure == 0) {
+    kill(vim_pid, SIGTERM);
+  }
   athame_failure = strdup(fail_str);
   athame_draw_failure();
 }
