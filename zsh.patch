@@ -85,7 +85,7 @@ diff -ru a/Src/Zle/zle_main.c b/Src/Zle/zle_main.c
  
      region_active = 0;
      popheap();
-+    athame_cleanup();
++    athame_cleanup(0);
  }
  
  /* Read a line.  It is returned metafied. */

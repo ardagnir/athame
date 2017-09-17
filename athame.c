@@ -124,7 +124,10 @@ void athame_init(int instream, FILE* outstream) {
   athame_ensure_vim(1, instream);
 }
 
-void athame_cleanup() {
+// Cleanup everything athame related.
+// If locked is set, make sure not to let control leave athame during cleanup.
+// (This is useful if the shell wants to shutdown as soon as it gets any control)
+void athame_cleanup(int locked) {
   int persist = athame_is_set("ATHAME_VIM_PERSIST", 0) &&
                 vim_stage == VIM_RUNNING && is_vim_alive();
 
@@ -146,10 +149,14 @@ void athame_cleanup() {
     free(servername);
   }
   if (athame_failure) {
-    athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0, 0);
+    if(!locked) {
+      athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0, 0);
+    }
     free((char*)athame_failure);
   } else if (athame_is_set("ATHAME_SHOW_MODE", 1)) {
-    athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0, 0);
+    if (!locked) {
+      athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0, 0);
+    }
   }
   if (expr_pid > 0) {
     wait_then_kill(expr_pid);

@@ -133,7 +133,7 @@ diff -ru a/readline.c b/readline.c
  
    RL_CHECK_SIGNALS ();
  
-+  athame_cleanup();
++  athame_cleanup(0);
 +
    /* Restore the original of this history line, iff the line that we
       are editing was originally in the history, AND the line has changed. */

@@ -41,7 +41,7 @@ extern char athame_loop(int instream);
 extern int athame_enabled();
 
 // Cleanup all the memory allocated by athame and shut vim down.
-extern void athame_cleanup();
+extern void athame_cleanup(int);
 
 // Run after bypassing athame.
 extern void athame_after_bypass();
