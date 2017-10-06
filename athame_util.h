@@ -123,32 +123,31 @@ static int start_vim(int char_break, int instream) {
              "+call Vimbed_UpdateText(%d, %d, %d, %d, 1, 'StartLine')",
              athame_row + 1, cursor + 1, athame_row + 1, cursor + 1);
     int vim_error = 0;
-    if (athame_is_set("ATHAME_USE_JOBS", ATHAME_USE_JOBS_DEFAULT)){
-      char* setup_str;
-      asprintf(&setup_str, "+call Vimbed_SetupVimbed('', 'slice,server=%s')", servername);
+    char* setup_str;
+    asprintf(&setup_str, "+call Vimbed_SetupVimbed('', '%s', 'slice')", dir_name,
+             servername);
+    if (athame_is_set("ATHAME_USE_JOBS", ATHAME_USE_JOBS_DEFAULT)) {
       if (testrc) {
         vim_error =
             execl(ATHAME_VIM_BIN, "vim", "-u", "NONE", "-S", vimbed_file_name,
                   "-S", athamerc, setup_str, athame_buffer, NULL);
       } else {
-        vim_error =
-            execl(ATHAME_VIM_BIN, "vim", "-S", vimbed_file_name,
-                  "-S", athamerc, setup_str, athame_buffer, NULL);
+        vim_error = execl(ATHAME_VIM_BIN, "vim", "-S", vimbed_file_name, "-S",
+                          athamerc, setup_str, athame_buffer, NULL);
       }
       free(setup_str);
     } else {
       if (testrc) {
-        vim_error =
-            execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-u",
-                  "NONE", "-S", vimbed_file_name, "-S", athamerc,
-                  "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
+        vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-u",
+                          "NONE", "-S", vimbed_file_name, "-S", athamerc,
+                          setup_str, athame_buffer, NULL);
       } else {
-        vim_error =
-            execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-S",
-                  vimbed_file_name, "-S", athamerc,
-                  "+call Vimbed_SetupVimbed('', 'slice')", athame_buffer, NULL);
+        vim_error = execl(ATHAME_VIM_BIN, "vim", "--servername", servername, "-S",
+                          vimbed_file_name, "-S", athamerc, setup_str,
+                          athame_buffer, NULL);
       }
     }
+    free(setup_str);
     if (vim_error != 0) {
       printf("Error: %d", errno);
       exit(EXIT_FAILURE);
@@ -307,7 +306,10 @@ static int athame_setup_history() {
   FILE* updateFile = fopen(update_file_name, "w+");
 
   if (!updateFile) {
-    athame_set_failure("Couldn't create temporary file in /tmp/vimbed.");
+    char* fail_str;
+    asprintf(&fail_str, "Couldn't create temporary file in %s", dir_name);
+    athame_set_failure(fail_str);
+    free(fail_str);
     return 1;
   }
 
@@ -1167,4 +1169,12 @@ static void athame_force_vim_sync() {
 
 static int is_vim_alive() {
   return vim_pid && waitpid(vim_pid, NULL, WNOHANG) == 0;
+}
+
+static char* temp_dir_loc() {
+#ifdef BSD
+  return "TMPDIR";
+#else
+  return "XDG_RUNTIME_DIR";
+#endif
 }

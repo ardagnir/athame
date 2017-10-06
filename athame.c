@@ -86,12 +86,26 @@ void athame_init(int instream, FILE* outstream) {
   }
 
   asprintf(&servername, "athame_%d", getpid());
-  asprintf(&dir_name, "/tmp/vimbed/%s", servername);
+
+  char* tmpdir = getenv(temp_dir_loc());
+  if (tmpdir == NULL) {
+    char* failure;
+    asprintf(&failure, "%s environment variable not set", temp_dir_loc());
+    athame_set_failure(failure);
+    free(failure);
+    return;
+  }
+  char* parent_name;
+  asprintf(&parent_name, "%s/athame_vimbed", tmpdir);
+  asprintf(&dir_name, "%s/%s", parent_name, servername);
+  mkdir(parent_name, S_IRWXU);
+  mkdir(dir_name, S_IRWXU);
+  free(parent_name);
+
   asprintf(&slice_file_name, "%s/slice.txt", dir_name);
   asprintf(&contents_file_name, "%s/contents.txt", dir_name);
   asprintf(&update_file_name, "%s/update.txt", dir_name);
   asprintf(&messages_file_name, "%s/messages.txt", dir_name);
-  asprintf(&fifo_name, "%s/exprPipe", dir_name);
   asprintf(&msg_count_file_name, "%s/messageCount.txt", dir_name);
   if (getenv("ATHAME_VIMBED_LOCATION")) {
     asprintf(&vimbed_file_name, "%s/vimbed.vim",
@@ -100,10 +114,10 @@ void athame_init(int instream, FILE* outstream) {
     asprintf(&vimbed_file_name, "%s/vimbed.vim", VIMBED_LOCATION);
   }
 
-  dev_null = fopen("/dev/null", "w");
-  mkdir("/tmp/vimbed", S_IRWXU);
-  mkdir(dir_name, S_IRWXU);
+  asprintf(&fifo_name, "%s/exprPipe", dir_name);
   mkfifo(fifo_name, S_IRWXU);
+
+  dev_null = fopen("/dev/null", "w");
 
   if (athame_setup_history()) {
     return;
