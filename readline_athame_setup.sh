@@ -179,7 +179,7 @@ if [ $runtest = 1 ]; then
     export DYLD_LIBRARY_PATH="$LD_LIBRARY_PATH"
     otool -L "$(which bash)" | grep libreadline.7.dylib >/dev/null
   else
-    $ldd "$(which bash)" | grep libreadline.so.7 >/dev/null
+    ldd "$(which bash)" | grep libreadline.so.7 >/dev/null
   fi
   if [ $? -eq 1 ]; then
     echo "Bash isn't set to use system readline or is not using readline 7. Setting up local bash for testing."
