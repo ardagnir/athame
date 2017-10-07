@@ -996,8 +996,8 @@ static int athame_get_vim_info_inner() {
   }
   char* location2 = athame_tok(&buffer_loc, '\n');
 
-  int col;
-  int row;
+  int col = -1;
+  int row = -1;
   if (athame_get_col_row(location, &col, &row)) {
     if (col < 0 || row < 0) {
       col = 0;
@@ -1032,7 +1032,7 @@ static int athame_get_vim_info_inner() {
     changed = 1;
     ap_set_line_buffer(buffer_loc);
   }
-  if (ap_get_cursor() != col) {
+  if (col > -1 && ap_get_cursor() != col) {
     ap_set_cursor(col);
     changed = 1;
   }
