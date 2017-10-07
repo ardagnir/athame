@@ -111,30 +111,30 @@ fi
 
 #Download zsh
 if [ $redownload = 1 ]; then
-  rm -r zsh-5.k.1.tar.gz
+  rm -r zsh-5.4.1.tar.xz
 fi
-if [ ! -f zsh-5.1.1.tar.gz ]; then
-  curl -O http://www.zsh.org/pub/old/zsh-5.1.1.tar.gz
+if [ ! -f zsh-5.4.1.tar.xz ]; then
+  curl -O http://www.zsh.org/pub/old/zsh-5.4.1.tar.xz
 fi
-if [ "$(md5sum zsh-5.1.1.tar.gz 2>/dev/null)" != "8ba28a9ef82e40c3a271602f18343b2f  zsh-5.1.1.tar.gz" ] && [ "$(md5 zsh-5.1.1.tar.gz 2>/dev/null)" != "MD5 (zsh-5.1.1.tar.gz) = 8ba28a9ef82e40c3a271602f18343b2f" ]; then
-  rm zsh-5.1.1.tar.gz
+if [ "$(md5sum zsh-5.4.1.tar.xz 2>/dev/null)" != "0b80b7f64c30397cd747d97c378018af  zsh-5.4.1.tar.xz" ] && [ "$(md5 zsh-5.4.1.tar.xz 2>/dev/null)" != "MD5 (zsh-5.4.1.tar.xz) = 0b80b7f64c30397cd747d97c378018af" ]; then
+  rm zsh-5.4.1.tar.xz
   echo "FAILED: Incorrect md5 hash" >&2
   exit 1
 fi
 
-if [ ! -d zsh-5.1.1_tmp ]; then
+if [ ! -d zsh-5.4.1_tmp ]; then
   dirty=0
 fi
 
 #Unpack zsh dir
 if [ $dirty = 0 ]; then
-  rm -rf zsh-5.1.1_tmp
-  tar -xf zsh-5.1.1.tar.gz
-  mv zsh-5.1.1 zsh-5.1.1_tmp
+  rm -rf zsh-5.4.1_tmp
+  tar -xf zsh-5.4.1.tar.xz
+  mv zsh-5.4.1 zsh-5.4.1_tmp
 fi
 
 #Patch Zsh with Athame
-cd zsh-5.1.1_tmp
+cd zsh-5.4.1_tmp
 if [ $athame = 1 ]; then
   if [ $dirty = 0 ]; then
     patch -p1 < ../zsh.patch
