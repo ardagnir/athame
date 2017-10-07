@@ -68,14 +68,20 @@ To build bash so that it uses the system readline:
 
     ./zsh_athame_setup.sh
 
-Add "unset zle_bracketed_paste" to the end of your ~/.zshrc (Athame doesn't currently support bracketed paste, so we don't want zsh to tell the shell that it does.)
+For old versions of Vim *(versions without an entry for ":help bracketed-paste")*:
+- Add "unset zle_bracketed_paste" to the end of your ~/.zshrc (Older vim doesn't support bracketed paste, so we don't want zsh to tell the shell that it does.)
+
+Important note for bracketed paste users: Even with newer versions of Vim and bracketed paste, Athame will still **run commands on pasted newlines** because newlines aren't handled by Vim.
 
 **Debian or Ubuntu**
 
     apt-get build-dep zsh
     ./zsh_athame_setup.sh
 
-Add "unset zle_bracketed_paste" to the end of your ~/.zshrc (Athame doesn't currently support bracketed paste, so we don't want zsh to tell the shell that it does.)
+For old versions of Vim *(versions without an entry for ":help bracketed-paste")*:
+- Add "unset zle_bracketed_paste" to the end of your ~/.zshrc (Older vim doesn't support bracketed paste, so we don't want zsh to tell the shell that it does.)
+
+Important note for bracketed paste users: Even with newer versions of Vim and bracketed paste, Athame will still **run commands on pasted newlines** because newlines aren't handled by Vim.
 
 **Additional Notes**
 - You can add the --nobuild flag to the setup script if you want to configure/build/install yourself.
