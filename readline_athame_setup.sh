@@ -164,7 +164,7 @@ fi
 if [ ! -f Makefile ]; then
   ./configure "$prefix_flag" "$libdir_flag" || exit 1
 fi
-make SHLIB_LIBS="-lncurses -lutil" ATHAME_VIM_BIN="$vimbin" ATHAME_USE_JOBS_DEFAULT="$ATHAME_USE_JOBS_DEFAULT" || exit 1
+make CFLAGS=-std=c99 SHLIB_LIBS="-lncurses -lutil" ATHAME_VIM_BIN="$vimbin" ATHAME_USE_JOBS_DEFAULT="$ATHAME_USE_JOBS_DEFAULT" || exit 1
 if [ $runtest = 1 ]; then
   rm -rf $(pwd)/../test/build
   mkdir -p $(pwd)/../test/build

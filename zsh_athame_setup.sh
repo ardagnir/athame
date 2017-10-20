@@ -180,7 +180,7 @@ if [ $runtest = 1 ]; then
   # make sure the files affected by ATHAME_TESTDIR are updated to use test settings
   rm -f Src/zshpaths.h && touch Src/Zle/athame.c
 
-  make ATHAME_VIM_BIN="$vimbin" ATHAME_USE_JOBS_DEFAULT="$ATHAME_USE_JOBS_DEFAULT" ATHAME_TESTDIR="$(pwd)/../test/build" || exit 1
+  make CFLAGS=-std=c99 ATHAME_VIM_BIN="$vimbin" ATHAME_USE_JOBS_DEFAULT="$ATHAME_USE_JOBS_DEFAULT" ATHAME_TESTDIR="$(pwd)/../test/build" || exit 1
   make install DESTDIR="$(pwd)/../test/build" || exit 1
 
   # make sure the files affected by ATHAME_TESTDIR are updated to not use test settings
@@ -195,7 +195,7 @@ if [ $runtest = 1 ]; then
   fi
   cd -
 fi
-make ATHAME_VIM_BIN="$vimbin" ATHAME_USE_JOBS_DEFAULT="$ATHAME_USE_JOBS_DEFAULT" || exit 1
+make CFLAGS=-std=c99 ATHAME_VIM_BIN="$vimbin" ATHAME_USE_JOBS_DEFAULT="$ATHAME_USE_JOBS_DEFAULT" || exit 1
 echo "Installing Zsh with Athame..."
 if [ -n "$destdir" ]; then
   mkdir -p "$destdir"
