@@ -165,6 +165,7 @@ void athame_cleanup(int locked) {
   if (vim_pid && !persist) {
     // forkpty will keep vim open on OSX if we don't close the fd
     kill(vim_pid, SIGTERM);
+    athame_sleep(20, 0, 0);
     close(vim_term);
   }
   if (dev_null) {
