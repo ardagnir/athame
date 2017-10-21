@@ -253,7 +253,6 @@ char athame_loop(int instream) {
 static char athame_loop_sig(int instream) {
   char returnVal = 0;
   sent_to_vim = 0;
-  vim_sync = VIM_SYNC_YES;
   time_to_sync = get_time();
   last_athame_mode[0] = '\0';
   bottom_display[0] = '\0';
@@ -266,6 +265,9 @@ static char athame_loop_sig(int instream) {
     return first_char;
   }
   athame_ensure_vim(0, 0);
+
+  // If we have a character already, assume Vim hasn't had time to sync.
+  vim_sync = first_char ? VIM_SYNC_NO : VIM_SYNC_YES;
 
   if (!updated) {
     athame_update_vimline(athame_row, ap_get_cursor());
