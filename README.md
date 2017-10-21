@@ -18,15 +18,16 @@ The setup script will also run tests, locally on your computer, to make sure Ath
 ...but there are no guarantees. You probably shouldn't install Athame on production systems.
 
 ## Requirements
-- Athame works best in GNU/Linux.
-- Athame also works on OSX.
+- Athame works best on GNU/Linux.
+- Athame also works on OSX and Windows.
 
-For vim-mode (Athame will act similarly to a normal shell if these are missing):
- - Vim 7.4 (or greater)
-   - Your version needs to have [+clientserver](#setting-up-vim-with-clientserver)
-   - Athame may expose bugs in older versions of Vim. If you use 7.4, I recommend using a version that includes patches 1-928 at the minimum.
+Vim 7.4+ with **either** of the following (run vim --version to check):
+  - [+clientserver](#setting-up-vim-with-clientserver) support.
+	- +clientserver support also requires X. Athame will display an error and fall back to normal shell behavior if X is not running.
+	- It is recommended that you use 7.4.928+ which includes bug fixes in +clientserver.
+  - +job support.
 
- - X (For linux, you probably have this already. For OSX, install XQuartz)
+If you use Windows, you will also need WSL.
 
 ## Download
 Clone this repo recursively:
@@ -179,9 +180,6 @@ Neovim doesn't support vim-style remote communication yet. The Neovim devs are d
 
 #### Why isn't there an Athame package for my favorite distro?
 ...because you haven't made one yet. The Athame setup script comes with a --nobuild flag so that you can build it however you want or your package can just apply the Athame patches itself.
-
-#### Does Athame work on windows? I have Cygwin!
-Haha, no.
 
 #### This is awesome! Can I help?
 The best way to help is to look at the issue section and submit patches to fix bugs.
