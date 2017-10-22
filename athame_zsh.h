@@ -203,3 +203,7 @@ static void ap_set_control_chars() {
 static void ap_set_nospecial() {
   // We don't care about this in zsh.
 }
+
+static int ap_is_catching_signals() {
+  return 1;
+}

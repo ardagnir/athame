@@ -22,7 +22,6 @@
 
 #include <errno.h>
 #include <signal.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/param.h>
@@ -46,7 +45,18 @@
 
 /* Forward declarations used in this file. */
 void athame_init(int instream, FILE* outstream) {
+  if (!ap_is_catching_signals()) {
+    steal_signal_handler();
+  }
+  athame_init_sig(instream, outstream);
+  if (!ap_is_catching_signals()) {
+    return_signal_handler();
+  }
+}
+
+static void athame_init_sig(int instream, FILE* outstream) {
   athame_outstream = outstream ? outstream : stderr;
+  cleaned = 0;
   expr_pid = 0;
   athame_dirty = 0;
   updated = 1;
@@ -142,6 +152,10 @@ void athame_init(int instream, FILE* outstream) {
 // If locked is set, make sure not to let control leave athame during cleanup.
 // (This is useful if the shell wants to shutdown as soon as it gets any control)
 void athame_cleanup(int locked) {
+  if (cleaned) {
+    return;
+  }
+  cleaned = 1;
   int persist = athame_is_set("ATHAME_VIM_PERSIST", 0) &&
                 vim_stage == VIM_RUNNING && is_vim_alive();
 
@@ -226,6 +240,17 @@ int athame_enabled() {
 }
 
 char athame_loop(int instream) {
+  if (!ap_is_catching_signals()) {
+    steal_signal_handler();
+  }
+  char r = athame_loop_sig(instream);
+  if (!ap_is_catching_signals()) {
+    return_signal_handler();
+  }
+  return r;
+}
+
+static char athame_loop_sig(int instream) {
   char returnVal = 0;
   sent_to_vim = 0;
   vim_sync = VIM_SYNC_YES;
@@ -271,14 +296,15 @@ char athame_loop(int instream) {
               vim_sync = VIM_SYNC_NEEDS_POLL;
             }
           } else if (selected == -1) {
-            char sig_result;
-            if (sig_result = ap_handle_signals()) {
-              return sig_result;
-            } else {
-              // Make sure we keep the mode drawn on a resize.
-              athame_bottom_mode();
-            }
+            // Make sure we keep the mode drawn on a resize.
+            athame_bottom_mode();
           }
+
+          int sr = process_signals();
+          if (sr != -1) {
+            return (char)sr;
+          }
+
           if (time_to_poll >= 0 && time_to_poll < get_time()) {
             athame_poll_vim(0);
           }

@@ -36,6 +36,7 @@ static void athame_force_vim_sync();
 static char athame_buffer[DEFAULT_BUFFER_SIZE];
 static char bottom_display[DEFAULT_BUFFER_SIZE];
 static char athame_command[DEFAULT_BUFFER_SIZE];
+static int cleaned = 0;
 static int command_cursor;
 static int bottom_color;
 static int bottom_style;
@@ -124,8 +125,7 @@ static int start_vim(int char_break, int instream) {
              athame_row + 1, cursor + 1, athame_row + 1, cursor + 1);
     int vim_error = 0;
     char* setup_str;
-    asprintf(&setup_str, "+call Vimbed_SetupVimbed('', '%s', 'slice')", dir_name,
-             servername);
+    asprintf(&setup_str, "+call Vimbed_SetupVimbed('', '%s', 'slice')", dir_name);
     if (athame_is_set("ATHAME_USE_JOBS", ATHAME_USE_JOBS_DEFAULT)) {
       if (testrc) {
         vim_error =
@@ -1177,4 +1177,50 @@ static char* temp_dir_loc() {
 #else
   return "XDG_RUNTIME_DIR";
 #endif
+}
+
+static volatile int athame_sigint = 0;
+sighandler_t old_sigint = 0;
+
+static void sigint_handler(int signum) {
+  signal(SIGINT, old_sigint);
+  athame_sigint = 1;
+}
+
+static void steal_signal_handler() {
+  athame_sigint = 0;
+  old_sigint = signal(SIGINT, sigint_handler);
+}
+
+static void return_signal_handler() {
+  signal(SIGINT, old_sigint);
+  athame_sigint = 0;
+}
+
+// Processes signals and returns either a valid char or -1.
+static int process_signals() {
+    if(ap_is_catching_signals()) {
+      int sig_result;
+      if (sig_result = (int)ap_handle_signals()) {
+        return sig_result;
+      }
+      return -1;
+    }
+
+    if(athame_sigint) {
+        // Python shell has a race where it only handles signint correctly if
+        // it's triggered during a specific select in python code. We start a
+        // new process to send the signal so that python can reach the select.
+        // This is far from ideal and still racy in theory, but seems to work
+        // in practice.
+        int athame_pid = getpid();
+        int pid = fork();
+        if (pid == 0) {
+          // Child process
+          kill(athame_pid, SIGINT);
+          exit(0);
+        }
+        return 0;
+    }
+    return -1;
 }

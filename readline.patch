@@ -272,3 +272,23 @@ diff -ru a/readline.h b/readline.h
  
  extern int rl_initialize PARAMS((void));
  
+diff -ru a/callback.c b/callback.c
+--- a/callback.c	2015-10-29 00:00:00.000000000 -0400
++++ b/callback.c	2015-10-29 00:00:00.000000000 -0400
+@@ -26,6 +26,7 @@
+ #endif
+ 
+ #include "rlconf.h"
++#include "athame.h"
+ 
+ #if defined (READLINE_CALLBACKS)
+ 
+@@ -313,6 +314,8 @@
+       rl_clear_signals ();
+ #endif
+     }
++  // If readline exits early because of a SIGINT, it still needs to cleanup athame.
++  athame_cleanup(1);
+ }
+ 
+ _rl_callback_generic_arg *

@@ -167,3 +167,7 @@ static void ap_set_control_chars() {
 
 // Tells readline that we weren't in the middle of tab completion, search, etc.
 static void ap_set_nospecial() { rl_last_func = rl_insert; }
+
+static int ap_is_catching_signals() {
+  return rl_catch_signals;
+}
