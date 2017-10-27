@@ -87,6 +87,10 @@ static long vim_started = -1;
 static int stale_polls = 0;
 
 static int change_since_key = 0;
+
+// For figure out if vim got stuck
+static int keys_since_change = 0;
+
 static FILE* athame_outstream = 0;
 
 static char athame_mode[3];
@@ -112,7 +116,7 @@ static int start_vim(int char_break, int instream) {
     } else if (!access(etcrc, R_OK)) {
       athamerc = etcrc;
     } else {
-      athame_set_failure("No athamerc found.");
+      athame_set_failure("No athamerc found");
       return 1;
     }
   }
@@ -211,9 +215,9 @@ static int athame_wait_for_vim(int char_break, int instream) {
   int error = athame_wait_for_file(slice_file_name, 50, char_break, instream);
   if (error == 1) {
     if (athame_wait_for_file(contents_file_name, 1, 0, 0) == 0) {
-      athame_set_failure("Using incompatible vimbed version.");
+      athame_set_failure("Using incompatible vimbed version");
     } else {
-      athame_set_failure("Vimbed failure.");
+      athame_set_failure("Vimbed failure");
     }
   }
   if (error > 0) {
@@ -392,7 +396,7 @@ static int athame_remote_expr_cs(char* expr, int block) {
       close(stdout_to_readline[1]);
       close(stderr_to_readline[1]);
     }
-    athame_set_failure("Clientserver error.");
+    athame_set_failure("Clientserver error");
     return -1;
   } else {
     if (block) {
@@ -449,7 +453,7 @@ static int check_expr_in_flight(int block) {
     }
     athame_sleep(10, 0, 0);
   }
-  athame_set_failure("Failed to sync with vim job.");
+  athame_set_failure("Failed to sync with vim job");
   return 1;
 }
 
@@ -898,6 +902,7 @@ static char athame_process_char(char char_read) {
       char_read = '\b';
     }
     athame_send_to_vim(char_read);
+    keys_since_change++;
     return 0;
   }
 }
@@ -919,6 +924,7 @@ static int athame_get_vim_info() {
     time_to_poll = -1;
     stale_polls = 0;
     change_since_key = 1;
+    keys_since_change = 0;
     athame_redisplay();
     return 1;
   }
