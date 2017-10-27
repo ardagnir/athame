@@ -352,6 +352,9 @@ static char athame_loop_sig(int instream) {
     }
     if (ap_needs_to_leave())  // We need to leave now
     {
+      if (athame_is_set("ATHAME_SHOW_MODE", 1)) {
+        athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0, 0);
+      }
       return '\0';
     }
   }
