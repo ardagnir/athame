@@ -303,14 +303,16 @@ static char athame_loop_sig(int instream) {
             if (vim_sync >= VIM_SYNC_CHAR_BEHIND) {
               vim_sync = VIM_SYNC_NEEDS_POLL;
             }
-          } else if (selected == -1) {
-            // Make sure we keep the mode drawn on a resize.
-            athame_bottom_mode();
           }
-
           int sr = process_signals();
           if (sr != -1) {
             return (char)sr;
+          }
+          if (selected == -1) {
+            // Make sure we keep the mode drawn on a resize.
+            // This must happen after process_signals so we don't change the
+            // value of the caught signal
+            athame_bottom_mode();
           }
 
           if (time_to_poll >= 0 && time_to_poll < get_time()) {
