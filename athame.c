@@ -138,6 +138,15 @@ static void athame_init_sig(int instream, FILE* outstream) {
     return;
   }
 
+  if (is_vim_alive() && athame_is_set("ATHAME_USE_JOBS", ATHAME_USE_JOBS_DEFAULT)) {
+      if (athame_setup_fifo()) {
+        // Vim is still alive but the fifo isn't so we have to kill it.
+        kill(vim_pid, SIGTERM);
+        close(vim_term);
+        wait_then_kill(vim_pid);
+      }
+  }
+
   if (is_vim_alive()) {
     athame_remote_expr("Vimbed_Reset()", 1);
     int cursor = ap_get_cursor();

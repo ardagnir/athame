@@ -10,6 +10,7 @@ static int athame_setup_history();
 static int athame_sleep(int msec, int char_break, int instream);
 static int athame_get_vim_info_inner();
 static void athame_update_vimline(int row, int col);
+static int athame_setup_fifo();
 static int athame_remote_expr(char* expr, int block);
 static int athame_remote_expr_cs(char* expr, int block);
 static int athame_remote_expr_v8(char* expr, int block);
@@ -460,6 +461,21 @@ static int check_expr_in_flight(int block) {
 
 char fifo_buffer[DEFAULT_BUFFER_SIZE];
 
+static int athame_setup_fifo() {
+  int sanity = 40;
+  while (fifo <= 0) {
+    sanity--;
+    if (sanity < 1) {
+      return 1;
+    }
+    fifo = open(fifo_name, O_WRONLY | O_NONBLOCK);
+    if (fifo < 0) {
+      athame_sleep(25, 0, 0);
+    }
+  }
+  return 0;
+}
+
 static int athame_remote_expr_v8(char* expr, int block) {
   athame_ensure_vim(0, 0);
 
@@ -471,18 +487,11 @@ static int athame_remote_expr_v8(char* expr, int block) {
 
   msg_sent++;
 
-  int sanity = 40;
-  while (fifo <= 0) {
-    sanity--;
-    if (sanity < 1) {
-      athame_set_failure("Couldn't create fifo");
-      return 1;
-    }
-    fifo = open(fifo_name, O_WRONLY | O_NONBLOCK);
-    if (fifo < 0) {
-      athame_sleep(25, 0, 0);
-    }
+  if (athame_setup_fifo()) {
+    athame_set_failure("Vim not reading from fifo");
+    return 1;
   }
+
   snprintf(fifo_buffer, DEFAULT_BUFFER_SIZE-1, "%d:%s\n", msg_sent, expr);
   write(fifo, fifo_buffer, strlen(fifo_buffer));
 
