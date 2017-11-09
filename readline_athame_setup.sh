@@ -1,7 +1,7 @@
 #!/bin/bash
 # readline_athame_setup.sh -- Full vim integration for your shell.
 #
-# Copyright (C) 2015 James Kolb
+# Copyright (C) 2017 James Kolb
 #
 # This file is part of Athame.
 #
@@ -19,7 +19,7 @@
 
 shopt -s extglob
 
-patches=1
+patches=3
 redownload=0
 build=1
 runtest=1

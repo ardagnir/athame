@@ -1,7 +1,7 @@
 #!/bin/bash
 # zsh_athame_setup.sh -- Full vim integration for your shell.
 #
-# Copyright (C) 2015 James Kolb
+# Copyright (C) 2017 James Kolb
 #
 # This file is part of Athame.
 #
@@ -111,30 +111,34 @@ fi
 
 #Download zsh
 if [ $redownload = 1 ]; then
-  rm -r zsh-5.4.1.tar.xz
+  rm -r zsh-5.4.2.tar.gz
 fi
-if [ ! -f zsh-5.4.1.tar.xz ]; then
-  curl -O http://www.zsh.org/pub/old/zsh-5.4.1.tar.xz
+if [ ! -f zsh-5.4.2.tar.gz ]; then
+  curl -O http://www.zsh.org/pub/zsh-5.4.2.tar.gz
+  head -n 3 zsh-5.4.2.tar.gz | grep "404 Not Found" > /dev/null
+  if [ $? -eq 0 ]; then
+    curl -O http://www.zsh.org/pub/old/zsh-5.4.2.tar.gz
+  fi
 fi
-if [ "$(md5sum zsh-5.4.1.tar.xz 2>/dev/null)" != "0b80b7f64c30397cd747d97c378018af  zsh-5.4.1.tar.xz" ] && [ "$(md5 zsh-5.4.1.tar.xz 2>/dev/null)" != "MD5 (zsh-5.4.1.tar.xz) = 0b80b7f64c30397cd747d97c378018af" ]; then
-  rm zsh-5.4.1.tar.xz
+if [ "$(md5sum zsh-5.4.2.tar.gz 2>/dev/null)" != "dfe156fd69b0d8d1745ecf6d6e02e047  zsh-5.4.2.tar.gz" ] && [ "$(md5 zsh-5.4.2.tar.gz 2>/dev/null)" != "MD5 (zsh-5.4.2.tar.gz) = dfe156fd69b0d8d1745ecf6d6e02e047" ]; then
+  rm zsh-5.4.2.tar.gz
   echo "FAILED: Incorrect md5 hash" >&2
   exit 1
 fi
 
-if [ ! -d zsh-5.4.1_tmp ]; then
+if [ ! -d zsh-5.4.2_tmp ]; then
   dirty=0
 fi
 
 #Unpack zsh dir
 if [ $dirty = 0 ]; then
-  rm -rf zsh-5.4.1_tmp
-  tar -xf zsh-5.4.1.tar.xz
-  mv zsh-5.4.1 zsh-5.4.1_tmp
+  rm -rf zsh-5.4.2_tmp
+  tar -xf zsh-5.4.2.tar.gz
+  mv zsh-5.4.2 zsh-5.4.2_tmp
 fi
 
 #Patch Zsh with Athame
-cd zsh-5.4.1_tmp
+cd zsh-5.4.2_tmp
 if [ $athame = 1 ]; then
   if [ $dirty = 0 ]; then
     ../athame_patcher.sh zsh .. || exit 1
