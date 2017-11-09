@@ -137,13 +137,10 @@ fi
 cd zsh-5.4.1_tmp
 if [ $athame = 1 ]; then
   if [ $dirty = 0 ]; then
-    patch -p1 < ../zsh.patch
+    ../athame_patcher.sh zsh .. || exit 1
+  else
+    ../athame_patcher.sh --dirty zsh .. || exit 1
   fi
-  rm -rf Src/vimbed
-  cp -r ../vimbed Src/
-  cp ../athame.* Src/Zle/
-  cp ../athame_util.h Src/Zle/
-  cp ../athame_zsh.h Src/Zle/athame_intermediary.h
 fi
 
 if [ $build != 1 ]; then

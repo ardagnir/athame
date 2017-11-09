@@ -143,17 +143,11 @@ if [ $dirty = 0 ]; then
 fi
 
 if [ $athame = 1 ]; then
-  #Patch Readline with athame
   if [ $dirty = 0 ]; then
-    echo "Patching with Athame patch"
-    patch -p1 < ../readline.patch
+    ../athame_patcher.sh readline .. || exit 1
+  else
+    ../athame_patcher.sh --dirty readline .. || exit 1
   fi
-  rm -rf vimbed
-  cp -r ../vimbed .
-  echo "Copying Athame files"
-  cp ../athame.* .
-  cp ../athame_util.h .
-  cp ../athame_readline.h athame_intermediary.h
 fi
 
 if [ $build != 1 ]; then
