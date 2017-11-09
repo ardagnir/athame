@@ -155,6 +155,8 @@ static void athame_init_sig(int instream, FILE* outstream) {
              athame_row + 1, cursor + 1, athame_row + 1, cursor + 1);
     athame_remote_expr(athame_buffer, 1);
     athame_poll_vim(1);
+    athame_get_vim_info();
+    athame_redisplay();
   } else {
     vim_stage = VIM_NOT_STARTED;
   }
