@@ -66,6 +66,7 @@ static char* servername;
 #define VIM_TRIED_START 1
 #define VIM_CONFIRMED_START 2
 #define VIM_RUNNING 3
+#define VIM_NEEDS_RESET 4
 static int vim_stage = VIM_NOT_STARTED;
 
 // Have we sent any keys to vim since readline started.
@@ -264,6 +265,21 @@ static void athame_ensure_vim(int char_break, int instream) {
     if (!athame_wait_for_vim(char_break, instream)) {
       vim_stage = VIM_RUNNING;
     }
+  }
+  if (vim_stage == VIM_NEEDS_RESET) {
+    if (char_break && athame_select(instream, -1, 0, 0, 0) > 0) {
+      return;
+    }
+    athame_remote_expr("Vimbed_Reset()", 1);
+    int cursor = ap_get_cursor();
+    snprintf(athame_buffer, DEFAULT_BUFFER_SIZE - 1,
+             "Vimbed_UpdateText(%d, %d, %d, %d, 1, 'StartLine')",
+             athame_row + 1, cursor + 1, athame_row + 1, cursor + 1);
+    athame_remote_expr(athame_buffer, 1);
+    athame_poll_vim(1);
+    athame_get_vim_info();
+    athame_redisplay();
+    vim_stage = VIM_RUNNING;
   }
 }
 
@@ -478,8 +494,6 @@ static int athame_setup_fifo() {
 }
 
 static int athame_remote_expr_v8(char* expr, int block) {
-  athame_ensure_vim(0, 0);
-
   int ret = check_expr_in_flight(block);
 
   if (ret) {

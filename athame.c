@@ -148,15 +148,7 @@ static void athame_init_sig(int instream, FILE* outstream) {
   }
 
   if (is_vim_alive()) {
-    athame_remote_expr("Vimbed_Reset()", 1);
-    int cursor = ap_get_cursor();
-    snprintf(athame_buffer, DEFAULT_BUFFER_SIZE - 1,
-             "Vimbed_UpdateText(%d, %d, %d, %d, 1, 'StartLine')",
-             athame_row + 1, cursor + 1, athame_row + 1, cursor + 1);
-    athame_remote_expr(athame_buffer, 1);
-    athame_poll_vim(1);
-    athame_get_vim_info();
-    athame_redisplay();
+    vim_stage = VIM_NEEDS_RESET;
   } else {
     vim_stage = VIM_NOT_STARTED;
   }
@@ -274,7 +266,7 @@ static char athame_loop_sig(int instream) {
   last_athame_mode[0] = '\0';
   bottom_display[0] = '\0';
 
-  // This is a performance step that allows us to bypass starting up vim if we
+  // This is a performance step that allows us to bypass starting up (or resetting) vim if we
   // aren't going to talk to it.
   char first_char =
       (vim_stage != VIM_RUNNING) ? athame_get_first_char(instream) : 0;
