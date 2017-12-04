@@ -316,7 +316,7 @@ static char athame_loop_sig(int instream) {
             }
           }
           int sr = process_signals();
-          if (sr != -1) {
+          if (sr != ATHAME_CONTINUE) {
             return (char)sr;
           }
           if (selected == -1) {

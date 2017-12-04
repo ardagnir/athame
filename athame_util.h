@@ -32,6 +32,7 @@ static char* athame_tok(char** pointer, char delim);
 static long get_time();
 static void athame_force_vim_sync();
 
+#define ATHAME_CONTINUE 256
 #define DEFAULT_BUFFER_SIZE 2048
 
 static char athame_buffer[DEFAULT_BUFFER_SIZE];
@@ -1219,7 +1220,7 @@ static int process_signals() {
       if (sig_result = (int)ap_handle_signals()) {
         return sig_result;
       }
-      return -1;
+      return ATHAME_CONTINUE;
     }
 
     if(athame_sigint) {
@@ -1237,5 +1238,5 @@ static int process_signals() {
         }
         return 0;
     }
-    return -1;
+    return ATHAME_CONTINUE;
 }
