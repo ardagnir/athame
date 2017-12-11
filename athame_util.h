@@ -1188,7 +1188,11 @@ static void athame_force_vim_sync() {
     vim_sync = VIM_SYNC_NEEDS_POLL;
   }
   if (vim_sync == VIM_SYNC_WAITING_POLL_DONE) {
-    waitpid(expr_pid, NULL, 0);
+    if (athame_is_set("ATHAME_USE_JOBS", ATHAME_USE_JOBS_DEFAULT)){
+      check_expr_in_flight(1);
+    } else {
+      waitpid(expr_pid, NULL, 0);
+    }
     vim_sync = VIM_SYNC_NEEDS_INFO_READ;
   }
   if (vim_sync >= VIM_SYNC_NEEDS_POLL) {
