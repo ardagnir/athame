@@ -284,106 +284,102 @@ static char athame_loop_sig(int instream) {
     athame_redisplay();
   }
 
+  if (first_char && !athame_failure) {
+    returnVal = athame_process_char(first_char);
+    first_char = 0;
+  }
+
   while (!returnVal && !athame_failure) {
     int selected = 0;
-    if (first_char) {
-      returnVal = athame_process_char(first_char);
-      first_char = 0;
-    } else {
-      while (selected == 0 && !athame_failure) {
-        long timeout_msec = get_timeout_msec();
-        selected = athame_select(instream, vim_term, 0, timeout_msec, 0);
-        if (is_vim_alive())  // Is vim still running?
-        {
-          if (selected == 1) {
-            returnVal = athame_process_input(instream);
-          } else if (selected == 2) {
-            read(vim_term, athame_buffer, DEFAULT_BUFFER_SIZE - 1);
-            if (!athame_get_vim_info()) {
-              request_poll();
-            }
-          } else if (selected == 0) {
-            if (vim_sync >= VIM_SYNC_CHAR_BEHIND) {
-              vim_sync = VIM_SYNC_NEEDS_POLL;
-            }
-          }
-          int sr = process_signals();
-          if (sr != ATHAME_CONTINUE) {
-            return (char)sr;
-          }
-          if (selected == -1) {
-            // Make sure we keep the mode drawn on a resize.
-            // This must happen after process_signals so we don't change the
-            // value of the caught signal
-            athame_bottom_mode();
-          }
-
-          if (time_to_poll >= 0 && time_to_poll < get_time()) {
-            athame_poll_vim(0);
-          }
-
-          // If vim isn't doing anything after pressing 20 keys, failover.
-          // This allows the user to get back to a normal shell if everything
-          // is working, but vim always starts up in a weird state
-          // (Infinte, loop/ex mode, etc)
-          // TODO: use an env variable instead of 20
-          if (keys_since_change > 20) {
-            athame_force_vim_sync();
-            if (keys_since_change > 0) {
-              athame_set_failure("20 keys pressed without change. To disable Athame use: AHTAME_ENABLED=0");
-            }
-          }
-        } else  // Vim quit
-        {
-          if (!athame_has_clean_quit() && !athame_failure) {
-            athame_set_failure("Vim quit unexpectedly");
-          } else if (sent_to_vim) {
-            ap_set_line_buffer("");
-            if (athame_dirty) {
-              fprintf(athame_outstream, "\e[%dG\e[K",
-                      ap_get_prompt_length() + 1);
-            }
-            ap_display();
-            return ap_delete;
-          } else {
-            // If we didn't send anything to vim, it shouldn't have
-            // quit.
-            // We never want to kill the user's shell without giving
-            // them a to type anything.
-            athame_set_failure("Vim quit");
-          }
+    long timeout_msec = get_timeout_msec();
+    selected = athame_select(instream, vim_term, 0, timeout_msec, 0);
+    if (!is_vim_alive())  // Is vim still running?
+    {
+      if (!athame_has_clean_quit() && !athame_failure) {
+        athame_set_failure("Vim quit unexpectedly");
+      } else if (!sent_to_vim) {
+        // We never want to kill the user's shell without giving
+        // them a chance to type anything.
+        athame_set_failure("Vim quit");
+      } else {
+        ap_set_line_buffer("");
+        if (athame_dirty) {
+          fprintf(athame_outstream, "\e[%dG\e[K",
+                  ap_get_prompt_length() + 1);
         }
+        ap_display();
+        return ap_delete;
+      }
+      break;
+    }
+
+    int sr = process_signals();
+    if (sr != ATHAME_CONTINUE) {
+      return (char)sr;
+    }
+    switch (selected) {
+      case 0: // Timeout
+        if (vim_sync >= VIM_SYNC_CHAR_BEHIND) {
+          vim_sync = VIM_SYNC_NEEDS_POLL;
+        }
+        break;
+      case 1: // Input received
+        returnVal = athame_process_input(instream);
+        break;
+      case 2: // Vim changed
+        read(vim_term, athame_buffer, DEFAULT_BUFFER_SIZE - 1);
+        if (!athame_get_vim_info()) {
+          request_poll();
+        }
+        break;
+      case -1: // Error (possibly from a signal)
+        // Make sure we keep the mode drawn on a resize.
+        // This must happen after process_signals so we don't change the
+        // value of the caught signal
+        athame_bottom_mode();
+    }
+
+    if (time_to_poll >= 0 && time_to_poll < get_time()) {
+      athame_poll_vim(0);
+    }
+
+    // If vim isn't doing anything after pressing 20 keys, failover.
+    // This allows the user to get back to a normal shell if everything
+    // is working, but vim always starts up in a weird state
+    // (Infinte, loop/ex mode, etc)
+    // TODO: use an env variable instead of 20
+    if (keys_since_change > 20) {
+      athame_force_vim_sync();
+      if (keys_since_change > 0) {
+        athame_set_failure("20 keys pressed without change. To disable Athame use: AHTAME_ENABLED=0");
       }
     }
-    if (ap_needs_to_leave())  // We need to leave now
-    {
+    if (ap_needs_to_leave()) {
       if (athame_is_set("ATHAME_SHOW_MODE", 1)) {
         athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0, 0);
       }
       return '\0';
     }
-  }
-  if (!athame_failure) {
-    if (sent_to_vim) {
-      // Should already be synced here, but this is a no-op in that case
-      // and it makes the code less fragile to make sure.
-      athame_force_vim_sync();
-      if (strcmp(athame_mode, "i") == 0) {
-        athame_send_to_vim('\x1d');  //<C-]> Finish abbrevs/kill mappings
-        athame_force_vim_sync();
-      }
-    }
-    if (athame_is_set("ATHAME_SHOW_MODE", 1)) {
-      athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0, 0);
-    }
-    updated = 0;
-  } else {
+  } // end while
+
+  if (athame_failure) {
     // If we ate the first_char, we should return it.
-    if (returnVal == 0) {
-      returnVal = first_char;
-    }
+    return returnVal || first_char;
   }
 
+  if (sent_to_vim) {
+    // Should already be synced here, but this is a no-op in that case
+    // and it makes the code less fragile to make sure.
+    athame_force_vim_sync();
+    if (strcmp(athame_mode, "i") == 0) {
+      athame_send_to_vim('\x1d');  //<C-]> Finish abbrevs/kill mappings
+      athame_force_vim_sync();
+    }
+  }
+  if (athame_is_set("ATHAME_SHOW_MODE", 1)) {
+    athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0, 0);
+  }
+  updated = 0;
   return returnVal;
 }
 
