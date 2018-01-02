@@ -3,6 +3,7 @@ Athame
 
 Athame patches your shell to add full Vim support by routing your keystrokes through an actual Vim process. Athame can currently be used to patch readline (used by bash, gdb, python, etc) and/or zsh (which doesn't use readline).
 
+This video is from a very old version of Athame, but it will give you an idea what it's like:
 ![Demo](http://i.imgur.com/MZCL1Vi.gif)
 
 **Don't most shells already come with a vi-mode?**
@@ -12,12 +13,11 @@ Yes, and if you're fine with basic vi imitations designed by a bunch of Emacs us
 ## Requirements
 - Athame works best on GNU/Linux.
 - Athame also works on OSX and Windows.
-
-Vim 7.4+ with **either** +clientserver or +job support (run vim --version to check):
+- Vim 7.4+ with **either** +clientserver or +job support (run vim --version to check):
     - Using +clientserver requires X Server. (Athame won't disable your shell if X isn't running, but it will be a boring non-vim shell.)
-    - It is recommended that you use 7.4.928+ which includes bug fixes in +clientserver.
+    - It is recommended that you use Vim 7.4.928+ which includes bug fixes in +clientserver.
 
-If you use Windows, you will also need WSL.
+Note: If you use Windows, you will also need WSL.
 
 ## Download
 Clone this repo recursively:
@@ -50,14 +50,15 @@ To build bash so that it uses the system readline:
     ./bash_readline_setup.sh
 
 **Windows**
+
 From bash, run:
 
     ./readline_athame_setup.sh
 
 **Additional Notes**
-- You can add the --nobuild flag to the setup script if you want to configure/build/install yourself.
-- You can change what Vim binary is used by passing --vimbin=/path/to/vim to the setup script.
-- You can install Athame locally by passing --nosudo --prefix=$HOME/local/ to the setup script for readline and bash.
+- You can add the `--nobuild` flag to the setup script if you want to configure/build/install yourself.
+- You can change what Vim binary is used by passing `--vimbin=/path/to/vim` to the setup script.
+- You can install Athame locally by passing `--nosudo --prefix=$HOME/local/` to the setup script for readline and bash.
 
 ## Setting up Athame Zsh
 **Arch Linux**
@@ -81,9 +82,9 @@ From bash, run:
 The tests don't work in windows and will spawn zsh background processes.
 
 **Additional Notes**
-- You can add the --nobuild flag to the setup script if you want to configure/build/install yourself.
-- You can change what Vim binary is used by passing --vimbin=/path/to/vim to the setup script.
-- You can install Athame locally by passing --nosudo --prefix=$HOME/local/ to the setup script.
+- You can add the `--nobuild` flag to the setup script if you want to configure/build/install yourself.
+- You can change what Vim binary is used by passing `--vimbin=/path/to/vim` to the setup script.
+- You can install Athame locally by passing `--nosudo --prefix=$HOME/local/` to the setup script.
 
 ## Configuration
 Athame can be configured through the following environment variables. They can be set on the fly or you can add them to your ~/.bashrc or ~/.zshrc. Make sure you use `export` if you add them to your ~/.zshrc.
@@ -187,7 +188,7 @@ If you have a shell that I'm missing, you can also try making a patch to communi
 I'm not accepting donations, but you should consider donating to the [EFF](https://supporters.eff.org/donate/) so that we don't end up living in a scary distopian future where everyone is forced to use emacs.
 
 
-## Setting up Vim with clientserver
+## Setting up Vim with clientserver (Optional)
 You can test your Vim's clientserver support by running:
 
     vim --version | grep clientserver
