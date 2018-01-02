@@ -303,11 +303,9 @@ static char athame_loop_sig(int instream) {
         athame_set_failure("Vim quit");
       } else {
         ap_set_line_buffer("");
-        if (athame_dirty) {
-          fprintf(athame_outstream, "\e[%dG\e[K",
-                  ap_get_prompt_length() + 1);
-        }
-        ap_display();
+        athame_mode[0] = 'n';
+        athame_mode[1] = '\0';
+        athame_redisplay();
         return ap_delete;
       }
       break;
