@@ -167,9 +167,25 @@ static char* ap_get_substr(char* text, int start, int end) {
 
 static char ap_handle_signals() {
   int q = queue_signal_level();
-  // This forces all queued signals to be handled by zsh now.
-  dont_queue_signals();
+
+  // Calling dont_queue_signals() here would make zsh process all queued signals.
+  // This is a modified version of dont_queue_signals() that calls athame_cleanup
+  // before processing any SIGHUP. The SIGHUP would cause zsh to close and we need
+  // to make sure we cleanup athame first.
+  queueing_enabled = 0;
+  while (queue_front != queue_rear) {      /* while signals in queue */
+    sigset_t oset;
+    queue_front = (queue_front + 1) % MAX_QUEUE_SIZE;
+    oset = signal_setmask(signal_mask_queue[queue_front]);
+    if (signal_queue[queue_front] == SIGHUP) {
+      athame_cleanup(1);
+    }
+    zhandler(signal_queue[queue_front]);  /* handle queued signal   */
+    signal_setmask(oset);
+  }
+
   restore_queue_signals(q);
+
   if (errflag & ERRFLAG_INT) {
     return EOF;
   }
@@ -186,4 +202,8 @@ static void ap_set_control_chars() {
 
 static void ap_set_nospecial() {
   // We don't care about this in zsh.
+}
+
+static int ap_is_catching_signals() {
+  return 1;
 }

@@ -129,8 +129,8 @@ static char* ap_get_substr(char* text, int start, int end) {
 
 static char ap_handle_signals() {
   if (_rl_caught_signal == SIGINT || _rl_caught_signal == SIGHUP) {
+    athame_cleanup(_rl_caught_signal == SIGHUP);
     _rl_signal_handler(_rl_caught_signal);
-    athame_cleanup();
     if (rl_signal_event_hook) {
       (*rl_signal_event_hook)();
     }
@@ -167,3 +167,7 @@ static void ap_set_control_chars() {
 
 // Tells readline that we weren't in the middle of tab completion, search, etc.
 static void ap_set_nospecial() { rl_last_func = rl_insert; }
+
+static int ap_is_catching_signals() {
+  return rl_catch_signals;
+}

@@ -32,7 +32,7 @@ diff -ru a/Src/Makefile.in b/Src/Makefile.in
 +install.vimbed:
 +	if [ -d $(DESTDIR)$(libdir)/athame_zsh ]; then rm -r $(DESTDIR)$(libdir)/athame_zsh; fi
 +	mkdir -p $(DESTDIR)/$(libdir)
-+	cp -r $(dir_top)/$(subdir)/vimbed/plugin $(DESTDIR)/$(libdir)/athame_zsh
++	cp -r $(dir_top)/$(subdir)/Zle/vimbed/plugin $(DESTDIR)/$(libdir)/athame_zsh
 +uninstall.vimbed:
 +	rm -r $(DESTDIR)$(libdir)/athame_zsh
 +
@@ -48,7 +48,7 @@ diff -ru a/Src/Makemod.in.in b/Src/Makemod.in.in
  
  sdir_src      = $(sdir_top)/Src
  dir_src       = $(dir_top)/Src
-+athame        = -DVIMBED_LOCATION='"$(ATHAME_TESTDIR)$(libdir)/athame_zsh"' -DATHAME_VIM_BIN='"${ATHAME_VIM_BIN}"'
++athame        = -DVIMBED_LOCATION='"$(ATHAME_TESTDIR)$(libdir)/athame_zsh"' -DATHAME_VIM_BIN='"${ATHAME_VIM_BIN}"' -DATHAME_USE_JOBS_DEFAULT='${ATHAME_USE_JOBS_DEFAULT}'
  
  # ========== COMPILATION RULES ==========
  
@@ -72,7 +72,7 @@ diff -ru a/Src/Zle/zle_main.c b/Src/Zle/zle_main.c
  #include "zle_main.pro"
  
  #ifdef HAVE_POLL_H
-@@ -1024,6 +1026,8 @@
+@@ -1086,6 +1087,8 @@
  void
  zlecore(void)
  {
@@ -81,14 +81,14 @@ diff -ru a/Src/Zle/zle_main.c b/Src/Zle/zle_main.c
      Keymap km;
  #if !defined(HAVE_POLL) && defined(HAVE_SELECT)
      struct timeval tv;
-@@ -1111,6 +1137,7 @@
+@@ -1175,6 +1178,7 @@
+     }
  
-     region_active = 0;
      popheap();
-+    athame_cleanup();
++    athame_cleanup(0);
  }
  
- /* Read a line.  It is returned metafied. */
+ /* Read a line.  It is returned metafied.
 diff -ru a/Src/Zle/zle_keymap.c b/Src/Zle/zle_keymap.c
 --- a/Src/Zle/zle_keymap.c	2015-05-22 18:16:13.000000000 -0400
 +++ b/Src/Zle/zle_keymap.c	2015-08-23 00:04:00.000000000 -0400
@@ -100,7 +100,7 @@ diff -ru a/Src/Zle/zle_keymap.c b/Src/Zle/zle_keymap.c
  
  /*
   * Keymap structures:
-@@ -1532,7 +1533,17 @@
+@@ -1673,7 +1674,20 @@
  static int
  getkeybuf(int w)
  {
@@ -112,6 +112,9 @@ diff -ru a/Src/Zle/zle_keymap.c b/Src/Zle/zle_keymap.c
 +        lastchar_wide_valid = 0;
 +#endif
 +        c = lastchar = STOUC(athame_loop(SHTTY));
++        if(c == STOUC(EOF)) {
++          return EOF;
++        }
 +    }
 +    else {
 +        c = getbyte((long)w, NULL);

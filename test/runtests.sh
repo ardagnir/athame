@@ -112,23 +112,6 @@ function runtest () {
   return 0
 }
 
-if [ -z "$DISPLAY" ]; then
-  echo "X not detected."
-  echo "Testing basic shell functions without Vim..."
-  runtest "$1" shell "Shell" &&
-    echo "Athame successfully falls back to normal shell behavior without X. But "
-  echo "Athame needs X for Vim functionality so the Vim tests weren't run."
-  if [ "$(uname)" == "Darwin" ]; then
-    echo "You should install XQuartz to get X on OSX."
-  fi
-  read -p "Install anyway? (y:yes, other:no)? " -rn 1
-  echo ""
-  if [[ $REPLY =~ ^[Yy]$ ]]; then
-    exit 0
-  fi
-  exit 1
-fi
-
 runtest "$1" shell "Shell"
 if [ "$2" == "bash" ]; then
   runtest "$1" bash "Bash Shell"
@@ -136,9 +119,9 @@ fi
 runtest "$1" vim "Vim Integration"
 temp=$DISPLAY
 unset DISPLAY
-runtest "$1" shell "Shell Fallback without X"
+runtest "$1" shell "Shell without X"
 if [ "$2" == "bash" ]; then
-  runtest "$1" bash "Bash Shell Fallback without X"
+  runtest "$1" bash "Bash Shell without X"
 fi
 DISPLAY=$temp
 

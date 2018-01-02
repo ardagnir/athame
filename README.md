@@ -3,30 +3,21 @@ Athame
 
 Athame patches your shell to add full Vim support by routing your keystrokes through an actual Vim process. Athame can currently be used to patch readline (used by bash, gdb, python, etc) and/or zsh (which doesn't use readline).
 
+This video is from a very old version of Athame, but it will give you an idea what it's like:
 ![Demo](http://i.imgur.com/MZCL1Vi.gif)
 
 **Don't most shells already come with a vi-mode?**
 
-Yes, and if you're fine with basic vi imitations designed by a bunch of Emacs users, feel free to use them. ...but for the crazy Vim fanatics who sacrifice goats to the modal gods, Athame gives you the full power of Vim.
-
-**Will Athame break my shell?**
-
-If anything goes wrong in Athame during runtime, it is designed to fall back to normal shell behavior.
-
-The setup script will also run tests, locally on your computer, to make sure Athame works on your computer before installing it.
-
-...but there are no guarantees. You probably shouldn't install Athame on production systems.
+Yes, and if you're fine with basic vi imitations designed by a bunch of Emacs users, feel free to use them. ...but for the true Vim fanatics who sacrifice goats to the modal gods, Athame gives you the full power of Vim.
 
 ## Requirements
-- Athame works best in GNU/Linux.
-- Athame also works on OSX.
+- Athame works best on GNU/Linux.
+- Athame also works on OSX and Windows.
+- Vim 7.4+ with **either** +clientserver or +job support (run vim --version to check):
+    - Using +clientserver requires X Server. (Athame won't disable your shell if X isn't running, but it will be a boring non-vim shell.)
+    - It is recommended that you use Vim 7.4.928+ which includes bug fixes in +clientserver.
 
-For vim-mode (Athame will act similarly to a normal shell if these are missing):
- - Vim 7.4 (or greater)
-   - Your version needs to have [+clientserver](#setting-up-vim-with-clientserver)
-   - Athame may expose bugs in older versions of Vim. If you use 7.4, I recommend using a version that includes patches 1-928 at the minimum.
-
- - X (For linux, you probably have this already. For OSX, install XQuartz)
+Note: If you use Windows, you will also need WSL.
 
 ## Download
 Clone this repo recursively:
@@ -58,29 +49,42 @@ To build bash so that it uses the system readline:
 
     ./bash_readline_setup.sh
 
+**Windows**
+
+From bash, run:
+
+    ./readline_athame_setup.sh
+
 **Additional Notes**
-- You can add the --nobuild flag to the setup script if you want to configure/build/install yourself.
-- You can change what Vim binary is used by passing --vimbin=/path/to/vim to the setup script.
-- You can install Athame locally by passing --nosudo --prefix=$HOME/local/ to the setup script for readline and bash.
+- You can add the `--nobuild` flag to the setup script if you want to configure/build/install yourself.
+- You can change what Vim binary is used by passing `--vimbin=/path/to/vim` to the setup script.
+- You can install Athame locally by passing `--nosudo --prefix=$HOME/local/` to the setup script for readline and bash.
 
 ## Setting up Athame Zsh
 **Arch Linux**
 
     ./zsh_athame_setup.sh
 
-Add "unset zle_bracketed_paste" to the end of your ~/.zshrc (Athame doesn't currently support bracketed paste, so we don't want zsh to tell the shell that it does.)
+- Add "unset zle_bracketed_paste" to the end of your ~/.zshrc
 
 **Debian or Ubuntu**
 
     apt-get build-dep zsh
     ./zsh_athame_setup.sh
 
-Add "unset zle_bracketed_paste" to the end of your ~/.zshrc (Athame doesn't currently support bracketed paste, so we don't want zsh to tell the shell that it does.)
+- Add "unset zle_bracketed_paste" to the end of your ~/.zshrc
+
+**Windows**
+- From bash, run: `./readline_athame_setup.sh --notest`
+
+- Add "unset zle_bracketed_paste" to the end of your ~/.zshrc
+
+The tests don't work in windows and will spawn zsh background processes.
 
 **Additional Notes**
-- You can add the --nobuild flag to the setup script if you want to configure/build/install yourself.
-- You can change what Vim binary is used by passing --vimbin=/path/to/vim to the setup script.
-- You can install Athame locally by passing --nosudo --prefix=$HOME/local/ to the setup script.
+- You can add the `--nobuild` flag to the setup script if you want to configure/build/install yourself.
+- You can change what Vim binary is used by passing `--vimbin=/path/to/vim` to the setup script.
+- You can install Athame locally by passing `--nosudo --prefix=$HOME/local/` to the setup script.
 
 ## Configuration
 Athame can be configured through the following environment variables. They can be set on the fly or you can add them to your ~/.bashrc or ~/.zshrc. Make sure you use `export` if you add them to your ~/.zshrc.
@@ -90,13 +94,14 @@ Athame can be configured through the following environment variables. They can b
 - **ATHAME_SHOW_COMMAND:** Set to 0 to hide :, /, and ? commands at the bottom of the screen. To display them yourself, read the ATHAME_VIM_COMMAND variable.
 - **ATHAME_SHOW_ERROR:** Set to 0 to hide athame errors. If you want to display these yourself, read the ATHAME_ERROR variable.
 - **ATHAME_VIM_PERSIST:** Normally Athame spawns a new short-lived Vim instance for each readline/zle usage (in practice, a separate Vim instance each line). If you set this to 1, you will get 1 Vim instance per shell instead, so your iabbrevs, etc, are preserved from line to line. The tradeoff is that it will keep Vim open until the shell closes, whether or not it is using readline. For example: if you open your terminal and type bash 10 times, with the default ATHAME_VIM_PERSIST of 0 you will have one instance of Vim running, because only the inner shell is using readline, but with ATHAME_VIM_PERSIST set to 1, you will have 10.
+- **ATHAME_USE_JOBS:** If non-zero, Athame will use jobs for async behavior. Otherwise, it will use clientserver.
 
 ## FAQ
 #### How do I use this?
 It's just like Vim. Imagine your history is stored inside a Vim buffer (because it is!) with a blank line at the bottom. Your cursor starts on that blank line each time readline is called.
 Unless you're in command mode, some special chars (such as carriage return) are handled by readline/zsh.
 
-Some commands (there's no specific code for these, it's just Vim):
+Some example commands (there's no specific code for these, it's just Vim):
 
 - j: go back a line in history
 - k: go forward a line in history
@@ -169,13 +174,10 @@ Ohmyzsh and some other zsh setups put your terminal into application mode to hel
     zle -N zle-line-init
 
 #### Does Athame work with Neovim?
-Neovim doesn't support vim-style remote communication yet. The Neovim devs are documenting this in [Neovim issue 1750](https://github.com/neovim/neovim/issues/1750). If you want to use Neovim with Athame, you should consider helping them out. It sounds like most of the functionality is already there and just needs to be exposed in a backwards-compatible manner.
+Not yet, but it will soon.
 
 #### Why isn't there an Athame package for my favorite distro?
 ...because you haven't made one yet. The Athame setup script comes with a --nobuild flag so that you can build it however you want or your package can just apply the Athame patches itself.
-
-#### Does Athame work on windows? I have Cygwin!
-Haha, no.
 
 #### This is awesome! Can I help?
 The best way to help is to look at the issue section and submit patches to fix bugs.
@@ -186,7 +188,7 @@ If you have a shell that I'm missing, you can also try making a patch to communi
 I'm not accepting donations, but you should consider donating to the [EFF](https://supporters.eff.org/donate/) so that we don't end up living in a scary distopian future where everyone is forced to use emacs.
 
 
-## Setting up Vim with clientserver
+## Setting up Vim with clientserver (Optional)
 You can test your Vim's clientserver support by running:
 
     vim --version | grep clientserver

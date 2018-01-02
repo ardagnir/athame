@@ -1,14 +1,13 @@
 #!/bin/bash
 # readline_athame_setup.sh -- Full vim integration for your shell.
 #
-# Copyright (C) 2015 James Kolb
+# Copyright (C) 2017 James Kolb
 #
 # This file is part of Athame.
 #
 # Athame is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# the Free Software Foundation, either version 3 of the License, or # (at your option) any later version.
 #
 # Athame is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,7 +19,7 @@
 
 shopt -s extglob
 
-patches=1
+patches=3
 redownload=0
 build=1
 runtest=1
@@ -62,6 +61,7 @@ do
                         "--norc: don't copy the rc file to /etc/athamerc\n" \
                         "--nosubmodule: don't update submodules\n" \
                         "--help: display this message"; exit;;
+    * ) echo Unknown flag "$arg" >&2; exit 1;;
   esac
 done
 
@@ -75,13 +75,24 @@ if [ -z "$vimbin" ]; then
     exit
   fi
   echo "No vim binary provided. Trying $testvim"
-  if [ "$($testvim --version | grep +clientserver)" ]; then
+  if [ "$($testvim --version | grep +job)" ]; then
+    vimbin="$testvim"
+    echo "$vimbin probably has job support. Using $vimbin as vim binary."
+    ATHAME_USE_JOBS_DEFAULT=1
+  elif [ "$($testvim --version | grep +clientserver)" ]; then
     vimbin="$testvim"
     echo "$vimbin probably has clientserver support. Using $vimbin as vim binary."
+    ATHAME_USE_JOBS_DEFAULT=0
   else
-    echo "$testvim does not appear to have clientserver support."
+    echo "$testvim does not appear to have job or clientserver support."
     echo $vimmsg
     exit
+  fi
+else
+  if [ "$($vimbin --version | grep +job)" ]; then
+    ATHAME_USE_JOBS_DEFAULT=1
+  else
+    ATHAME_USE_JOBS_DEFAULT=0
   fi
 fi
 
@@ -132,62 +143,57 @@ if [ $dirty = 0 ]; then
 fi
 
 if [ $athame = 1 ]; then
-  #Patch Readline with athame
   if [ $dirty = 0 ]; then
-    echo "Patching with Athame patch"
-    patch -p1 < ../readline.patch
+    ../athame_patcher.sh readline .. || exit 1
+  else
+    ../athame_patcher.sh --dirty readline .. || exit 1
   fi
-  rm -rf vimbed
-  cp -r ../vimbed .
-  echo "Copying Athame files"
-  cp ../athame.* .
-  cp ../athame_util.h .
-  cp ../athame_readline.h athame_intermediary.h
+fi
+
+if [ $build != 1 ]; then
+  exit 0
 fi
 
 #Build and install Readline
-if [ $build = 1 ]; then
-  if [ ! -f Makefile ]; then
-    ./configure "$prefix_flag" "$libdir_flag" || exit 1
-  fi
-  make SHLIB_LIBS="-lncurses -lutil" ATHAME_VIM_BIN="$vimbin" || exit 1
-  if [ $runtest = 1 ]; then
-    rm -rf $(pwd)/../test/build
-    mkdir -p $(pwd)/../test/build
-    make install DESTDIR=$(pwd)/../test/build || exit 1
+if [ ! -f Makefile ]; then
+  ./configure "$prefix_flag" "$libdir_flag" || exit 1
+fi
+make CFLAGS=-std=c99 SHLIB_LIBS="-lncurses -lutil" ATHAME_VIM_BIN="$vimbin" ATHAME_USE_JOBS_DEFAULT="$ATHAME_USE_JOBS_DEFAULT" || exit 1
+if [ $runtest = 1 ]; then
+  rm -rf $(pwd)/../test/build
+  mkdir -p $(pwd)/../test/build
+  make install DESTDIR=$(pwd)/../test/build || exit 1
 
-    cd ../test
+  cd ../test
 
-    export LD_LIBRARY_PATH="$(dirname $(find $(pwd)/build -name libreadline* | head -n 1))"
-    export ATHAME_VIMBED_LOCATION="$(find $(pwd)/build -name athame_readline | head -n 1)"
-    ldd="ldd"
+  export LD_LIBRARY_PATH="$(dirname $(find $(pwd)/build -name libreadline* | head -n 1))"
+  export ATHAME_VIMBED_LOCATION="$(find $(pwd)/build -name athame_readline | head -n 1)"
 
-    if [ "$(uname)" == "Darwin" ]; then
-      ldd="otool -L"
-      export DYLD_LIBRARY_PATH="$LD_LIBRARY_PATH"
-    fi
-
-    $ldd "$(which bash)" | grep libreadline.so.7 >/dev/null
-    if [ $? -eq 1 ]; then
-      echo "Bash isn't set to use system readline or is not using readline 7. Setting up local bash for testing."
-      cd ..
-      ./bash_readline_setup.sh --destdir="$(pwd)/test/build" --with-installed-readline="${LD_LIBRARY_PATH%+(/lib|/lib/*)}"
-      cd test
-      ./runtests.sh "$(pwd)/build/bin/bash -i" bash || exit 1
-    else
-      ./runtests.sh "bash -i" bash || exit 1
-    fi
-    cd ../readline-7.0_tmp
-  fi
-  echo "Installing Readline with Athame..."
-  if [ -n "$destdir" ]; then
-    mkdir -p "$destdir"
-  fi
-  if [ -w "$destdir" ]; then
-    make install DESTDIR="$destdir" || exit 1
+  if [ "$(uname)" == "Darwin" ]; then
+    export DYLD_LIBRARY_PATH="$LD_LIBRARY_PATH"
+    otool -L "$(which bash)" | grep libreadline.7.dylib >/dev/null
   else
-    ${sudo}make install DESTDIR="$destdir" || exit 1
+    ldd "$(which bash)" | grep libreadline.so.7 >/dev/null
   fi
+  if [ $? -eq 1 ]; then
+    echo "Bash isn't set to use system readline or is not using readline 7. Setting up local bash for testing."
+    cd ..
+    ./bash_readline_setup.sh --destdir="$(pwd)/test/build" --with-installed-readline="${LD_LIBRARY_PATH%+(/lib|/lib/*)}"
+    cd test
+    ./runtests.sh "$(pwd)/build/bin/bash -i" bash || exit 1
+  else
+    ./runtests.sh "bash -i" bash || exit 1
+  fi
+  cd ../readline-7.0_tmp
+fi
+echo "Installing Readline with Athame..."
+if [ -n "$destdir" ]; then
+  mkdir -p "$destdir"
+fi
+if [ -w "$destdir" ]; then
+  make install DESTDIR="$destdir" || exit 1
+else
+  ${sudo}make install DESTDIR="$destdir" || exit 1
 fi
 
 if [ $rc = 1 ]; then

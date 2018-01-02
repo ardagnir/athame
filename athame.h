@@ -21,6 +21,8 @@
 #ifndef _ATHAME_H_
 #define _ATHAME_H_
 
+#include <stdio.h>
+
 #define ATHAME_NORMAL 0
 #define ATHAME_BOLD 1
 
@@ -33,15 +35,17 @@ extern "C" {
 
 // Initialize athame.
 extern void athame_init(int instream, FILE* outstream);
+static void athame_init_sig(int instream, FILE* outstream);
 
 // Loop over input and do vimy stuff until a special key is pressed.
 extern char athame_loop(int instream);
+static char athame_loop_sig(int instream);
 
 // Is athame currently enabled?
 extern int athame_enabled();
 
 // Cleanup all the memory allocated by athame and shut vim down.
-extern void athame_cleanup();
+extern void athame_cleanup(int);
 
 // Run after bypassing athame.
 extern void athame_after_bypass();

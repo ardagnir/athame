@@ -21,7 +21,7 @@ diff -ru a/Makefile.in b/Makefile.in
  
  CFLAGS = @CFLAGS@
 -LOCAL_CFLAGS = @LOCAL_CFLAGS@ -DRL_LIBRARY_VERSION='"$(RL_LIBRARY_VERSION)"'
-+LOCAL_CFLAGS = @LOCAL_CFLAGS@ -DRL_LIBRARY_VERSION='"$(RL_LIBRARY_VERSION)"' -DVIMBED_LOCATION='"${libdir}/athame_readline"' -DATHAME_VIM_BIN='"${ATHAME_VIM_BIN}"'
++LOCAL_CFLAGS = @LOCAL_CFLAGS@ -DRL_LIBRARY_VERSION='"$(RL_LIBRARY_VERSION)"' -DVIMBED_LOCATION='"${libdir}/athame_readline"' -DATHAME_VIM_BIN='"${ATHAME_VIM_BIN}"' -DATHAME_USE_JOBS_DEFAULT='${ATHAME_USE_JOBS_DEFAULT}'
  CPPFLAGS = @CPPFLAGS@
  
  DEFS = @DEFS@ @CROSS_COMPILE@
@@ -133,7 +133,7 @@ diff -ru a/readline.c b/readline.c
  
    RL_CHECK_SIGNALS ();
  
-+  athame_cleanup();
++  athame_cleanup(0);
 +
    /* Restore the original of this history line, iff the line that we
       are editing was originally in the history, AND the line has changed. */
@@ -180,7 +180,7 @@ diff -ru a/shlib/Makefile.in b/shlib/Makefile.in
  
  CFLAGS = @CFLAGS@
 -LOCAL_CFLAGS = @LOCAL_CFLAGS@ -DRL_LIBRARY_VERSION='"$(RL_LIBRARY_VERSION)"'
-+LOCAL_CFLAGS = @LOCAL_CFLAGS@ -DRL_LIBRARY_VERSION='"$(RL_LIBRARY_VERSION)"' -DVIMBED_LOCATION='"${libdir}/athame_readline"' -DATHAME_VIM_BIN='"${ATHAME_VIM_BIN}"'
++LOCAL_CFLAGS = @LOCAL_CFLAGS@ -DRL_LIBRARY_VERSION='"$(RL_LIBRARY_VERSION)"' -DVIMBED_LOCATION='"${libdir}/athame_readline"' -DATHAME_VIM_BIN='"${ATHAME_VIM_BIN}"' -DATHAME_USE_JOBS_DEFAULT='${ATHAME_USE_JOBS_DEFAULT}'
  CPPFLAGS = @CPPFLAGS@
  LDFLAGS = @LDFLAGS@ @LOCAL_LDFLAGS@ @CFLAGS@
  
@@ -272,3 +272,23 @@ diff -ru a/readline.h b/readline.h
  
  extern int rl_initialize PARAMS((void));
  
+diff -ru a/callback.c b/callback.c
+--- a/callback.c	2015-10-29 00:00:00.000000000 -0400
++++ b/callback.c	2015-10-29 00:00:00.000000000 -0400
+@@ -26,6 +26,7 @@
+ #endif
+ 
+ #include "rlconf.h"
++#include "athame.h"
+ 
+ #if defined (READLINE_CALLBACKS)
+ 
+@@ -313,6 +314,8 @@
+       rl_clear_signals ();
+ #endif
+     }
++  // If readline exits early because of a SIGINT, it still needs to cleanup athame.
++  athame_cleanup(1);
+ }
+ 
+ _rl_callback_generic_arg *
