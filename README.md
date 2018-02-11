@@ -26,7 +26,8 @@ Clone this repo recursively:
 ## Setting up Athame Readline
 **Arch Linux**
 
-    ./readline_athame_setup.sh
+Use readline-athame-git from the AUR.
+ - If you are missing the readline gpg key, you can get it with `gpg --recv-keys BB5869F064EA74AB`
 
 **Debian or Ubuntu**
 
@@ -62,8 +63,8 @@ From bash, run:
 ## Setting up Athame Zsh
 **Arch Linux**
 
-    ./zsh_athame_setup.sh
-
+Use zsh-athame-git from the AUR.
+- If you are missing the zsh gpg key, you can get it with `gpg --recv-keys A71D9A9D4BDB27B3`
 - Add "unset zle_bracketed_paste" to the end of your ~/.zshrc
 
 **Debian or Ubuntu**
