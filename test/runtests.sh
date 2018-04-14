@@ -33,8 +33,19 @@ function runtest () {
   cd testrun
   for t in inst*.sh; do
     i=${t:4:${#t}-7}
-    echo "Test $i:"
     cat ../prefix.sh inst$i.sh | grep -v '^\#' > input_text
+    if [ "$using_nvim" ]; then
+      # Skip tests containing "no_neovim"
+      grep no_neovim $t > /dev/null && continue
+      # nvim filters out all bare escapes pressed before vim starts , so let's
+      # map Π to escape
+      sed -Ei "s/([^\[]|$)/Π\1/g" input_text
+      cp ../../athamerc neovim_athamerc
+      echo "inoremap Π <ESC>" >> neovim_athamerc
+      export ATHAME_TEST_RC=$(pwd)/neovim_athamerc
+    fi
+
+    echo "Test $i:"
     printf "exit\n\x04" >> input_text
 
     milli=1
@@ -112,15 +123,21 @@ function runtest () {
   return 0
 }
 
+if [ "$2" == "bash" ] || [ "$3" == "bash" ]; then
+  using_bash=1
+fi
+if [ "$2" == "nvim" ] || [ "$3" == "nvim" ]; then
+  using_nvim=1
+fi
 runtest "$1" shell "Shell"
-if [ "$2" == "bash" ]; then
+if [ "$using_bash" ]; then
   runtest "$1" bash "Bash Shell"
 fi
 runtest "$1" vim "Vim Integration"
 temp=$DISPLAY
 unset DISPLAY
 runtest "$1" shell "Shell without X"
-if [ "$2" == "bash" ]; then
+if [ $using_bash ]; then
   runtest "$1" bash "Bash Shell without X"
 fi
 DISPLAY=$temp

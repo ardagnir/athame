@@ -38,6 +38,7 @@ static void athame_force_vim_sync();
 static char athame_buffer[DEFAULT_BUFFER_SIZE];
 static char bottom_display[DEFAULT_BUFFER_SIZE];
 static char athame_command[DEFAULT_BUFFER_SIZE];
+static int athame_nvim = 0;
 static int cleaned = 0;
 static int command_cursor;
 static int bottom_color;
@@ -226,6 +227,9 @@ static int athame_wait_for_vim(int char_break, int instream) {
   if (error > 0) {
     return error;
   }
+
+  snprintf(athame_buffer, DEFAULT_BUFFER_SIZE-1, "%s/nvim", dir_name);
+  athame_nvim = !athame_wait_for_file(athame_buffer, 0, 0, 0);
 
   vim_started = get_time();
 

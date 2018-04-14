@@ -84,7 +84,7 @@ if [ -z $vimbin ]; then
     exit
   fi
   echo "No vim binary provided. Trying $testvim"
-  if [ "$($testvim --version | grep +job)" ]; then
+  if [ "$($testvim --version | grep -E '(\+job|nvim)')" ]; then
     vimbin="$testvim"
     echo "$vimbin probably has job support. Using $vimbin as vim binary."
     ATHAME_USE_JOBS_DEFAULT=1
@@ -98,7 +98,7 @@ if [ -z $vimbin ]; then
     exit
   fi
 else
-  if [ "$($vimbin --version | grep +job)" ]; then
+  if [ "$($vimbin --version | grep -E '(\+job|nvim')" ]; then
     ATHAME_USE_JOBS_DEFAULT=1
   else
     ATHAME_USE_JOBS_DEFAULT=0
@@ -189,10 +189,13 @@ if [ $runtest = 1 ]; then
 
   cd ../test
   zsh_bin="$(find $(pwd)/build -name zsh -type f | head -n 1)"
+  if [ "$($vimbin --version | grep  nvim)" ]; then
+    nvim="nvim"
+  fi
   if [ "$(uname)" == "Darwin" ]; then
-    ./runtests.sh "script /dev/null $zsh_bin" || exit 1
+    ./runtests.sh "script /dev/null $zsh_bin" $nvim || exit 1
   else
-    ./runtests.sh "script -c $zsh_bin" || exit 1
+    ./runtests.sh "script -c $zsh_bin" $nvim || exit 1
   fi
   cd -
 fi

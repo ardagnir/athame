@@ -12,9 +12,14 @@ Yes, and if you're fine with basic vi imitations designed by a bunch of Emacs us
 ## Requirements
 - Athame works best on GNU/Linux.
 - Athame also works on OSX and Windows.
-- Vim 7.4+ with **either** +clientserver or +job support (run vim --version to check):
-    - Using +clientserver requires X Server. (Athame won't disable your shell if X isn't running, but it will be a boring non-vim shell.)
-    - It is recommended that you use Vim 7.4.928+ which includes bug fixes in +clientserver.
+- One of the following 3:
+    - Vim 8.0+ with +job support
+    - Vim 7.4+ with +clientserver support
+      - Vim 7.4.928+ is strongly recommended.
+      - The clientserver version requires X and will fall back to a normal shell if X isn't running.
+    - Neovim 0.2.2+
+      - Neovim support is currently experimental.
+      - The setups scripts will use vim by default. You can append `--vimbin=$(which nvim)` to have them use nvim.
 
 Note: If you use Windows, you will also need WSL.
 

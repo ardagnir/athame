@@ -293,24 +293,27 @@ static char athame_loop_sig(int instream) {
     int selected = 0;
     long timeout_msec = get_timeout_msec();
     selected = athame_select(instream, vim_term, 0, timeout_msec, 0);
-    if (!is_vim_alive())  // Is vim still running?
-    {
-      if (!athame_has_clean_quit() && !athame_failure) {
+
+    // nvim doesn't end the process when vim quits cleanly
+    int nvim_checked_quit = athame_nvim && athame_has_clean_quit();
+
+    if (!athame_failure && (!is_vim_alive() || nvim_checked_quit)) {
+      if (!nvim_checked_quit && !athame_has_clean_quit()) {
         athame_set_failure("Vim quit unexpectedly");
-      } else if (!sent_to_vim) {
+        break;
+      }
+      if (!sent_to_vim) {
         // We never want to kill the user's shell without giving
         // them a chance to type anything.
         athame_set_failure("Vim quit");
-      } else {
-        ap_set_line_buffer("");
-        athame_mode[0] = 'n';
-        athame_mode[1] = '\0';
-        athame_redisplay();
-        return ap_delete;
+        break;
       }
-      break;
+      ap_set_line_buffer("");
+      athame_mode[0] = 'n';
+      athame_mode[1] = '\0';
+      athame_redisplay();
+      return ap_delete;
     }
-
     int sr = process_signals();
     if (sr != ATHAME_CONTINUE) {
       return (char)sr;
@@ -337,6 +340,13 @@ static char athame_loop_sig(int instream) {
         athame_bottom_mode();
     }
 
+    if (ap_needs_to_leave()) {
+      if (athame_is_set("ATHAME_SHOW_MODE", 1)) {
+        athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0, 0);
+      }
+      return '\0';
+    }
+
     if (time_to_poll >= 0 && time_to_poll < get_time()) {
       athame_poll_vim(0);
     }
@@ -351,12 +361,6 @@ static char athame_loop_sig(int instream) {
       if (keys_since_change > 0) {
         athame_set_failure("20 keys pressed without change. To disable Athame use: AHTAME_ENABLED=0");
       }
-    }
-    if (ap_needs_to_leave()) {
-      if (athame_is_set("ATHAME_SHOW_MODE", 1)) {
-        athame_bottom_display("", ATHAME_BOLD, ATHAME_DEFAULT, 0, 0);
-      }
-      return '\0';
     }
   } // end while
 

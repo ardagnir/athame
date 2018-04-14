@@ -75,7 +75,7 @@ if [ -z "$vimbin" ]; then
     exit
   fi
   echo "No vim binary provided. Trying $testvim"
-  if [ "$($testvim --version | grep +job)" ]; then
+  if [ "$($testvim --version | grep -E '(\+job|nvim)')" ]; then
     vimbin="$testvim"
     echo "$vimbin probably has job support. Using $vimbin as vim binary."
     ATHAME_USE_JOBS_DEFAULT=1
@@ -89,7 +89,7 @@ if [ -z "$vimbin" ]; then
     exit
   fi
 else
-  if [ "$($vimbin --version | grep +job)" ]; then
+  if [ "$($vimbin --version | grep -E '(\+job|nvim)')" ]; then
     ATHAME_USE_JOBS_DEFAULT=1
   else
     ATHAME_USE_JOBS_DEFAULT=0
@@ -175,14 +175,17 @@ if [ $runtest = 1 ]; then
   else
     ldd "$(which bash)" | grep libreadline.so.7 >/dev/null
   fi
+  if [ "$($vimbin --version | grep  nvim)" ]; then
+    nvim="nvim"
+  fi
   if [ $? -eq 1 ]; then
     echo "Bash isn't set to use system readline or is not using readline 7. Setting up local bash for testing."
     cd ..
     ./bash_readline_setup.sh --destdir="$(pwd)/test/build" --with-installed-readline="${LD_LIBRARY_PATH%+(/lib|/lib/*)}"
     cd test
-    ./runtests.sh "$(pwd)/build/bin/bash -i" bash || exit 1
+    ./runtests.sh "$(pwd)/build/bin/bash -i" bash $nvim || exit 1
   else
-    ./runtests.sh "bash -i" bash || exit 1
+    ./runtests.sh "bash -i" bash $nvim || exit 1
   fi
   cd ../readline-7.0_tmp
 fi
