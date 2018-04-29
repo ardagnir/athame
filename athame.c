@@ -35,6 +35,7 @@
 #ifdef BSD
 // Includes OSX
 #include <util.h>
+typedef void (*sighandler_t) (int);
 #else
 #include <pty.h>
 #endif
