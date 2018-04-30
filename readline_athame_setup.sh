@@ -169,14 +169,14 @@ if [ $runtest = 1 ]; then
   export LD_LIBRARY_PATH="$(dirname $(find $(pwd)/build -name libreadline* | head -n 1))"
   export ATHAME_VIMBED_LOCATION="$(find $(pwd)/build -name athame_readline | head -n 1)"
 
+  if [ "$($vimbin --version | grep  nvim)" ]; then
+    nvim="nvim"
+  fi
   if [ "$(uname)" == "Darwin" ]; then
     export DYLD_LIBRARY_PATH="$LD_LIBRARY_PATH"
     otool -L "$(which bash)" | grep libreadline.7.dylib >/dev/null
   else
     ldd "$(which bash)" | grep libreadline.so.7 >/dev/null
-  fi
-  if [ "$($vimbin --version | grep  nvim)" ]; then
-    nvim="nvim"
   fi
   if [ $? -eq 1 ]; then
     echo "Bash isn't set to use system readline or is not using readline 7. Setting up local bash for testing."
