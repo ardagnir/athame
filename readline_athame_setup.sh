@@ -29,7 +29,7 @@ rc=1
 submodule=1
 vimbin=""
 destdir=""
-sudo="sudo "
+sudo=""
 prefix_flag="--prefix=/usr"
 libdir_flag=""
 for arg in "$@"
@@ -42,7 +42,7 @@ do
     "--dirty" ) dirty=1;;
     "--norc" ) rc=0;;
     "--nosubmodule" ) submodule=0;;
-    "--nosudo" ) sudo="";;
+    "--use_sudo" ) sudo="sudo ";;
     --vimbin=*) vimbin="${arg#*=}";;
     --destdir=*) destdir="${arg#*=}";;
     --prefix=*) prefix_flag='--prefix='"${arg#*=}";;
@@ -60,6 +60,7 @@ do
                         "         just make and install changes\n" \
                         "--norc: don't copy the rc file to /etc/athamerc\n" \
                         "--nosubmodule: don't update submodules\n" \
+                        "--use_sudo: use sudo for installation and copying athamerc\n" \
                         "--help: display this message"; exit;;
     * ) echo Unknown flag "$arg" >&2; exit 1;;
   esac
@@ -193,16 +194,11 @@ echo "Installing Readline with Athame..."
 if [ -n "$destdir" ]; then
   mkdir -p "$destdir"
 fi
-if [ -w "$destdir" ]; then
-  make install DESTDIR="$destdir" || exit 1
-else
-  ${sudo}make install DESTDIR="$destdir" || exit 1
-fi
+${sudo}make install DESTDIR="$destdir" || exit 1
 
 if [ $rc = 1 ]; then
-  if [ -z "$sudo" ]; then
-    printf "\e[0;31mThe athamerc was not copied. You should copy athamerc to /etc/athamerc or ~/.athamerc.\e[0;0m\n"
-  else
-    sudo cp ../athamerc /etc/athamerc
-  fi
+    ${sudo}cp ../athamerc /etc/athamerc
+    if [ $? -ne 0 ]; then
+      printf "\e[0;31mThe athamerc was not copied. You should copy athamerc to /etc/athamerc or ~/.athamerc.\e[0;0m\n"
+    fi
 fi

@@ -25,7 +25,7 @@ athame=1
 dirty=0
 rc=1
 submodule=1
-sudo="sudo "
+sudo=""
 vimbin=""
 destdir=""
 docdir=""
@@ -41,7 +41,7 @@ do
     "--dirty" ) dirty=1;;
     "--norc" ) rc=0;;
     "--nosubmodule" ) submodule=0;;
-    "--nosudo" ) sudo="";;
+    "--use_sudo") sudo="sudo ";;
     --vimbin=*) vimbin="${arg#*=}";;
     --destdir=*) destdir="${arg#*=}";;
     --prefix=*) prefix="${arg#*=}";;
@@ -59,6 +59,7 @@ do
                         "         just make and install changes\n" \
                         "--norc: don't copy the rc file to /etc/athamerc\n" \
                         "--nosubmodule: don't update submodules\n" \
+                        "--use_sudo: use sudo for installation and copying athamerc\n" \
                         "additional flags: these flags are passed to configure\n" \
                         "    --prefix=\n" \
                         "    --libdir=\n" \
@@ -98,7 +99,7 @@ if [ -z $vimbin ]; then
     exit
   fi
 else
-  if [ "$($vimbin --version | grep -E '(\+job|nvim')" ]; then
+  if [ "$($vimbin --version | grep -E '(\+job|nvim)')" ]; then
     ATHAME_USE_JOBS_DEFAULT=1
   else
     ATHAME_USE_JOBS_DEFAULT=0
@@ -204,16 +205,11 @@ echo "Installing Zsh with Athame..."
 if [ -n "$destdir" ]; then
   mkdir -p "$destdir"
 fi
-if [ -w "$destdir" ]; then
-  make install DESTDIR="$destdir" || exit 1
-else
-  ${sudo}make install DESTDIR="$destdir" || exit 1
-fi
+${sudo}make install DESTDIR="$destdir" || exit 1
 
 if [ $rc = 1 ]; then
-  if [ -z "$sudo" ]; then
-    printf "\e[0;31mThe athamerc was not copied. You should copy athamerc to /etc/athamerc or ~/.athamerc.\e[0;0m\n"
-  else
-    sudo cp ../athamerc /etc/athamerc
-  fi
+    ${sudo}cp ../athamerc /etc/athamerc
+    if [ $? -ne 0 ]; then
+      printf "\e[0;31mThe athamerc was not copied. You should copy athamerc to /etc/athamerc or ~/.athamerc.\e[0;0m\n"
+    fi
 fi
