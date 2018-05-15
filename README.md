@@ -11,17 +11,15 @@ Yes, and if you're fine with basic vi imitations designed by a bunch of Emacs us
 
 ## Requirements
 - Athame works best on GNU/Linux.
-- Athame also works on OSX and Windows.
-- One of the following 3:
-    - Vim 8.0+ with +job support
-    - Vim 7.4+ with +clientserver support
+- Athame also works on Windows (with WSL), and usually works on OSX. (I don't have a Mac, so I can't always test changes on one)
+- Athame needs at least *one* of the following:
+    - Vim 8.0+ with `+job` support
+    - Vim 7.4+ with `+clientserver` support
       - Vim 7.4.928+ is strongly recommended.
       - The clientserver version requires X and will fall back to a normal shell if X isn't running.
     - Neovim 0.2.2+
       - Neovim support is currently experimental.
-      - The setups scripts will use vim by default. You can append `--vimbin=$(which nvim)` to have them use nvim.
-
-Note: If you use Windows, you will also need WSL.
+      - The setup scripts will look for vim by default. You can append `--vimbin=$(which nvim)` to have them use nvim.
 
 ## Download
 Clone this repo recursively:
@@ -29,67 +27,78 @@ Clone this repo recursively:
     git clone --recursive http://github.com/ardagnir/athame
 
 ## Setting up Athame Readline
-**Arch Linux**
-
-Use readline-athame-git from the AUR.
+### Arch Linux only:
+Use `readline-athame-git` from the AUR.
  - If you are missing the readline gpg key, you can get it with `gpg --recv-keys BB5869F064EA74AB`
 
-**Debian or Ubuntu**
+### Install a local copy of readline/bash (the safer way):
 
-    ./readline_athame_setup.sh --libdir=/lib/x86_64-linux-gnu
+    cd athame
+    mkdir -p ~/local
+    ./readline_athame_setup.sh --prefix=$HOME/local/
+    ./bash_readline_setup.sh --prefix=$HOME/local/ --use_readline=$HOME/local/
+    cp athamerc ~/.athamerc
 
-Most programs on Debian and Ubuntu don't use the system readline by default. You have to rebuild some of your programs to use the system readline if you want to use Athame.
+You can now run ~/local/bin/bash to run bash with Athame.
 
-To build bash so that it uses the system readline:
+### If you are Poe Dameron and like to live dangerously:
 
-    ./bash_readline_setup.sh
+Install Athame Readline as your default sytem Readline:
 
-**OS X**
+*For Ubuntu/Debian:*
 
-    ./readline_athame_setup.sh
+    cd athame
+    ./readline_athame_setup.sh --libdir=/lib/x86_64-linux-gnu --use_sudo
 
-Most programs on OS X don't use the system readline by default. You have to rebuild some of your programs to use the system readline if you want to use Athame.
+*Otherwise:*
 
-To build bash so that it uses the system readline:
+    cd athame
+    ./readline_athame_setup.sh --use_sudo
 
-    ./bash_readline_setup.sh
+You may need to rebuild bash if your installed version doesn't use your system readline *(this is usually the case in Ubuntu and OSX)*:
 
-**Windows**
+    ./bash_readline_setup.sh --use_sudo
 
-From bash, run:
-
-    ./readline_athame_setup.sh
-
-**Additional Notes**
+#### Additional Notes
 - You can add the `--nobuild` flag to the setup script if you want to configure/build/install yourself.
 - You can change what Vim binary is used by passing `--vimbin=/path/to/vim` to the setup script.
-- You can install Athame locally by passing `--nosudo --prefix=$HOME/local/` to the setup script for readline and bash.
 
 ## Setting up Athame Zsh
-**Arch Linux**
+### Arch Linux only:
 
-Use zsh-athame-git from the AUR.
+Use `zsh-athame-git` from the AUR.
 - If you are missing the zsh gpg key, you can get it with `gpg --recv-keys A71D9A9D4BDB27B3`
 - Add "unset zle_bracketed_paste" to the end of your ~/.zshrc
 
-**Debian or Ubuntu**
+### Windows only:
 
-    apt-get build-dep zsh
-    ./zsh_athame_setup.sh
+The tests don't work on Windows and will spawn extra background zsh processes.
+Pick an option below, but make sure to run the setup script with the "--notest" flag.
 
-- Add "unset zle_bracketed_paste" to the end of your ~/.zshrc
+### Install a local copy of zsh (the safer way):
 
-**Windows**
-- From bash, run: `./readline_athame_setup.sh --notest`
+    cd athame
+    mkdir -p ~/local
+    ./zsh_athame_setup.sh --prefix=$HOME/local/
+    cp athamerc ~/.athamerc
 
-- Add "unset zle_bracketed_paste" to the end of your ~/.zshrc
+Add "unset zle_bracketed_paste" to the end of your ~/.zshrc
 
-The tests don't work in windows and will spawn zsh background processes.
+You can now run ~/local/bin/zsh to run zsh with Athame.
 
-**Additional Notes**
+### If you are Poe Dameron and like to live dangerously:
+
+Install Athame Zsh as your default Zsh:
+
+    cd athame
+    ./zsh_athame_setup.sh --use_sudo
+
+Add "unset zle_bracketed_paste" to the end of your ~/.zshrc
+
+#### Additional Notes
 - You can add the `--nobuild` flag to the setup script if you want to configure/build/install yourself.
 - You can change what Vim binary is used by passing `--vimbin=/path/to/vim` to the setup script.
-- You can install Athame locally by passing `--nosudo --prefix=$HOME/local/` to the setup script.
+
 
 ## Configuration
 Athame can be configured through the following environment variables. They can be set on the fly or you can add them to your ~/.bashrc or ~/.zshrc. Make sure you use `export` if you add them to your ~/.zshrc.
@@ -178,9 +187,6 @@ Ohmyzsh and some other zsh setups put your terminal into application mode to hel
     }
     zle -N zle-line-init
 
-#### Does Athame work with Neovim?
-Not yet, but it will soon.
-
 #### Why isn't there an Athame package for my favorite distro?
 ...because you haven't made one yet. The Athame setup script comes with a --nobuild flag so that you can build it however you want or your package can just apply the Athame patches itself.
 
@@ -192,33 +198,6 @@ If you have a shell that I'm missing, you can also try making a patch to communi
 #### What about donations?
 I'm not accepting donations, but you should consider donating to the [EFF](https://supporters.eff.org/donate/) so that we don't end up living in a scary distopian future where everyone is forced to use emacs.
 
-
-## Setting up Vim with clientserver (Optional)
-You can test your Vim's clientserver support by running:
-
-    vim --version | grep clientserver
-
-If you see +clientserver, you can run Athame. (If you're using actual Vim. MacVim, for example, doesn't report this correctly and won't work for Athame.)
-
-**Linux Setup:**
-
-Your distro's full Vim version should have +clientserver support, but if you want to build vim yourself, this is the minimum setup for full Athame functionality:
-
-    git clone https://github.com/vim/vim
-    cd vim
-    ./configure --with-features=huge
-    make
-    sudo make install
-
-**OS X Setup:**
-
-Use MacPorts:
-
-    sudo port install vim +huge +x11
-
-Or Homebrew:
-
-    brew install vim --with-client-server
 
 ## Bugs
 - See [issues](https://github.com/ardagnir/athame/issues)
