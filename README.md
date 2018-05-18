@@ -13,8 +13,8 @@ Yes, and if you're fine with basic vi imitations designed by a bunch of Emacs us
 - Athame works best on GNU/Linux.
 - Athame also works on Windows (with WSL), and usually works on OSX. (I don't have a Mac, so I can't always test changes on one)
 - Athame needs at least *one* of the following:
-    - Vim 8.0+ with +job support
-    - Vim 7.4+ with +clientserver support
+    - Vim 8.0+ with `+job` support
+    - Vim 7.4+ with `+clientserver` support
       - Vim 7.4.928+ is strongly recommended.
       - The clientserver version requires X and will fall back to a normal shell if X isn't running.
     - Neovim 0.2.2+
@@ -27,12 +27,11 @@ Clone this repo recursively:
     git clone --recursive http://github.com/ardagnir/athame
 
 ## Setting up Athame Readline
-**Arch Linux only**
-
-Use readline-athame-git from the AUR.
+### Arch Linux only:
+Use `readline-athame-git` from the AUR.
  - If you are missing the readline gpg key, you can get it with `gpg --recv-keys BB5869F064EA74AB`
 
-**Install a local copy of readline/bash (the safest setup)**
+### Install a local copy of readline/bash (the safer way):
 
     cd athame
     mkdir -p ~/local
@@ -42,9 +41,10 @@ Use readline-athame-git from the AUR.
 
 You can now run ~/local/bin/bash to run bash with Athame.
 
-**If you are Poe Dameron and like to live dangerously**
+### If you are Poe Dameron and like to live dangerously:
 
 Install Athame Readline as your default sytem Readline:
+
 *For Ubuntu/Debian:*
 
     cd athame
@@ -55,28 +55,27 @@ Install Athame Readline as your default sytem Readline:
     cd athame
     ./readline_athame_setup.sh --use_sudo
 
-If your installed bash version doesn't use your system readline (this is usually the case in Ubuntu and OSX) you can rebuild bash to use it:
+You may need to rebuild bash if your installed version doesn't use your system readline *(this is usually the case in Ubuntu and OSX)*:
 
     ./bash_readline_setup.sh --use_sudo
 
-**Additional Notes**
+#### Additional Notes
 - You can add the `--nobuild` flag to the setup script if you want to configure/build/install yourself.
 - You can change what Vim binary is used by passing `--vimbin=/path/to/vim` to the setup script.
-- You can install Athame locally by passing `--prefix=$HOME/local/` to the setup script for readline and bash.
 
 ## Setting up Athame Zsh
-**Arch Linux only**
+### Arch Linux only:
 
-Use zsh-athame-git from the AUR.
+Use `zsh-athame-git` from the AUR.
 - If you are missing the zsh gpg key, you can get it with `gpg --recv-keys A71D9A9D4BDB27B3`
 - Add "unset zle_bracketed_paste" to the end of your ~/.zshrc
 
-**Important Windows Note**
+### Windows only:
 
 The tests don't work on Windows and will spawn extra background zsh processes.
 Pick an option below, but make sure to run the setup script with the "--notest" flag.
 
-**Install a local copy of zsh (the safest setup)**
+### Install a local copy of zsh (the safer way):
 
     cd athame
     mkdir -p ~/local
@@ -85,9 +84,9 @@ Pick an option below, but make sure to run the setup script with the "--notest" 
 
 Add "unset zle_bracketed_paste" to the end of your ~/.zshrc
 
-You can now run ~/local/bin/zsh to run bash with Athame.
+You can now run ~/local/bin/zsh to run zsh with Athame.
 
-**If you are Poe Dameron and like to live dangerously**
+### If you are Poe Dameron and like to live dangerously:
 
 Install Athame Zsh as your default Zsh:
 
@@ -96,7 +95,7 @@ Install Athame Zsh as your default Zsh:
 
 Add "unset zle_bracketed_paste" to the end of your ~/.zshrc
 
-**Additional Notes**
+#### Additional Notes
 - You can add the `--nobuild` flag to the setup script if you want to configure/build/install yourself.
 - You can change what Vim binary is used by passing `--vimbin=/path/to/vim` to the setup script.
 
@@ -187,9 +186,6 @@ Ohmyzsh and some other zsh setups put your terminal into application mode to hel
       echoti rmkx
     }
     zle -N zle-line-init
-
-#### Does Athame work with Neovim?
-Not yet, but it will soon.
 
 #### Why isn't there an Athame package for my favorite distro?
 ...because you haven't made one yet. The Athame setup script comes with a --nobuild flag so that you can build it however you want or your package can just apply the Athame patches itself.
