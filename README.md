@@ -27,11 +27,11 @@ Clone this repo recursively:
     git clone --recursive http://github.com/ardagnir/athame
 
 ## Setting up Athame Readline
-### Arch Linux only
+### Arch Linux only:
 Use `readline-athame-git` from the AUR.
  - If you are missing the readline gpg key, you can get it with `gpg --recv-keys BB5869F064EA74AB`
 
-### Install a local copy of readline/bash (the safest setup)
+### Install a local copy of readline/bash (the safer way):
 
     cd athame
     mkdir -p ~/local
@@ -41,9 +41,10 @@ Use `readline-athame-git` from the AUR.
 
 You can now run ~/local/bin/bash to run bash with Athame.
 
-### If you are Poe Dameron and like to live dangerously
+### If you are Poe Dameron and like to live dangerously:
 
 Install Athame Readline as your default sytem Readline:
+
 *For Ubuntu/Debian:*
 
     cd athame
@@ -54,7 +55,7 @@ Install Athame Readline as your default sytem Readline:
     cd athame
     ./readline_athame_setup.sh --use_sudo
 
-If your installed bash version doesn't use your system readline (this is usually the case in Ubuntu and OSX) you can rebuild bash to use it:
+You may need to rebuild bash if your installed version doesn't use your system readline *(this is usually the case in Ubuntu and OSX)*:
 
     ./bash_readline_setup.sh --use_sudo
 
@@ -63,18 +64,18 @@ If your installed bash version doesn't use your system readline (this is usually
 - You can change what Vim binary is used by passing `--vimbin=/path/to/vim` to the setup script.
 
 ## Setting up Athame Zsh
-### Arch Linux only
+### Arch Linux only:
 
 Use `zsh-athame-git` from the AUR.
 - If you are missing the zsh gpg key, you can get it with `gpg --recv-keys A71D9A9D4BDB27B3`
 - Add "unset zle_bracketed_paste" to the end of your ~/.zshrc
 
-### Windows only
+### Windows only:
 
 The tests don't work on Windows and will spawn extra background zsh processes.
 Pick an option below, but make sure to run the setup script with the "--notest" flag.
 
-### Install a local copy of zsh (the safest setup)
+### Install a local copy of zsh (the safer way):
 
     cd athame
     mkdir -p ~/local
@@ -85,7 +86,7 @@ Add "unset zle_bracketed_paste" to the end of your ~/.zshrc
 
 You can now run ~/local/bin/zsh to run zsh with Athame.
 
-### If you are Poe Dameron and like to live dangerously
+### If you are Poe Dameron and like to live dangerously:
 
 Install Athame Zsh as your default Zsh:
 
@@ -185,9 +186,6 @@ Ohmyzsh and some other zsh setups put your terminal into application mode to hel
       echoti rmkx
     }
     zle -N zle-line-init
-
-#### Does Athame work with Neovim?
-Not yet, but it will soon.
 
 #### Why isn't there an Athame package for my favorite distro?
 ...because you haven't made one yet. The Athame setup script comes with a --nobuild flag so that you can build it however you want or your package can just apply the Athame patches itself.
