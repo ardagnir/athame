@@ -28,10 +28,11 @@ Clone this repo recursively:
 
 ## Setting up Athame Readline
 **Arch Linux only**
+
 Use readline-athame-git from the AUR.
  - If you are missing the readline gpg key, you can get it with `gpg --recv-keys BB5869F064EA74AB`
 
-**Install a local copy of readline/bash (the safest setup):**
+**Install a local copy of readline/bash (the safest setup)**
 
     cd athame
     mkdir -p ~/local
@@ -41,8 +42,9 @@ Use readline-athame-git from the AUR.
 
 You can now run ~/local/bin/bash to run bash with Athame.
 
-**If you are Poe Dameron, or anyone else who likes to live dangerously:**
-Install Readline_Athame as your default sytem readline:
+**If you are Poe Dameron and like to live dangerously**
+
+Install Athame Readline as your default sytem Readline:
 *For Ubuntu/Debian:*
 
     cd athame
@@ -53,7 +55,7 @@ Install Readline_Athame as your default sytem readline:
     cd athame
     ./readline_athame_setup.sh --use_sudo
 
-If your installed bash version doesn't use your system readline (this is usually the case in Ubuntu and OSX):
+If your installed bash version doesn't use your system readline (this is usually the case in Ubuntu and OSX) you can rebuild bash to use it:
 
     ./bash_readline_setup.sh --use_sudo
 
@@ -64,15 +66,18 @@ If your installed bash version doesn't use your system readline (this is usually
 
 ## Setting up Athame Zsh
 **Arch Linux only**
+
 Use zsh-athame-git from the AUR.
 - If you are missing the zsh gpg key, you can get it with `gpg --recv-keys A71D9A9D4BDB27B3`
 - Add "unset zle_bracketed_paste" to the end of your ~/.zshrc
 
 **Important Windows Note**
+
 The tests don't work on Windows and will spawn extra background zsh processes.
 Pick an option below, but make sure to run the setup script with the "--notest" flag.
 
-**Install a local copy of zsh (the safest setup):**
+**Install a local copy of zsh (the safest setup)**
+
     cd athame
     mkdir -p ~/local
     ./zsh_athame_setup.sh --prefix=$HOME/local/
@@ -82,8 +87,9 @@ Add "unset zle_bracketed_paste" to the end of your ~/.zshrc
 
 You can now run ~/local/bin/zsh to run bash with Athame.
 
-**If you are Poe Dameron, or anyone else who likes to live dangerously:**
-Install Zsh_Athame as your default zsh:
+**If you are Poe Dameron and like to live dangerously**
+
+Install Athame Zsh as your default Zsh:
 
     cd athame
     ./zsh_athame_setup.sh --use_sudo
