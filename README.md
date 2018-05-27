@@ -20,18 +20,14 @@ Yes, and if you're fine with basic vi imitations designed by a bunch of Emacs us
     - Neovim 0.2.2+
       - Neovim support is currently experimental.
       - The setup scripts will look for vim by default. You can append `--vimbin=$(which nvim)` to have them use nvim.
-
-## Download
-Clone this repo recursively:
-
-    git clone --recursive http://github.com/ardagnir/athame
-
+      
 ## Setting up Athame Readline
 ### Option 1: (Arch Linux only) Use the AUR
 Use `readline-athame-git` from the AUR.
  - If you are missing the readline gpg key, you can get it with `gpg --recv-keys BB5869F064EA74AB`
 
 ### Option 2: (The safest method) Install a local copy of Readline/Bash
+    git clone --recursive http://github.com/ardagnir/athame
     cd athame
     mkdir -p ~/local
     ./readline_athame_setup.sh --prefix=$HOME/local/
@@ -43,11 +39,13 @@ You can now run ~/local/bin/bash to run bash with Athame.
 ### Option 3: Install Athame as your default Readline 
 *For Ubuntu/Debian:*
 
+    git clone --recursive http://github.com/ardagnir/athame
     cd athame
     ./readline_athame_setup.sh --libdir=/lib/x86_64-linux-gnu --use_sudo
 
 *Otherwise:*
 
+    git clone --recursive http://github.com/ardagnir/athame
     cd athame
     ./readline_athame_setup.sh --use_sudo
 
@@ -68,6 +66,7 @@ Use `zsh-athame-git` from the AUR.
 ### Option 2: (The safest method) Install a local copy of Zsh
 *Windows Note: zsh tests don't work in Windows because zsh gets stuck in the background. Add `--notest` to the setup script line if installing on Windows.*
 
+    git clone --recursive http://github.com/ardagnir/athame
     cd athame
     mkdir -p ~/local
     ./zsh_athame_setup.sh --prefix=$HOME/local/
@@ -80,6 +79,7 @@ You can now run ~/local/bin/zsh to run zsh with Athame.
 ### Option 3: Install Athame as your default Zsh 
 *Windows Note: zsh tests don't work in Windows because zsh gets stuck in the background. Add `--notest` to the setup script line if installing on Windows.*
 
+    git clone --recursive http://github.com/ardagnir/athame
     cd athame
     ./zsh_athame_setup.sh --use_sudo
 
