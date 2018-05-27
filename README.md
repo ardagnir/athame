@@ -27,12 +27,11 @@ Clone this repo recursively:
     git clone --recursive http://github.com/ardagnir/athame
 
 ## Setting up Athame Readline
-### Arch Linux only:
+### Option 1: (Arch Linux only) Use the AUR
 Use `readline-athame-git` from the AUR.
  - If you are missing the readline gpg key, you can get it with `gpg --recv-keys BB5869F064EA74AB`
 
-### Install a local copy of readline/bash (the safer way):
-
+### Option 2: (The safest method) Install a local copy of Readline/Bash
     cd athame
     mkdir -p ~/local
     ./readline_athame_setup.sh --prefix=$HOME/local/
@@ -41,10 +40,7 @@ Use `readline-athame-git` from the AUR.
 
 You can now run ~/local/bin/bash to run bash with Athame.
 
-### If you are Poe Dameron and like to live dangerously:
-
-Install Athame Readline as your default sytem Readline:
-
+### Option 3: Install Athame as your default Readline 
 *For Ubuntu/Debian:*
 
     cd athame
@@ -64,18 +60,13 @@ You may need to rebuild bash if your installed version doesn't use your system r
 - You can change what Vim binary is used by passing `--vimbin=/path/to/vim` to the setup script.
 
 ## Setting up Athame Zsh
-### Arch Linux only:
-
+### Option 1: (Arch Linux only) Use the AUR
 Use `zsh-athame-git` from the AUR.
 - If you are missing the zsh gpg key, you can get it with `gpg --recv-keys A71D9A9D4BDB27B3`
 - Add "unset zle_bracketed_paste" to the end of your ~/.zshrc
 
-### Windows only:
-
-The tests don't work on Windows and will spawn extra background zsh processes.
-Pick an option below, but make sure to run the setup script with the "--notest" flag.
-
-### Install a local copy of zsh (the safer way):
+### Option 2: (The safest method) Install a local copy of Zsh
+*Windows Note: zsh tests don't work in Windows because zsh gets stuck in the background. Add `--notest` to the setup script line if installing on Windows.*
 
     cd athame
     mkdir -p ~/local
@@ -86,9 +77,8 @@ Add "unset zle_bracketed_paste" to the end of your ~/.zshrc
 
 You can now run ~/local/bin/zsh to run zsh with Athame.
 
-### If you are Poe Dameron and like to live dangerously:
-
-Install Athame Zsh as your default Zsh:
+### Option 3: Install Athame as your default Zsh 
+*Windows Note: zsh tests don't work in Windows because zsh gets stuck in the background. Add `--notest` to the setup script line if installing on Windows.*
 
     cd athame
     ./zsh_athame_setup.sh --use_sudo
