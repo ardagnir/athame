@@ -182,7 +182,7 @@ if [ $runtest = 1 ]; then
   if [ $? -eq 1 ]; then
     echo "Bash isn't set to use system readline or is not using readline 7. Setting up local bash for testing."
     cd ..
-    ./bash_readline_setup.sh --destdir="$(pwd)/test/build" --with-installed-readline="${LD_LIBRARY_PATH%+(/lib|/lib/*)}"
+    ./bash_readline_setup.sh --destdir="$(pwd)/test/build" --use_readline="${LD_LIBRARY_PATH%+(/lib|/lib/*)}"
     cd test
     ./runtests.sh "$(pwd)/build/bin/bash -i" bash $nvim || exit 1
   else
