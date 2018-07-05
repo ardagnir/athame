@@ -157,6 +157,8 @@ static void ap_set_control_chars() {
         ap_special[specialLen++] = key;
         ap_nl[nlLen++] = key;
       } else if (_rl_keymap[key].function == rl_complete ||
+                 _rl_keymap[key].function == rl_menu_complete ||
+                 _rl_keymap[key].function == rl_backward_menu_complete ||
                  _rl_keymap[key].function == rl_clear_screen) {
         ap_special[specialLen++] = key;
       }
