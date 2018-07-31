@@ -58,10 +58,12 @@ function runtest () {
     else
       start_time=$(date +%s999)
     fi
+
+
     script -c "cat input_text | $1" failure > /dev/null 2> /dev/null
     if [ $? -ne 0 ]; then
       # Linux version failed. Try bsd version:
-      script failure bash -c "cat input_text | $1" > /dev/null
+      script failure bash -c "export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH;cat input_text | $1" > /dev/null
     fi
     if [ $milli != 0 ]; then
       end_time=$(date +%s%3N)
@@ -122,6 +124,16 @@ function runtest () {
   sanity=$((sanity+1))
   return 0
 }
+
+export LD_LIBRARY_PATH="$(dirname $(find $(pwd)/build -name libreadline* | head -n 1))"
+export ATHAME_VIMBED_LOCATION="$(find $(pwd)/build -name athame_readline | head -n 1)"
+
+if [ "$(uname)" == "Darwin" ]; then
+  export DYLD_LIBRARY_PATH="$LD_LIBRARY_PATH"
+  otool -L "$(which bash)" | grep libreadline.7.dylib >/dev/null
+else
+  ldd "$(which bash)" | grep libreadline.so.7 >/dev/null
+fi
 
 if [ "$2" == "bash" ] || [ "$3" == "bash" ]; then
   using_bash=1
