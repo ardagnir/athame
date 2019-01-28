@@ -101,7 +101,7 @@ fi
 #Build and install bash
 if [ $build = 1 ]; then
   if [ ! -f Makefile ]; then
-    ac_cv_rl_version=7.0 ./configure \
+    ac_cv_rl_version=8.0 ./configure \
                 "--prefix=$prefix" \
                 --docdir=${prefix}/usr/share/doc/bash-4.4 \
                 --without-bash-malloc \
@@ -111,7 +111,7 @@ if [ $build = 1 ]; then
   fi
   make LOCAL_LIBS=-lutil "$readline_make_flag"
   if [ $? != 0 ]; then
-    printf "\n\e[1;31mMake failed:\e[0m Are you sure you have readline 7 installed? readline_athame_setup.sh installs readline 7 patched with athame. You may want to run it first.\nThis may also fail if you have a versionless libreadline.so symlinked to libreadline.so.6\n"
+    printf "\n\e[1;31mMake failed:\e[0m Are you sure you have readline 8 installed? readline_athame_setup.sh installs readline 8 patched with athame. You may want to run it first.\nThis may also fail if you have a versionless libreadline.so symlinked to libreadline.so.7\n"
     exit 1
   fi
   if [ -n "$destdir" ]; then

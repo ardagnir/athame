@@ -19,7 +19,7 @@
 
 shopt -s extglob
 
-patches=3
+patches=0
 redownload=0
 build=1
 runtest=1
@@ -103,43 +103,43 @@ fi
 
 #Download Readline
 if [ $redownload = 1 ]; then
-  rm -r readline-7.0.tar.gz
+  rm -r readline-8.0.tar.gz
 fi
-if [ ! -f readline-7.0.tar.gz ]; then
-  curl -O https://ftp.gnu.org/gnu/readline/readline-7.0.tar.gz
+if [ ! -f readline-8.0.tar.gz ]; then
+  curl -O https://ftp.gnu.org/gnu/readline/readline-8.0.tar.gz
 fi
 
 mkdir -p readline_patches
 cd readline_patches
 for (( patch=1; patch <= patches; patch++ )); do
   if [ $redownload = 1 ]; then
-    rm -r readline70-$(printf "%03d" $patch)
+    rm -r readline80-$(printf "%03d" $patch)
   fi
-  if [ ! -f readline70-$(printf "%03d" $patch) ]; then
-    curl -O https://ftp.gnu.org/gnu/readline/readline-7.0-patches/readline70-$(printf "%03d" $patch)
+  if [ ! -f readline80-$(printf "%03d" $patch) ]; then
+    curl -O https://ftp.gnu.org/gnu/readline/readline-8.0-patches/readline80-$(printf "%03d" $patch)
   fi
 done
 cd ..
 
-if [ ! -d readline-7.0_tmp ]; then
+if [ ! -d readline-8.0_tmp ]; then
   dirty=0
 fi
 
 #Unpack readline dir
 if [ $dirty = 0 ]; then
-  rm -rf readline-7.0_tmp
-  tar -xf readline-7.0.tar.gz
-  mv readline-7.0 readline-7.0_tmp
+  rm -rf readline-8.0_tmp
+  tar -xf readline-8.0.tar.gz
+  mv readline-8.0 readline-8.0_tmp
 fi
 
 #Move into readline directory
-cd readline-7.0_tmp
+cd readline-8.0_tmp
 
 if [ $dirty = 0 ]; then
   #Patch readline with readline patches
   for (( patch=1; patch <= patches; patch++ )); do
     echo Patching with standard readline patch $patch
-    patch -p0 < ../readline_patches/readline70-$(printf "%03d" $patch)
+    patch -p0 < ../readline_patches/readline80-$(printf "%03d" $patch)
   done
 fi
 
@@ -175,12 +175,12 @@ if [ $runtest = 1 ]; then
   fi
   if [ "$(uname)" == "Darwin" ]; then
     export DYLD_LIBRARY_PATH="$LD_LIBRARY_PATH"
-    otool -L "$(which bash)" | grep libreadline.7.dylib >/dev/null
+    otool -L "$(which bash)" | grep libreadline.8.dylib >/dev/null
   else
-    ldd "$(which bash)" | grep libreadline.so.7 >/dev/null
+    ldd "$(which bash)" | grep libreadline.so.8 >/dev/null
   fi
   if [ $? -eq 1 ]; then
-    echo "Bash isn't set to use system readline or is not using readline 7. Setting up local bash for testing."
+    echo "Bash isn't set to use system readline or is not using readline 8. Setting up local bash for testing."
     cd ..
     ./bash_readline_setup.sh --destdir="$(pwd)/test/build" --use_readline="${LD_LIBRARY_PATH%+(/lib|/lib/*)}"
     cd test
@@ -188,7 +188,7 @@ if [ $runtest = 1 ]; then
   else
     ./runtests.sh "bash -i" bash $nvim || exit 1
   fi
-  cd ../readline-7.0_tmp
+  cd ../readline-8.0_tmp
 fi
 echo "Installing Readline with Athame..."
 if [ -n "$destdir" ]; then

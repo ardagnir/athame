@@ -1,7 +1,7 @@
 diff -ru a/display.c b/display.c
 --- a/display.c 2015-10-28 00:00:00.000000000 - 0400
 --- b/display.c 2015-10-28 00:00:00.000000000 - 0400
-@@ -241,6 +241,11 @@
+@@ -255,6 +255,11 @@
  static int prompt_last_screen_line;
  
  static int prompt_physical_chars;
@@ -11,12 +11,12 @@ diff -ru a/display.c b/display.c
 +  return prompt_physical_chars;
 +}
  
- /* set to a non-zero value by rl_redisplay if we are marking modified history
-    lines and the current line is so marked. */
+ /* An array of indexes into the prompt string where we will break physical
+    screen lines.  It's easier to compute in expand_prompt and use later in
 diff -ru a/Makefile.in b/Makefile.in
 --- a/Makefile.in	2015-07-15 00:03:32.894897704 -0400
 +++ b/Makefile.in	2015-07-14 23:36:13.208157503 -0400
-@@ -74,7 +74,7 @@
+@@ -75,7 +75,7 @@
  CTAGS = ctags -tw
  
  CFLAGS = @CFLAGS@
@@ -25,7 +25,7 @@ diff -ru a/Makefile.in b/Makefile.in
  CPPFLAGS = @CPPFLAGS@
  
  DEFS = @DEFS@ @CROSS_COMPILE@
-@@ -114,7 +114,7 @@
+@@ -120,7 +120,7 @@
  	   $(srcdir)/histfile.c $(srcdir)/nls.c $(srcdir)/search.c \
  	   $(srcdir)/shell.c $(srcdir)/savestring.c $(srcdir)/tilde.c \
  	   $(srcdir)/text.c $(srcdir)/misc.c $(srcdir)/compat.c \
@@ -34,7 +34,7 @@ diff -ru a/Makefile.in b/Makefile.in
  
  # The header files for this library.
  HSOURCES = $(srcdir)/readline.h $(srcdir)/rldefs.h $(srcdir)/chardefs.h \
-@@ -124,7 +124,7 @@
+@@ -130,7 +130,7 @@
  	   $(srcdir)/ansi_stdlib.h $(srcdir)/tcap.h $(srcdir)/rlstdc.h \
  	   $(srcdir)/xmalloc.h $(srcdir)/rlprivate.h $(srcdir)/rlshell.h \
  	   $(srcdir)/rltypedefs.h $(srcdir)/rlmbutil.h \
@@ -43,7 +43,7 @@ diff -ru a/Makefile.in b/Makefile.in
  
  HISTOBJ = history.o histexpand.o histfile.o histsearch.o shell.o mbutil.o
  TILDEOBJ = tilde.o
-@@ -147,7 +147,7 @@
+@@ -153,7 +153,7 @@
  CREATED_TAGS = TAGS tags
  
  INSTALLED_HEADERS = readline.h chardefs.h keymaps.h history.h tilde.h \
@@ -52,7 +52,7 @@ diff -ru a/Makefile.in b/Makefile.in
  
  OTHER_DOCS = $(srcdir)/CHANGES $(srcdir)/INSTALL $(srcdir)/README
  OTHER_INSTALLED_DOCS = CHANGES INSTALL README
-@@ -221,6 +221,13 @@
+@@ -230,6 +230,13 @@
  
  install:	$(INSTALL_TARGETS)
  
@@ -66,25 +66,25 @@ diff -ru a/Makefile.in b/Makefile.in
  install-headers: installdirs ${INSTALLED_HEADERS}
  	for f in ${INSTALLED_HEADERS}; do \
  		$(INSTALL_DATA) $(srcdir)/$$f $(DESTDIR)$(includedir)/readline ; \
-@@ -232,7 +239,7 @@
+@@ -250,7 +257,7 @@
  
- maybe-uninstall-headers: uninstall-headers
+ maybe-uninstall-pc: uninstall-pc
  
--install-static: installdirs $(STATIC_LIBS) install-headers install-doc install-examples
-+install-static: installdirs $(STATIC_LIBS) install-headers install-doc install-examples install-vimbed
+-install-static: installdirs $(STATIC_LIBS) install-headers install-doc ${install_examples} install-pc
++install-static: installdirs $(STATIC_LIBS) install-headers install-doc ${install_examples} install-pc install-vimbed
  	-$(MV) $(DESTDIR)$(libdir)/libreadline.a $(DESTDIR)$(libdir)/libreadline.old
  	$(INSTALL_DATA) libreadline.a $(DESTDIR)$(libdir)/libreadline.a
  	-test -n "$(RANLIB)" && $(RANLIB) $(DESTDIR)$(libdir)/libreadline.a
-@@ -245,7 +252,7 @@
- 		$(DESTDIR)$(includedir)/readline $(DESTDIR)$(libdir) \
- 		$(DESTDIR)$(infodir) $(DESTDIR)$(man3dir) $(DESTDIR)$(docdir)
+@@ -264,7 +281,7 @@
+ 		$(DESTDIR)$(infodir) $(DESTDIR)$(man3dir) $(DESTDIR)$(docdir) \
+ 		$(DESTDIR)$(pkgconfigdir)
  
--uninstall: uninstall-headers uninstall-doc uninstall-examples
-+uninstall: uninstall-headers uninstall-doc uninstall-examples uninstall-vimbed
+-uninstall: uninstall-headers uninstall-doc uninstall-examples uninstall-pc
++uninstall: uninstall-headers uninstall-doc uninstall-examples uninstall-pc uninstall-vimbed
  	-test -n "$(DESTDIR)$(libdir)" && cd $(DESTDIR)$(libdir) && \
  		${RM} libreadline.a libreadline.old libhistory.a libhistory.old $(SHARED_LIBS)
  	-( cd shlib; ${MAKE} ${MFLAGS} DESTDIR=${DESTDIR} uninstall )
-@@ -393,7 +400,7 @@
+@@ -412,7 +419,7 @@
  readline.o: readline.h keymaps.h rltypedefs.h chardefs.h tilde.h
  readline.o: rldefs.h ${BUILD_DIR}/config.h rlconf.h
  readline.o: history.h rlstdc.h
@@ -93,7 +93,7 @@ diff -ru a/Makefile.in b/Makefile.in
  rltty.o: rldefs.h ${BUILD_DIR}/config.h rlconf.h
  rltty.o: rltty.h
  rltty.o: readline.h keymaps.h rltypedefs.h chardefs.h tilde.h rlstdc.h
-@@ -513,6 +520,7 @@
+@@ -532,6 +539,7 @@
  text.o: rlmbutil.h
  vi_mode.o: rlmbutil.h
  
@@ -101,7 +101,7 @@ diff -ru a/Makefile.in b/Makefile.in
  bind.o: $(srcdir)/bind.c
  callback.o: $(srcdir)/callback.c
  compat.o: $(srcdir)/compat.c
-@@ -551,6 +559,7 @@
+@@ -570,6 +578,7 @@
  history.o: $(srcdir)/history.c
  histsearch.o: $(srcdir)/histsearch.c
  
@@ -120,7 +120,7 @@ diff -ru a/readline.c b/readline.c
  
  #include "rlprivate.h"
  #include "rlshell.h"
-@@ -446,6 +447,8 @@
+@@ -450,6 +451,8 @@
    if (rl_pre_input_hook)
      (*rl_pre_input_hook) ();
  
@@ -129,7 +129,7 @@ diff -ru a/readline.c b/readline.c
    RL_CHECK_SIGNALS ();
  }
  
-@@ -458,6 +461,8 @@
+@@ -461,6 +464,8 @@
  
    RL_CHECK_SIGNALS ();
  
@@ -138,7 +138,7 @@ diff -ru a/readline.c b/readline.c
    /* Restore the original of this history line, iff the line that we
       are editing was originally in the history, AND the line has changed. */
    entry = current_history ();
-@@ -567,7 +572,16 @@
+@@ -570,7 +575,16 @@
  	}
  
        RL_SETSTATE(RL_STATE_READCMD);
@@ -156,15 +156,15 @@ diff -ru a/readline.c b/readline.c
        RL_UNSETSTATE(RL_STATE_READCMD);
  
        /* look at input.c:rl_getc() for the circumstances under which this will
-@@ -627,6 +641,7 @@
+@@ -630,6 +644,7 @@
  
        lastc = c;
-       _rl_dispatch ((unsigned char)c, _rl_keymap);
+       r = _rl_dispatch ((unsigned char)c, _rl_keymap);
 +      athame_char_handled();
        RL_CHECK_SIGNALS ();
  
        /* If there was no change in _rl_last_command_was_kill, then no kill
-@@ -635,6 +650,7 @@
+@@ -638,6 +653,7 @@
        if (rl_pending_input == 0 && lk == _rl_last_command_was_kill)
  	_rl_last_command_was_kill = 0;
  
@@ -264,7 +264,7 @@ diff -ru a/shlib/Makefile.in b/shlib/Makefile.in
 diff -ru a/readline.h b/readline.h
 --- a/readline.h	2015-10-29 00:00:00.000000000 -0400
 +++ b/readline.h	2015-10-29 00:00:00.000000000 -0400
-@@ -292,6 +292,7 @@
+@@ -295,6 +295,7 @@
  
  extern int rl_set_prompt PARAMS((const char *));
  extern int rl_expand_prompt PARAMS((char *));
@@ -283,7 +283,7 @@ diff -ru a/callback.c b/callback.c
  
  #if defined (READLINE_CALLBACKS)
  
-@@ -313,6 +314,8 @@
+@@ -311,6 +312,8 @@
        rl_clear_signals ();
  #endif
      }
