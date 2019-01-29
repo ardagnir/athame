@@ -72,7 +72,7 @@ diff -ru a/Src/Zle/zle_main.c b/Src/Zle/zle_main.c
  #include "zle_main.pro"
  
  #ifdef HAVE_POLL_H
-@@ -1086,6 +1087,8 @@
+@@ -1097,6 +1098,8 @@
  void
  zlecore(void)
  {
@@ -81,7 +81,7 @@ diff -ru a/Src/Zle/zle_main.c b/Src/Zle/zle_main.c
      Keymap km;
  #if !defined(HAVE_POLL) && defined(HAVE_SELECT)
      struct timeval tv;
-@@ -1175,6 +1178,7 @@
+@@ -1186,6 +1189,7 @@
      }
  
      popheap();
@@ -104,7 +104,7 @@ diff -ru a/Src/Zle/zle_keymap.c b/Src/Zle/zle_keymap.c
  static int
  getkeybuf(int w)
  {
--    int c = getbyte((long)w, NULL);
+-    int c = getbyte((long)w, NULL, 1);
 +    int c;
 +    if (athame_enabled())
 +    {
@@ -117,7 +117,7 @@ diff -ru a/Src/Zle/zle_keymap.c b/Src/Zle/zle_keymap.c
 +        }
 +    }
 +    else {
-+        c = getbyte((long)w, NULL);
++        c = getbyte((long)w, NULL, 1);
 +    }
  
      if(c < 0)
