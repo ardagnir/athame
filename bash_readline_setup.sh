@@ -91,7 +91,7 @@ if [ $dirty = 0 ]; then
   done
 fi
 
-readline_configure_flag=""
+readline_configure_flag="--with-installed-readline"
 readline_make_flag=""
 if [ -n "$use_readline" ]; then
   readline_configure_flag="--with-installed-readline=$use_readline"
@@ -109,7 +109,11 @@ if [ $build = 1 ]; then
                 "$readline_configure_flag" \
                 || exit 1
   fi
-  make LOCAL_LIBS=-lutil "$readline_make_flag"
+  if [ -n "$use_readline" ]; then
+    make LOCAL_LIBS=-lutil "$readline_make_flag"
+  else
+    make LOCAL_LIBS=-lutil
+  fi
   if [ $? != 0 ]; then
     printf "\n\e[1;31mMake failed:\e[0m Are you sure you have readline 8 installed? readline_athame_setup.sh installs readline 8 patched with athame. You may want to run it first.\nThis may also fail if you have a versionless libreadline.so symlinked to libreadline.so.7\n"
     exit 1
