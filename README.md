@@ -186,7 +186,7 @@ The best way to help is to look at the issue section and submit patches to fix b
 If you have a shell that I'm missing, you can also try making a patch to communicate between it and Athame (see athame_readline.h and athame_zsh.h for the functions you need to implement).
 
 #### What about donations?
-I'm not accepting donations, but you should consider donating to the [EFF](https://supporters.eff.org/donate/) so that we don't end up living in a scary distopian future where everyone is forced to use emacs.
+I'm not accepting donations, but you should consider donating to the [EFF](https://supporters.eff.org/donate/) so that we don't end up living in a scary dystopian future where everyone is forced to use emacs.
 
 
 ## Bugs
