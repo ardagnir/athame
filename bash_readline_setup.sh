@@ -91,7 +91,7 @@ if [ $dirty = 0 ]; then
   done
 fi
 
-readline_configure_flag=""
+readline_configure_flag="--with-installed-readline"
 readline_make_flag=""
 if [ -n "$use_readline" ]; then
   readline_configure_flag="--with-installed-readline=$use_readline"
