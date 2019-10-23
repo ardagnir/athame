@@ -49,11 +49,11 @@ endif
 " (Similar to how arrows work for vim ex expressions)
 "
     ""VimEnter is here to fight other plugins that try to remap arrows
-    ""Vimbed_SupressCmdline stops Athame from showing the command
-    "autocmd VimEnter * inoremap <silent> <expr> <Up> Vimbed_SupressCmdline("<C-\><C-O>:silent call HistorySearchBackward()<CR>")
-    "autocmd VimEnter * inoremap <silent> <expr> <Down> Vimbed_SupressCmdline("<C-\><C-O>:silent call HistorySearchForward()<CR>")
-    "autocmd VimEnter * nnoremap <silent> <expr> <Up> Vimbed_SupressCmdline(":silent call HistorySearchBackward()<CR>")
-    "autocmd VimEnter * nnoremap <silent> <expr> <Down> Vimbed_SupressCmdline(":silent call HistorySearchForward()<CR>")
+    ""Vimbed_SuppressCmdline stops Athame from showing the command
+    "autocmd VimEnter * inoremap <silent> <expr> <Up> Vimbed_SuppressCmdline("<C-\><C-O>:silent call HistorySearchBackward()<CR>")
+    "autocmd VimEnter * inoremap <silent> <expr> <Down> Vimbed_SuppressCmdline("<C-\><C-O>:silent call HistorySearchForward()<CR>")
+    "autocmd VimEnter * nnoremap <silent> <expr> <Up> Vimbed_SuppressCmdline(":silent call HistorySearchBackward()<CR>")
+    "autocmd VimEnter * nnoremap <silent> <expr> <Down> Vimbed_SuppressCmdline(":silent call HistorySearchForward()<CR>")
 
 
 "Similar to bash's history-search-backward.
