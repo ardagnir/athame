@@ -25,14 +25,36 @@ if v:version>=800 || has("patch928")
   inoremap <Down> <Down><ESC>A
 endif
 
+" Uncomment this to change the cursor depending on mode:
+" (Only works in some terminals/OSs)
+" Note that vim is run in a forkpty so normal :!tty won't give you the right tty to use here
+"
+    "let g:tty='/dev/'.system('ps -o tty= $(ps -o ppid= $(ps -o ppid= $$))')
+    "au InsertLeave * silent execute "!printf '[2 q' > ".g:tty
+    "au VimLeave * silent execute "!printf '[2 q' > ".g:tty
+    "au InsertEnter * call InsertModeCursor()
+    "function! InsertModeCursor()
+    "  if v:insertmode == "i"
+    "    " Insert mode
+    "    silent execute "!printf '[6 q' > ".g:tty
+    "  else
+    "    " Replace mode
+    "    silent execute "!printf '[4 q' > ".g:tty
+    "  endif
+    "endfunction
+
+
 " Uncomment these maps to have the up and down arrow
 " only match lines that share text before cursor
 " (Similar to how arrows work for vim ex expressions)
 "
-"inoremap <Up> <C-\><C-O>:silent call HistorySearchBackward()<CR>
-"inoremap <Down> <C-\><C-O>:silent call HistorySearchForward()<CR>
-"nnoremap <Up> :silent call HistorySearchBackward()<CR>
-"nnoremap <Down> :silent call HistorySearchForward()<CR>
+    ""VimEnter is here to fight other plugins that try to remap arrows
+    ""Vimbed_SupressCmdline stops Athame from showing the command
+    "autocmd VimEnter * inoremap <silent> <expr> <Up> Vimbed_SupressCmdline("<C-\><C-O>:silent call HistorySearchBackward()<CR>")
+    "autocmd VimEnter * inoremap <silent> <expr> <Down> Vimbed_SupressCmdline("<C-\><C-O>:silent call HistorySearchForward()<CR>")
+    "autocmd VimEnter * nnoremap <silent> <expr> <Up> Vimbed_SupressCmdline(":silent call HistorySearchBackward()<CR>")
+    "autocmd VimEnter * nnoremap <silent> <expr> <Down> Vimbed_SupressCmdline(":silent call HistorySearchForward()<CR>")
+
 
 "Similar to bash's history-search-backward.
 function! HistorySearchBackward()
@@ -65,3 +87,5 @@ function! HistorySearchForward()
     call cursor(line('.') + 1, 1)
   endif
 endfunction
+
+" vim: set ft=vim:
