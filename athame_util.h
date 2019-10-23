@@ -877,7 +877,10 @@ static void athame_draw_failure() {
 }
 
 static void athame_set_failure(char* fail_str) {
-  if (athame_failure == 0) {
+  if (athame_failure != 0) {
+      return;
+  }
+  if (vim_pid != 0) {
     kill(vim_pid, SIGTERM);
   }
   athame_failure = strdup(fail_str);
@@ -1112,14 +1115,17 @@ static int athame_select(int file_desc1, int file_desc2, int timeout_sec,
   return results;
 }
 
-int athame_is_set(char* env, int def) {
+long athame_env_num(char* env, long def) {
   char* env_val = getenv(env);
   if (!env_val) {
-    setenv(env, def ? "1" : "0", 0);
     return def;
-  } else {
-    return env_val[0] == '1';
   }
+
+  return strtol(env_val,  NULL, 10);
+}
+
+int athame_is_set(char* env, int def) {
+  return athame_env_num(env, def);
 }
 
 // Unlike normal strtok, this

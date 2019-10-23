@@ -62,6 +62,7 @@ static void athame_init_sig(int instream, FILE* outstream) {
   athame_dirty = 0;
   updated = 1;
   time_to_poll = -1;
+  vim_pid = 0;
   vim_started = -1;
   stale_polls = 0;
   change_since_key = 0;
@@ -93,7 +94,7 @@ static void athame_init_sig(int instream, FILE* outstream) {
   msg_count_file_name = 0;
 
   if (!athame_is_set("ATHAME_ENABLED", 1)) {
-    athame_failure = strdup("Athame was disabled on init");
+    athame_set_failure("Athame was disabled on init");
     return;
   }
   if (!athame_is_set("ATHAME_USE_JOBS", ATHAME_USE_JOBS_DEFAULT) && !getenv("DISPLAY")) {
@@ -355,12 +356,13 @@ static char athame_loop_sig(int instream) {
     // If vim isn't doing anything after pressing 20 keys, failover.
     // This allows the user to get back to a normal shell if everything
     // is working, but vim always starts up in a weird state
-    // (Infinte, loop/ex mode, etc)
-    // TODO: use an env variable instead of 20
-    if (keys_since_change > 20) {
+    // (Infinte loop/ex mode, etc)
+    int safety_check = athame_env_num("ATHAME_SAFETY_CHECK", 20);
+    if (keys_since_change >= safety_check && safety_check>0 ) {
       athame_force_vim_sync();
       if (keys_since_change > 0) {
-        athame_set_failure("20 keys pressed without change. To disable Athame use: AHTAME_ENABLED=0");
+        snprintf(athame_buffer, DEFAULT_BUFFER_SIZE - 1, "%d keys pressed without change. To change this set ATHAME_SAFETY_CHECK. To disable Athame set ATHAME_ENABLED=0", safety_check);
+        athame_set_failure(athame_buffer);
       }
     }
   } // end while
