@@ -127,6 +127,8 @@ The default athamerc includes "startinsert" to make Athame start in insert mode.
 #### Why is my Athame slow?
 Athame should be very fast, but it will slow down if your Vim setup is slow or if you have invalid vimscript in either your athamerc or vimrc. Try using a clean vimrc or athamerc and see if it speeds up. If not, file an issue.
 
+If Athame is only slow in command mode (:?/), you should be able to fix it by updating Vim to version 8.1+.
+
 #### I installed Athame for Readline, but it isn't doing anything!
 Are you using the system readline?
 Type:
@@ -186,7 +188,7 @@ The best way to help is to look at the issue section and submit patches to fix b
 If you have a shell that I'm missing, you can also try making a patch to communicate between it and Athame (see athame_readline.h and athame_zsh.h for the functions you need to implement).
 
 #### What about donations?
-I'm not accepting donations, but you should consider donating to the [EFF](https://supporters.eff.org/donate/) so that we don't end up living in a scary distopian future where everyone is forced to use emacs.
+I'm not accepting donations, but you should consider donating to the [EFF](https://supporters.eff.org/donate/) so that we don't end up living in a scary dystopian future where everyone is forced to use emacs.
 
 
 ## Bugs

@@ -115,10 +115,10 @@ if [ $redownload = 1 ]; then
   rm -r zsh-5.7.1.tar.xz
 fi
 if [ ! -f zsh-5.7.1.tar.xz ]; then
-  curl -O http://www.zsh.org/pub/zsh-5.7.1.tar.xz
+  curl -O https://www.zsh.org/pub/zsh-5.7.1.tar.xz
   head -n 3 zsh-5.7.1.tar.xz | grep "404 Not Found" > /dev/null
   if [ $? -eq 0 ]; then
-    curl -O http://www.zsh.org/pub/old/zsh-5.7.1.tar.xz
+    curl -O https://www.zsh.org/pub/old/zsh-5.7.1.tar.xz
   fi
 fi
 if [ "$(md5sum zsh-5.7.1.tar.xz 2>/dev/null)" != "374f9fdd121b5b90e07abfcad7df0627  zsh-5.7.1.tar.xz" ] && [ "$(md5 zsh-5.7.1.tar.xz 2>/dev/null)" != "MD5 (zsh-5.7.1.tar.xz) = 374f9fdd121b5b90e07abfcad7df0627" ]; then
