@@ -58,4 +58,5 @@ extern void athame_char_handled();
 }
 #endif
 
+static char* athame_tok(char** pointer, char delim);
 #endif /* !_ATHAME_H_ */

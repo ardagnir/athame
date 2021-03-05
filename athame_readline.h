@@ -142,29 +142,51 @@ static char ap_handle_signals() {
 static char ap_delete;
 static char ap_special[KEYMAP_SIZE];
 static char ap_nl[KEYMAP_SIZE];
+static rl_command_func_t* special_functions[KEYMAP_SIZE];
 
 static void ap_set_control_chars() {
-  // In default readline these are: tab, <C-D>, <C-L>, and all the newline keys.
   int specialLen = 0;
   int nlLen = 0;
   ap_delete = '\x04';
+  char* specials = getenv("ATHAME_READLINE_SPECIAL");
+  if (!specials){
+    specials = "delete-char,complete,menu-complete,menu-complete-backward,clear-screen";
+  }
+  specials = strdup(specials);
+
+  char* special;
+  char* original_specials = specials;
+  while ((special = athame_tok(&specials, ',')) && specialLen < KEYMAP_SIZE-1){
+    for (int entry = 0; funmap[entry]; entry++) {
+      if (strcmp(funmap[entry]->name, special) == 0) {
+        special_functions[specialLen++] = funmap[entry]->function;
+      }
+    }
+  }
+  special_functions[specialLen] = '\0';
+  free(original_specials);
+
+  specialLen = 0;
   for (int key = 0; key < KEYMAP_SIZE; key++) {
     if (_rl_keymap[key].type == ISFUNC) {
-      if (_rl_keymap[key].function == rl_delete) {
-        ap_delete = key;
-        ap_special[specialLen++] = key;
-      } else if (_rl_keymap[key].function == rl_newline) {
+      if (_rl_keymap[key].function == rl_newline) {
         ap_special[specialLen++] = key;
         ap_nl[nlLen++] = key;
-      } else if (_rl_keymap[key].function == rl_complete ||
-                 _rl_keymap[key].function == rl_menu_complete ||
-                 _rl_keymap[key].function == rl_backward_menu_complete ||
-                 _rl_keymap[key].function == rl_clear_screen) {
-        ap_special[specialLen++] = key;
+      } else {
+        for (int entry = 0; special_functions[entry]; entry++){
+          if (_rl_keymap[key].function == special_functions[entry]){
+            ap_special[specialLen++] = key;
+          }
+        }
+      }
+
+      if (_rl_keymap[key].function == rl_delete) {
+        ap_delete = key;
       }
     }
   }
   ap_special[specialLen] = '\0';
+  ap_nl[nlLen] = '\0';
 }
 
 // Tells readline that we weren't in the middle of tab completion, search, etc.

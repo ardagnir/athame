@@ -109,7 +109,9 @@ static int ap_temp_novim() {
 
 static void ap_redraw_prompt() { resetprompt(NULL); }
 
-static void ap_display() { zrefresh(); }
+static void ap_display() { 
+  zrefresh();
+}
 
 static void ap_get_term_size(int* height, int* width) {
   adjustwinsize(1);
@@ -192,12 +194,55 @@ static char ap_handle_signals() {
   return 0;
 }
 
-static char* ap_nl = "\r\n";
-static char* ap_special = "\t\x04\r\n\x0c";
-static char ap_delete = '\x04';
+static char ap_nl[129];
+static char ap_special[129];
+static char ap_delete;
+
+static int zsh_is_special_thingy(Thingy t, char key){
+  // TODO: don't parse this variable for each char
+  // This is inefficient, but it's only run at startup.
+  char* specials = getenv("ATHAME_ZSH_SPECIAL");
+  if (!specials){
+    specials = "expand-or-complete,delete-char-or-list,clear-screen";
+  }
+  specials = strdup(specials);
+  char* special;
+  char* original_specials = specials;
+  while (special = athame_tok(&specials, ',')){
+   if (strcmp(t->nam, special) == 0){
+      free(original_specials);
+      return 1;
+    }
+  }
+  free(original_specials);
+  return 0;
+}
 
 static void ap_set_control_chars() {
-  // TODO: Lookup zsh control chars instead of assuming defaults.
+  int specialLen = 0;
+  int nlLen = 0;
+  char keystring[3];
+  keystring[1]='\0';
+  ap_delete = '\x04';
+  for (int key = 1; key<128; key++) {
+    keystring[0]=key;
+    metafy(keystring, 1, META_NOALLOC);
+    char* s;
+    Thingy t = keybind(curkeymap, keystring, &s);
+    if (t == t_acceptline) {
+      ap_special[specialLen++] = key;
+      ap_nl[nlLen++] = key;
+    } else if (t && zsh_is_special_thingy(t, key)) {
+      ap_special[specialLen++] = key;
+    }
+
+    // We need delete so we can send it to zsh. This is separate from whether or not it's a special key.
+    if (t == t_deletecharorlist) {
+      ap_delete = key;
+    }
+  }
+  ap_special[specialLen] = '\0';
+  ap_nl[nlLen] = '\0';
 }
 
 static void ap_set_nospecial() {

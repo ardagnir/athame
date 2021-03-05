@@ -28,7 +28,6 @@ static int athame_wait_for_file(char* file_name, int sanity, int char_break,
 static int athame_select(int file_desc1, int file_desc2, int timeout_sec,
                          int timeout_ms, int no_signals);
 static int athame_is_set(char* env, int def);
-static char* athame_tok(char** pointer, char delim);
 static long get_time();
 static void athame_force_vim_sync();
 
@@ -175,7 +174,7 @@ static int confirm_vim_start(int char_break, int instream) {
   int selected = athame_select(vim_term, char_break ? instream : -1,
                                char_break ? 5 : 1, 0, 1);
   if (selected == -1) {
-    athame_set_failure("Select interupted");
+    athame_set_failure("Select interrupted");
     return 1;
   }
   if (selected == 0) {
