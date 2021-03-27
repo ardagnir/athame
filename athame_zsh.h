@@ -197,6 +197,7 @@ static char ap_handle_signals() {
 static char ap_nl[129];
 static char ap_special[129];
 static char ap_delete;
+static char *ap_multi_special[129];
 
 static int zsh_is_special_thingy(Thingy t, char key){
   // TODO: don't parse this variable for each char
@@ -224,6 +225,7 @@ static void ap_set_control_chars() {
   char keystring[3];
   keystring[1]='\0';
   ap_delete = '\x04';
+  ap_multi_special[0] = 0;
   for (int key = 1; key<128; key++) {
     keystring[0]=key;
     metafy(keystring, 1, META_NOALLOC);

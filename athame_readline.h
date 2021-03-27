@@ -142,12 +142,14 @@ static char ap_handle_signals() {
 static char ap_delete;
 static char ap_special[KEYMAP_SIZE];
 static char ap_nl[KEYMAP_SIZE];
+static char ap_multi_special[KEYMAP_SIZE];
 static rl_command_func_t* special_functions[KEYMAP_SIZE];
 
 static void ap_set_control_chars() {
   int specialLen = 0;
   int nlLen = 0;
   ap_delete = '\x04';
+  ap_multi_special[0] = 0;
   char* specials = getenv("ATHAME_READLINE_SPECIAL");
   if (!specials){
     specials = "delete-char,complete,menu-complete,menu-complete-backward,clear-screen";

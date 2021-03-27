@@ -80,6 +80,10 @@ static void athame_init_sig(int instream, FILE* outstream) {
   athame_failure = 0;
   msg_sent = 0;
 
+  kq_start = 0;
+  kq_end = 0;
+  export_to = 0;
+
   dev_null = 0;
   fifo = 0;
 
@@ -275,6 +279,14 @@ static char athame_loop_sig(int instream) {
   if (first_char && strchr(ap_nl, first_char)) {
     return first_char;
   }
+
+  // Continue export of any keyseqs we're in the middle of
+  if (export_to > kq_start){
+    return key_queue[kq_start++];
+  } else {
+    export_to = 0;
+  }
+
   athame_ensure_vim(0, 0);
 
   // If we have a character already, assume Vim hasn't had time to sync.
@@ -287,7 +299,10 @@ static char athame_loop_sig(int instream) {
   }
 
   if (first_char && !athame_failure) {
-    returnVal = athame_process_char(first_char);
+    if (kq_end < DEFAULT_BUFFER_SIZE-1){
+      key_queue[kq_end++] = first_char;
+    }
+    athame_process_input(instream);
     first_char = 0;
   }
 

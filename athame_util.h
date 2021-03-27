@@ -103,6 +103,11 @@ static int end_row;  // For visual mode
 
 static int athame_dirty;
 
+static char key_queue[DEFAULT_BUFFER_SIZE];
+static int kq_start;
+static int kq_end;
+static int export_to;
+
 static int start_vim(int char_break, int instream) {
   if (char_break && athame_select(instream, -1, 0, 0, 0) > 0) {
     return 2;
@@ -886,14 +891,63 @@ static void athame_set_failure(char* fail_str) {
   athame_draw_failure();
 }
 
+#define ATHAME_NO_SEQ 0
+#define ATHAME_PARTIAL_SEQ 1
+#define ATHAME_COMPLETE_SEQ 2
+
+// Figure out if the queued keys match a special key sequence
+static int subkeyseq() {
+  int partial_match =0;
+  char* special;
+  for (int i=0; special=ap_multi_special[i]; i++) {
+    int match = 1;
+    for (int j=kq_start; j<kq_end; j++){
+      if (special[j-kq_start] == '\0') {
+        export_to = j;
+        return ATHAME_COMPLETE_SEQ;
+      }
+      if (special[j-kq_start] != key_queue[j]) {
+        match = 0;
+        break;
+      }
+    }
+    if (special[kq_end-kq_start] == '\0') {
+      export_to = kq_end;
+      return ATHAME_COMPLETE_SEQ;
+    }
+    if (match == 1){
+      partial_match = 1;
+    }
+  }
+  if (partial_match) {
+    return ATHAME_PARTIAL_SEQ;
+  }
+  return ATHAME_NO_SEQ;
+}
+
 static char athame_process_input(int instream) {
   char result;
-  int chars_read = read(instream, &result, 1);
-  if (chars_read == 1) {
-    return athame_process_char(result);
-  } else {
-    return EOF;
+  int seq_status = ATHAME_NO_SEQ;
+  if (kq_end == kq_start) {
+    kq_end = kq_start = 0;
   }
+  while (kq_start == kq_end ||
+      (seq_status = subkeyseq(key_queue)) == ATHAME_PARTIAL_SEQ) {
+    athame_sleep(5, 1, instream);
+    int chars_read = read(instream, &result, 1);
+    if (chars_read < 1) {
+      return EOF;
+    }
+    key_queue[kq_end++] = result;
+    if (kq_end >= DEFAULT_BUFFER_SIZE-1){
+      // TODO: add better handling for this. Maybe make into a ring buffer
+      break;
+    }
+  }
+  if (seq_status == ATHAME_COMPLETE_SEQ){
+    return key_queue[kq_start++];
+  }
+  return athame_process_char(key_queue[kq_start++]);
 }
 
 // Should we send the char to readline?
