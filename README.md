@@ -33,6 +33,8 @@ Yes, and if you're fine with basic vi imitations designed by a bunch of Emacs us
 
 You can now run ~/local/bin/bash to run bash with Athame.
 
+Now go to your terminal emulator's preferences and set this path as your default login shell
+
 ### Option 2: Install Athame as your default Readline 
 *For Ubuntu/Debian:*
 
@@ -67,7 +69,8 @@ You may need to rebuild bash if your installed version doesn't use your system r
 
 Add "unset zle_bracketed_paste" to the end of your ~/.zshrc
 
-You can now run ~/local/bin/zsh to run zsh with Athame.
+You can now run ~/local/bin/zsh to run zsh with Athame. 
+
 
 ### Option 2: Install Athame as your default Zsh 
 *Windows Note: zsh tests don't work in Windows because zsh gets stuck in the background. Add `--notest` to the setup script line if installing on Windows.*
