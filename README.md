@@ -22,11 +22,8 @@ Yes, and if you're fine with basic vi imitations designed by a bunch of Emacs us
       - The setup scripts will look for vim by default. You can append `--vimbin=$(which nvim)` to have them use nvim.
       
 ## Setting up Athame Readline
-### Option 1: (Arch Linux only) Use the AUR
-Use `readline-athame-git` from the AUR.
- - If you are missing the readline gpg key, you can get it with `gpg --recv-keys BB5869F064EA74AB`
 
-### Option 2: (The safest method) Install a local copy of Readline/Bash
+### Option 1: (The safest method) Install a local copy of Readline/Bash
     git clone --recursive http://github.com/ardagnir/athame
     cd athame
     mkdir -p ~/local
@@ -36,7 +33,9 @@ Use `readline-athame-git` from the AUR.
 
 You can now run ~/local/bin/bash to run bash with Athame.
 
-### Option 3: Install Athame as your default Readline 
+Now go to your terminal emulator's preferences and set this path as your default login shell
+
+### Option 2: Install Athame as your default Readline 
 *For Ubuntu/Debian:*
 
     git clone --recursive http://github.com/ardagnir/athame
@@ -58,12 +57,8 @@ You may need to rebuild bash if your installed version doesn't use your system r
 - You can change what Vim binary is used by passing `--vimbin=/path/to/vim` to the setup script.
 
 ## Setting up Athame Zsh
-### Option 1: (Arch Linux only) Use the AUR
-Use `zsh-athame-git` from the AUR.
-- If you are missing the zsh gpg key, you can get it with `gpg --recv-keys A71D9A9D4BDB27B3`
-- Add "unset zle_bracketed_paste" to the end of your ~/.zshrc
 
-### Option 2: (The safest method) Install a local copy of Zsh
+### Option 1: (The safest method) Install a local copy of Zsh
 *Windows Note: zsh tests don't work in Windows because zsh gets stuck in the background. Add `--notest` to the setup script line if installing on Windows.*
 
     git clone --recursive http://github.com/ardagnir/athame
@@ -74,9 +69,10 @@ Use `zsh-athame-git` from the AUR.
 
 Add "unset zle_bracketed_paste" to the end of your ~/.zshrc
 
-You can now run ~/local/bin/zsh to run zsh with Athame.
+You can now run ~/local/bin/zsh to run zsh with Athame. 
 
-### Option 3: Install Athame as your default Zsh 
+
+### Option 2: Install Athame as your default Zsh 
 *Windows Note: zsh tests don't work in Windows because zsh gets stuck in the background. Add `--notest` to the setup script line if installing on Windows.*
 
     git clone --recursive http://github.com/ardagnir/athame
